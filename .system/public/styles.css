@@ -356,8 +356,8 @@ textarea {
 
 .source-indicator {
   position: relative;
-  inline-size: calc(var(--icon-button-size) + 0.35rem);
-  block-size: calc(var(--icon-button-size) + 0.35rem);
+  inline-size: calc(var(--icon-button-size) + 0.8rem);
+  block-size: calc(var(--icon-button-size) + 0.8rem);
   display: grid;
   place-items: center;
   border: 0;
@@ -372,8 +372,8 @@ textarea {
 }
 
 .source-indicator__icon {
-  inline-size: 1.85rem;
-  block-size: 1.85rem;
+  inline-size: 2.3rem;
+  block-size: 2.3rem;
 }
 
 .source-indicator__bulb {
@@ -392,17 +392,18 @@ textarea {
   position: absolute;
   inset-block-start: 50%;
   inset-inline-start: 50%;
-  min-inline-size: 1.05rem;
-  block-size: 1.05rem;
-  padding-inline: 0.2rem;
+  min-inline-size: 1.2rem;
+  block-size: 1.2rem;
+  padding-inline: 0.28rem;
   border-radius: 999px;
   background: var(--ink);
   color: var(--surface);
-  font-size: 0.56rem;
+  font-size: 0.62rem;
   font-weight: 700;
-  line-height: 1.05rem;
+  line-height: 1.2rem;
   text-align: center;
-  transform: translate(-50%, -26%);
+  transform: translate(-50%, -18%);
+  z-index: 1;
 }
 
 .source-tooltip {
@@ -484,7 +485,7 @@ textarea {
 .clock-panel__date {
   line-height: 1.1;
   text-transform: uppercase;
-  transition: opacity 120ms ease;
+  transition: none;
 }
 
 .clock-panel__time {
@@ -506,7 +507,7 @@ textarea {
 
 .clock-panel.is-updating .clock-panel__time,
 .clock-panel.is-updating .clock-panel__date {
-  opacity: 0.9;
+  opacity: 1;
 }
 
 .chrome-button,

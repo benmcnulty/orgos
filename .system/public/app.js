@@ -60,6 +60,7 @@ let tabLayoutFrame = 0;
 let tabNavIndex = -1;
 let desktopNavIndex = 0;
 let navMode = "desktop";
+let keyboardNavigationVisible = false;
 let savingOrganizationId = null;
 let loadingOrganizationId = null;
 
@@ -259,13 +260,8 @@ function updateClock() {
   const day = dateParts.find((part) => part.type === "day")?.value ?? "";
   const year = dateParts.find((part) => part.type === "year")?.value ?? "";
 
-  clockPanel.classList.add("is-updating");
   clockTime.textContent = `${hour}:${minute} ${period}`.trim();
   clockDate.textContent = `${weekday}, ${month} ${day}, ${year}`;
-  window.clearTimeout(updateClock.timeoutId);
-  updateClock.timeoutId = window.setTimeout(() => {
-    clockPanel.classList.remove("is-updating");
-  }, 120);
 }
 
 function startClock() {
@@ -448,7 +444,10 @@ function getDesktopIcons() {
 function updateDesktopNavHighlight() {
   const icons = getDesktopIcons();
   icons.forEach((icon, index) => {
-    icon.classList.toggle("is-nav-highlighted", navMode === "desktop" && index === desktopNavIndex);
+    icon.classList.toggle(
+      "is-nav-highlighted",
+      keyboardNavigationVisible && navMode === "desktop" && index === desktopNavIndex,
+    );
   });
 }
 
@@ -466,6 +465,16 @@ function setNavMode(mode) {
   if (mode !== "header") {
     tabNavIndex = -1;
   }
+  updateNavigationHighlights();
+}
+
+function showKeyboardNavigation() {
+  keyboardNavigationVisible = true;
+  updateNavigationHighlights();
+}
+
+function hideKeyboardNavigation() {
+  keyboardNavigationVisible = false;
   updateNavigationHighlights();
 }
 
@@ -1310,7 +1319,7 @@ function applyTabNavHighlight() {
   headerTabs.querySelectorAll(".is-nav-highlighted").forEach((tab) => {
     tab.classList.remove("is-nav-highlighted");
   });
-  if (navMode !== "header") {
+  if (!keyboardNavigationVisible || navMode !== "header") {
     return;
   }
   const inactivePanelIds = getInactiveOpenPanelIds();
@@ -1330,6 +1339,7 @@ document.addEventListener("keydown", (event) => {
 
   if (event.key === " " || event.code === "Space") {
     event.preventDefault();
+    hideKeyboardNavigation();
     setNavMode("desktop");
     if (openPanelIds.length === 0) {
       showingDesktop = true;
@@ -1343,6 +1353,7 @@ document.addEventListener("keydown", (event) => {
 
   if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
     const delta = event.key === "ArrowRight" ? 1 : -1;
+    showKeyboardNavigation();
     if (navMode === "desktop") {
       if (icons.length < 2 || !showingDesktop) return;
       event.preventDefault();
@@ -1362,6 +1373,7 @@ document.addEventListener("keydown", (event) => {
 
   if (event.key === "ArrowDown") {
     event.preventDefault();
+    showKeyboardNavigation();
     if (navMode === "desktop") {
       if (!showingDesktop && activePanelId !== null) {
         showingDesktop = true;
@@ -1386,6 +1398,7 @@ document.addEventListener("keydown", (event) => {
 
   if (event.key === "ArrowUp") {
     event.preventDefault();
+    showKeyboardNavigation();
     if (navMode === "desktop" && inactivePanelIds.length > 0) {
       tabNavIndex = 0;
       setNavMode("header");
@@ -1400,6 +1413,7 @@ document.addEventListener("keydown", (event) => {
   }
 
   if (event.key === "Escape") {
+    hideKeyboardNavigation();
     setNavMode("desktop");
   }
 });
@@ -1423,6 +1437,7 @@ document.addEventListener("click", (event) => {
   if (!sourceIndicatorWrap.contains(event.target)) {
     sourceTooltip.hidden = true;
   }
+  hideKeyboardNavigation();
 });
 
 rescanSourcesButton.addEventListener("click", () => {

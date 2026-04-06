@@ -139,7 +139,6 @@ describe("ui regression baseline", () => {
     expect(script).toContain("navigator.wakeLock.request(\"screen\")");
     expect(script).toContain("document.documentElement.requestFullscreen()");
     expect(script).toContain("formatToParts(now)");
-    expect(script).toContain('clockPanel.classList.add("is-updating");');
     expect(script).toContain("function mergeDetectedSources(");
     expect(script).toContain("function renderSources()");
     expect(script).toContain("function renderOrganizations()");
@@ -150,6 +149,7 @@ describe("ui regression baseline", () => {
     expect(script).toContain("let tabNavIndex = -1;");
     expect(script).toContain("let desktopNavIndex = 0;");
     expect(script).toContain('let navMode = "desktop";');
+    expect(script).toContain("let keyboardNavigationVisible = false;");
     expect(script).toContain("let savingOrganizationId = null;");
     expect(script).toContain("let loadingOrganizationId = null;");
     expect(script).toContain("function updateSourceIndicator()");
@@ -157,6 +157,8 @@ describe("ui regression baseline", () => {
     expect(script).toContain("function updateDesktopNavHighlight()");
     expect(script).toContain("function getInactiveOpenPanelIds()");
     expect(script).toContain("function setNavMode(mode)");
+    expect(script).toContain("function showKeyboardNavigation()");
+    expect(script).toContain("function hideKeyboardNavigation()");
     expect(script).toContain("function clearTabNavHighlight()");
     expect(script).toContain("function applyTabNavHighlight()");
     expect(script).toContain("function applyTabWidths()");
@@ -181,6 +183,7 @@ describe("ui regression baseline", () => {
     expect(script).toContain("source.active && source.persisted");
     expect(script).toContain('if (event.key === "ArrowDown") {');
     expect(script).toContain('if (event.key === "ArrowUp") {');
+    expect(script).toContain('if (event.key === " " || event.code === "Space") {');
     expect(script).toContain('tabNavIndex = 0;');
     expect(script).toContain("void persistSources();");
     expect(script).toContain("openPanel(PANEL_ABOUT);");
