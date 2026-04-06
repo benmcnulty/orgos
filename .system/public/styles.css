@@ -248,9 +248,13 @@ textarea {
 }
 
 .header-tab.is-nav-highlighted {
-  outline: 2px solid rgba(17, 17, 17, 0.5);
+  outline: 2px solid rgba(17, 17, 17, 0.78);
   outline-offset: -2px;
-  opacity: 0.9;
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.45),
+    0 0 0 1px rgba(17, 17, 17, 0.08);
 }
 
 .header-tab.is-active::after {
@@ -352,8 +356,8 @@ textarea {
 
 .source-indicator {
   position: relative;
-  inline-size: var(--icon-button-size);
-  block-size: var(--icon-button-size);
+  inline-size: calc(var(--icon-button-size) + 0.35rem);
+  block-size: calc(var(--icon-button-size) + 0.35rem);
   display: grid;
   place-items: center;
   border: 0;
@@ -368,8 +372,8 @@ textarea {
 }
 
 .source-indicator__icon {
-  inline-size: 1.4rem;
-  block-size: 1.4rem;
+  inline-size: 1.85rem;
+  block-size: 1.85rem;
 }
 
 .source-indicator__bulb {
@@ -386,18 +390,19 @@ textarea {
 
 .source-indicator__count {
   position: absolute;
-  inset-block-start: 0.1rem;
-  inset-inline-end: 0.1rem;
-  min-inline-size: 1rem;
-  block-size: 1rem;
-  padding-inline: 0.18rem;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  min-inline-size: 1.05rem;
+  block-size: 1.05rem;
+  padding-inline: 0.2rem;
   border-radius: 999px;
   background: var(--ink);
   color: var(--surface);
-  font-size: 0.58rem;
+  font-size: 0.56rem;
   font-weight: 700;
-  line-height: 1rem;
+  line-height: 1.05rem;
   text-align: center;
+  transform: translate(-50%, -26%);
 }
 
 .source-tooltip {
@@ -479,9 +484,7 @@ textarea {
 .clock-panel__date {
   line-height: 1.1;
   text-transform: uppercase;
-  transition:
-    opacity 140ms ease,
-    transform 140ms ease;
+  transition: opacity 120ms ease;
 }
 
 .clock-panel__time {
@@ -503,8 +506,7 @@ textarea {
 
 .clock-panel.is-updating .clock-panel__time,
 .clock-panel.is-updating .clock-panel__date {
-  opacity: 0.82;
-  transform: translateY(-0.02rem);
+  opacity: 0.9;
 }
 
 .chrome-button,
@@ -769,6 +771,11 @@ textarea {
 .header-tab.is-nav-highlighted {
   outline: 2px solid rgba(17, 17, 17, 0.5);
   outline-offset: -2px;
+}
+
+.desktop-icon.is-nav-highlighted {
+  background: rgba(255, 255, 255, 0.54);
+  border-color: rgba(17, 17, 17, 0.34);
 }
 
 @keyframes subtlePulse {

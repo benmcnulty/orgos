@@ -265,7 +265,7 @@ function updateClock() {
   window.clearTimeout(updateClock.timeoutId);
   updateClock.timeoutId = window.setTimeout(() => {
     clockPanel.classList.remove("is-updating");
-  }, 140);
+  }, 120);
 }
 
 function startClock() {
@@ -1328,10 +1328,23 @@ document.addEventListener("keydown", (event) => {
   const icons = getDesktopIcons();
   const inactivePanelIds = getInactiveOpenPanelIds();
 
+  if (event.key === " " || event.code === "Space") {
+    event.preventDefault();
+    setNavMode("desktop");
+    if (openPanelIds.length === 0) {
+      showingDesktop = true;
+      activePanelId = null;
+    } else {
+      showingDesktop = !showingDesktop;
+    }
+    renderPanels();
+    return;
+  }
+
   if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
     const delta = event.key === "ArrowRight" ? 1 : -1;
     if (navMode === "desktop") {
-      if (icons.length < 2) return;
+      if (icons.length < 2 || !showingDesktop) return;
       event.preventDefault();
       desktopNavIndex = (desktopNavIndex + delta + icons.length) % icons.length;
       updateNavigationHighlights();
@@ -1350,6 +1363,11 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "ArrowDown") {
     event.preventDefault();
     if (navMode === "desktop") {
+      if (!showingDesktop && activePanelId !== null) {
+        showingDesktop = true;
+        renderPanels();
+        return;
+      }
       const panelId = desktopNavIndex === 0 ? PANEL_ABOUT : PANEL_SOURCES;
       openPanel(panelId);
       setNavMode("desktop");
@@ -1371,6 +1389,7 @@ document.addEventListener("keydown", (event) => {
     if (navMode === "desktop" && inactivePanelIds.length > 0) {
       tabNavIndex = 0;
       setNavMode("header");
+      headerTabsViewport.scrollTo({ left: 0, behavior: "smooth" });
       return;
     }
 
