@@ -279,15 +279,15 @@
             type="button"
             data-app-scope="system"
             data-panel-id="schedule"
-            aria-label="Open Schedule"
-            title="Open Schedule"
+            aria-label="Open Flow"
+            title="Open Flow"
           >
             <svg class="desktop-icon__graphic" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
               <rect class="desktop-icon__stroke" x="9" y="14" width="46" height="40" rx="5" />
               <path class="desktop-icon__stroke" d="M9 27h46M22 9v10M42 9v10" />
               <path class="desktop-icon__stroke" d="M21 38h5M31 38h5M41 38h5M21 47h5M31 47h5" />
             </svg>
-            <span class="desktop-icon__label">Schedule</span>
+            <span class="desktop-icon__label">Flow</span>
           </button>
 
           <button
@@ -348,15 +348,15 @@
             type="button"
             data-app-scope="organization"
             data-panel-id="hire"
-            aria-label="Open Hire"
-            title="Open Hire"
+            aria-label="Open Staff"
+            title="Open Staff"
           >
             <svg class="desktop-icon__graphic" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
               <circle class="desktop-icon__stroke" cx="24" cy="20" r="7" />
               <path class="desktop-icon__stroke" d="M12 43c0-8 5.4-14 12-14s12 6 12 14" />
               <path class="desktop-icon__stroke" d="M43 18h13M49.5 11.5v13" />
             </svg>
-            <span class="desktop-icon__label">Hire</span>
+            <span class="desktop-icon__label">Staff</span>
           </button>
 
           <button
@@ -648,7 +648,7 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Inspect the MCP tools registered with orgos.</p>
+                  <p class="panel-copy">Inspect the shared tools available to orgos and its agents.</p>
                   <p class="panel-scan-state panel-scan-state--hidden" id="tools-state" aria-live="polite">Ready</p>
                 </div>
                 <div class="panel-layout panel-layout--tools">
@@ -662,16 +662,16 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Schedule recurring agent tasks for orgos.</p>
+                  <p class="panel-copy">Sequence continuous objective-driven work without idle calendar gaps.</p>
                   <div class="panel-copy-row__actions">
-                    <button class="chrome-button panel-copy-row__button" id="add-schedule-task" type="button">new task</button>
+                    <button class="chrome-button panel-copy-row__button" id="add-schedule-task" type="button">new flow</button>
                     <p class="panel-scan-state panel-scan-state--hidden" id="schedule-state" aria-live="polite">Ready</p>
                   </div>
                 </div>
                 <div class="panel-layout panel-layout--schedule">
-                  <aside class="panel-sidebar" aria-label="Scheduled tasks">
+                  <aside class="panel-sidebar" aria-label="Flow objectives">
                     <div class="panel-section-header">
-                      <p class="panel-section-header__eyebrow">scheduled tasks</p>
+                      <p class="panel-section-header__eyebrow">flows</p>
                     </div>
                     <div class="source-menu" id="schedule-list"></div>
                   </aside>
@@ -747,13 +747,13 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Shape the organization, teams, roles, and hired agent assignments.</p>
+                  <p class="panel-copy">Staff the organization with departments, teams, roles, and persistent identities.</p>
                   <p class="panel-scan-state panel-scan-state--hidden" id="hire-state" aria-live="polite">Ready</p>
                 </div>
                 <div class="panel-layout panel-layout--hire">
-                  <aside class="panel-sidebar" aria-label="Organization structure">
+                  <aside class="panel-sidebar" aria-label="Staff structure">
                     <div class="panel-section-header">
-                      <p class="panel-section-header__eyebrow">org chart</p>
+                      <p class="panel-section-header__eyebrow">staff</p>
                     </div>
                     <div class="source-menu" id="hire-menu"></div>
                     <div class="panel-footer panel-footer--triple">
@@ -987,6 +987,10 @@
               <option value="">unavailable</option>
             </select>
           </label>
+          <div class="field">
+            <span class="field__label">context</span>
+            <p class="field__static" data-role="context-window">128k</p>
+          </div>
         </div>
 
         <div class="source-card__controls">

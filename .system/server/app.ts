@@ -16,6 +16,7 @@ export type InferenceStatus = {
   address: string;
   available: boolean;
   checkedAt: string;
+  contextWindow: number;
   detail: string;
   hostname: string;
   instructions: string[];
@@ -29,6 +30,7 @@ export type InferenceStatus = {
 export type DiscoveredInferenceSource = {
   address: string;
   available: boolean;
+  contextWindow: number;
   detail: string;
   hostname: string;
   models: string[];
@@ -40,6 +42,7 @@ export type DiscoveredInferenceSource = {
 type StoredSource = {
   active: boolean;
   address: string;
+  contextWindow: number;
   id: string;
   kind: "local_default" | "saved";
   labelCustomized: boolean;
@@ -159,12 +162,13 @@ type ScheduledTask = {
   assigneeValue: string;
   id: string;
   name: string;
-  cronExpression: string;
+  cadence: string;
   enabled: boolean;
   createdAt: string;
   lastRunAt: string | null;
-  nextRunAt: string | null;
   notes: string;
+  objective: string;
+  trigger: "auto" | "manual" | "queue_relief" | "reflection" | "consolidation";
 };
 
 type MeetingRecord = {
@@ -214,6 +218,7 @@ type HireTeam = {
 type HireRole = {
   assigneeLabel: string;
   createdAt: string;
+  identityId: string;
   id: string;
   notes: string;
   status: "assigned" | "open";
@@ -226,10 +231,39 @@ type HireRole = {
 
 type HireState = {
   departments: HireDepartment[];
+  identities: IdentityRecord[];
   roles: HireRole[];
   teams: HireTeam[];
   updatedAt: string;
   version: number;
+};
+
+type IdentityRecord = {
+  createdAt: string;
+  employeeNumber: number;
+  id: string;
+  influence: string;
+  memoryRoot: string;
+  name: string;
+  personaSummary: string;
+  promptFile: string;
+  roleId: string;
+  roleTitle: string;
+  systemRole: boolean;
+  templateName: string;
+  updatedAt: string;
+};
+
+type MemoryIndexRecord = {
+  createdAt: string;
+  id: string;
+  memoryRoot: string;
+  name: string;
+  personaSummary: string;
+  roleId: string;
+  roleTitle: string;
+  sections: Array<{ file: string; key: string; label: string }>;
+  updatedAt: string;
 };
 
 type ProjectRecord = {
@@ -501,6 +535,7 @@ export async function probeInferenceSource(
     address: service,
     available: false,
     checkedAt,
+    contextWindow: 128000,
     detail:
       "orgos could not verify an Ollama inference source at the configured address.",
     hostname: normalizedAddress ? new URL(normalizedAddress).hostname : "",
@@ -576,6 +611,7 @@ export async function probeInferenceSource(
         address: normalizedAddress,
         available: true,
         checkedAt,
+        contextWindow: availableModels.includes("gemma4:26b") ? 256000 : 128000,
         detail,
         hostname: new URL(normalizedAddress).hostname,
         instructions: [],
@@ -595,6 +631,7 @@ export async function probeInferenceSource(
       address: normalizedAddress,
       available: true,
       checkedAt,
+      contextWindow: availableModels.includes("gemma4:26b") ? 256000 : 128000,
       detail:
         "Ollama is available and gemma4:latest is ready for orgos.",
       hostname: new URL(normalizedAddress).hostname,
@@ -627,6 +664,7 @@ export async function discoverInferenceSources(
     {
       address: localhost.address,
       available: localhost.available,
+      contextWindow: localhost.contextWindow,
       detail: localhost.detail,
       hostname: localhost.hostname || "localhost",
       models: localhost.models,
@@ -693,6 +731,7 @@ export async function discoverInferenceSources(
       discovered.push({
         address: result.address,
         available: result.available,
+        contextWindow: result.contextWindow,
         detail: result.detail,
         hostname: result.hostname || new URL(result.address).hostname,
         models: result.models,
@@ -721,17 +760,29 @@ export function createOrgosApp(rootDir: string): OrgosApp {
   const deletedDir = path.join(systemDir, "deleted");
   const agentsDir = path.join(rootDir, ".agents");
   const skillsDir = path.join(rootDir, ".skills");
-  const scheduleConfigPath = path.join(systemDir, "schedule.json");
   const watchDirs = [
     publicDir,
     dataDir,
     path.join(rootDir, ".system", "server"),
   ];
 
+  function resolveSourceContextWindow(source: Partial<StoredSource>) {
+    const model = source.model ?? "";
+    const tier = source.tier;
+    if (typeof source.contextWindow === "number" && Number.isFinite(source.contextWindow)) {
+      return source.contextWindow;
+    }
+    if (tier === "top" && model === "gemma4:26b") {
+      return 256000;
+    }
+    return 128000;
+  }
+
   function createDefaultStoredSource(): StoredSource {
     return {
       active: true,
       address: "http://127.0.0.1:11434",
+      contextWindow: 128000,
       id: "source-localhost",
       kind: "local_default",
       labelCustomized: false,
@@ -773,6 +824,11 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       return fallback;
     }
 
+    config.sources = config.sources.map((source) => ({
+      ...source,
+      contextWindow: resolveSourceContextWindow(source),
+    }));
+
     if (!config.sources.some((source) => source.kind === "local_default")) {
       config.sources.unshift(createDefaultStoredSource());
       await writeJsonFile(sourcesConfigPath, config);
@@ -798,6 +854,7 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       deduped.set(normalizedAddress, {
         active: Boolean(source.active),
         address: normalizedAddress,
+        contextWindow: resolveSourceContextWindow(source),
         id: source.id || crypto.randomUUID(),
         kind: source.kind === "local_default" ? "local_default" : "saved",
         labelCustomized: Boolean(source.labelCustomized),
@@ -820,7 +877,11 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       sources: orderedAddresses
         .filter((address, index, list) => list.indexOf(address) === index)
         .map((address) => deduped.get(address))
-        .filter((source): source is StoredSource => Boolean(source)),
+        .filter((source): source is StoredSource => Boolean(source))
+        .map((source) => ({
+          ...source,
+          contextWindow: resolveSourceContextWindow(source),
+        })),
       version: 1,
     };
 
@@ -945,9 +1006,31 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     return readJsonOrDefault<T>(organizationDataPath(orgId, fileName), fallback);
   }
 
+  async function readOrganizationScopedJsonWithFallbacks<T>(
+    orgId: string,
+    fileNames: string[],
+    fallback: T,
+  ) {
+    for (const fileName of fileNames) {
+      const filePath = organizationDataPath(orgId, fileName);
+      if (existsSync(filePath)) {
+        return readJsonOrDefault<T>(filePath, fallback);
+      }
+    }
+    return fallback;
+  }
+
   async function writeOrganizationScopedJson<T>(orgId: string, fileName: string, value: T) {
     await mkdir(path.join(organizationsDir, orgId), { recursive: true });
     await writeJsonFile(organizationDataPath(orgId, fileName), value);
+  }
+
+  async function ensureMemoryFile(filePath: string, content: string) {
+    if (existsSync(filePath)) {
+      return;
+    }
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await writeFile(filePath, content, "utf8");
   }
 
   function parseBulletList(value: string) {
@@ -1072,38 +1155,43 @@ export function createOrgosApp(rootDir: string): OrgosApp {
 
   // ── Schedule CRUD ─────────────────────────────────────────────────────────
 
-  async function readSchedule(orgId: string): Promise<ScheduledTask[]> {
-    const tasks = await readOrganizationScopedJson<ScheduledTask[]>(orgId, "schedule.json", []);
+  async function readFlow(orgId: string): Promise<ScheduledTask[]> {
+    const tasks = await readOrganizationScopedJsonWithFallbacks<ScheduledTask[]>(
+      orgId,
+      ["flow.json", "schedule.json"],
+      [],
+    );
     return Array.isArray(tasks) ? tasks : [];
   }
 
-  async function writeScheduleTask(orgId: string, task: Partial<ScheduledTask>) {
-    const tasks = await readSchedule(orgId);
+  async function writeFlowTask(orgId: string, task: Partial<ScheduledTask>) {
+    const tasks = await readFlow(orgId);
     const now = new Date().toISOString();
     const existing = task.id ? tasks.find((t) => t.id === task.id) : null;
     const updated: ScheduledTask = {
       agentId: task.agentId ?? existing?.agentId ?? "",
       assigneeType: task.assigneeType ?? existing?.assigneeType ?? "agent_template",
       assigneeValue: task.assigneeValue ?? existing?.assigneeValue ?? "",
+      cadence: task.cadence ?? task.cronExpression ?? existing?.cadence ?? existing?.cronExpression ?? "continuous",
       createdAt: existing?.createdAt ?? now,
-      cronExpression: task.cronExpression ?? existing?.cronExpression ?? "",
       enabled: task.enabled ?? existing?.enabled ?? true,
       id: task.id ?? crypto.randomUUID(),
       lastRunAt: existing?.lastRunAt ?? null,
       name: task.name ?? existing?.name ?? "",
-      nextRunAt: task.nextRunAt ?? existing?.nextRunAt ?? null,
       notes: task.notes ?? existing?.notes ?? "",
+      objective: task.objective ?? existing?.objective ?? "",
+      trigger: task.trigger ?? existing?.trigger ?? "auto",
     };
     const rest = tasks.filter((t) => t.id !== updated.id);
-    await writeOrganizationScopedJson(orgId, "schedule.json", [...rest, updated]);
+    await writeOrganizationScopedJson(orgId, "flow.json", [...rest, updated]);
     return updated;
   }
 
-  async function deleteScheduleTask(orgId: string, id: string) {
-    const tasks = await readSchedule(orgId);
+  async function deleteFlowTask(orgId: string, id: string) {
+    const tasks = await readFlow(orgId);
     const filtered = tasks.filter((t) => t.id !== id);
     if (filtered.length === tasks.length) return false;
-    await writeOrganizationScopedJson(orgId, "schedule.json", filtered);
+    await writeOrganizationScopedJson(orgId, "flow.json", filtered);
     return true;
   }
 
@@ -1191,9 +1279,10 @@ export function createOrgosApp(rootDir: string): OrgosApp {
 
   // ── Hire / Projects / Evals CRUD ────────────────────────────────────────
 
-  async function readHireState(orgId: string): Promise<HireState> {
-    const state = await readOrganizationScopedJson<HireState>(orgId, "hire.json", {
+  async function readStaffState(orgId: string): Promise<HireState> {
+    const state = await readOrganizationScopedJsonWithFallbacks<HireState>(orgId, ["staff.json", "hire.json"], {
       departments: [],
+      identities: [],
       roles: [],
       teams: [],
       updatedAt: "",
@@ -1201,6 +1290,7 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     });
     return {
       departments: Array.isArray(state.departments) ? state.departments : [],
+      identities: Array.isArray(state.identities) ? state.identities : [],
       roles: Array.isArray(state.roles) ? state.roles : [],
       teams: Array.isArray(state.teams) ? state.teams : [],
       updatedAt: state.updatedAt ?? "",
@@ -1208,16 +1298,17 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     };
   }
 
-  async function writeHireState(orgId: string, nextState: Partial<HireState>) {
-    const current = await readHireState(orgId);
+  async function writeStaffState(orgId: string, nextState: Partial<HireState>) {
+    const current = await readStaffState(orgId);
     const merged: HireState = {
       departments: Array.isArray(nextState.departments) ? nextState.departments : current.departments,
+      identities: Array.isArray(nextState.identities) ? nextState.identities : current.identities,
       roles: Array.isArray(nextState.roles) ? nextState.roles : current.roles,
       teams: Array.isArray(nextState.teams) ? nextState.teams : current.teams,
       updatedAt: new Date().toISOString(),
       version: 1,
     };
-    await writeOrganizationScopedJson(orgId, "hire.json", merged);
+    await writeOrganizationScopedJson(orgId, "staff.json", merged);
     return merged;
   }
 
@@ -1288,6 +1379,218 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     if (next.length === current.length) return false;
     await writeOrganizationScopedJson(orgId, "evals.json", next);
     return true;
+  }
+
+  function buildIdentityName(roleTitle: string, employeeNumber: number) {
+    const prefixes = ["Aster", "Meridian", "Lattice", "Harbor", "Signal", "North", "Cinder"];
+    const suffixes = ["Vale", "Forge", "Quill", "Bridge", "Field", "Frame", "Works"];
+    const hash = [...roleTitle].reduce((total, char) => total + char.charCodeAt(0), employeeNumber);
+    return `${prefixes[hash % prefixes.length]} ${suffixes[(hash * 3) % suffixes.length]}`;
+  }
+
+  function buildIdentitySummary(roleTitle: string, organizationName: string) {
+    const summaries: Record<string, string> = {
+      CEO: `Strategic executive identity for ${organizationName}, optimized for synthesis, prioritization, and decisive organizational framing.`,
+      COO: `Operational executive identity for ${organizationName}, optimized for sequencing, coordination, and throughput discipline.`,
+      CTO: `Technical executive identity for ${organizationName}, optimized for tooling, JavaScript systems, and bespoke capability creation.`,
+      Facilitator: `Facilitation identity for ${organizationName}, optimized for agenda shaping, scope discipline, and consensus hygiene.`,
+    };
+    return summaries[roleTitle] ?? `Role identity for ${organizationName}, shaped to execute ${roleTitle} work with disciplined judgment.`;
+  }
+
+  function buildIdentityInfluence(roleTitle: string) {
+    const influences: Record<string, string> = {
+      CEO: "Outside-work-optimal influence: calm board-level judgment, selective ambition, and disciplined synthesis under ambiguity.",
+      COO: "Outside-work-optimal influence: logistics instinct, process clarity, and a bias toward smooth operational handoffs.",
+      CTO: "Outside-work-optimal influence: curious builder energy, code craftsmanship, and controlled experimentation.",
+      Facilitator: "Outside-work-optimal influence: moderator poise, agenda stewardship, and active listening discipline.",
+    };
+    return influences[roleTitle] ?? "Outside-work-optimal influence: role-shaped judgment with creative variability and measured restraint.";
+  }
+
+  async function ensureIdentityMemory(orgId: string, identity: IdentityRecord) {
+    const memoryRoot = path.join(organizationsDir, orgId, "memory", identity.id);
+    const sections = [
+      { file: "PROFILE.md", key: "profile", label: "Profile" },
+      { file: "working/WORKING_MEMORY.md", key: "working", label: "Working memory" },
+      { file: "long-term/LONG_TERM_MEMORY.md", key: "longTerm", label: "Long-term memory" },
+      { file: "reflections/RETROSPECTIVE.md", key: "reflections", label: "Reflections" },
+    ];
+
+    await ensureMemoryFile(
+      path.join(memoryRoot, "identity.json"),
+      `${JSON.stringify(identity, null, 2)}\n`,
+    );
+    await ensureMemoryFile(
+      path.join(memoryRoot, "PROFILE.md"),
+      `# ${identity.name}\n\n- Role: ${identity.roleTitle}\n- Persona: ${identity.personaSummary}\n- Influence: ${identity.influence}\n`,
+    );
+    await ensureMemoryFile(
+      path.join(memoryRoot, "working", "WORKING_MEMORY.md"),
+      `# Working Memory\n\nCurrent priorities, open threads, and live coordination notes for ${identity.name}.\n`,
+    );
+    await ensureMemoryFile(
+      path.join(memoryRoot, "long-term", "LONG_TERM_MEMORY.md"),
+      `# Long-Term Memory\n\nDurable knowledge, decisions, and reusable patterns for ${identity.name}.\n`,
+    );
+    await ensureMemoryFile(
+      path.join(memoryRoot, "reflections", "RETROSPECTIVE.md"),
+      `# Retrospective\n\nOngoing self-observation and improvement notes for ${identity.name}.\n`,
+    );
+
+    const index: MemoryIndexRecord = {
+      createdAt: identity.createdAt,
+      id: identity.id,
+      memoryRoot: identity.memoryRoot,
+      name: identity.name,
+      personaSummary: identity.personaSummary,
+      roleId: identity.roleId,
+      roleTitle: identity.roleTitle,
+      sections,
+      updatedAt: new Date().toISOString(),
+    };
+    await ensureMemoryFile(
+      path.join(memoryRoot, "index.json"),
+      `${JSON.stringify(index, null, 2)}\n`,
+    );
+    return index;
+  }
+
+  async function ensureAutoBootstrap(orgId: string) {
+    const organization = await readOrganizationAbout(orgId);
+    if (!organization) return null;
+
+    let staff = await readStaffState(orgId);
+    const now = new Date().toISOString();
+    const departmentName = "Executive";
+    let department = staff.departments.find((entry) => entry.name === departmentName);
+    if (!department) {
+      department = {
+        createdAt: now,
+        id: crypto.randomUUID(),
+        name: departmentName,
+        summary: "Core executive leadership for orgos autonomous operation.",
+        updatedAt: now,
+      };
+      staff.departments.unshift(department);
+    }
+
+    const teamName = "Leadership";
+    let team = staff.teams.find((entry) => entry.name === teamName);
+    if (!team) {
+      team = {
+        createdAt: now,
+        departmentId: department.id,
+        id: crypto.randomUUID(),
+        name: teamName,
+        summary: "Executive decision-making and organizational guidance.",
+        updatedAt: now,
+      };
+      staff.teams.unshift(team);
+    }
+
+    const defaults = [
+      { employeeNumber: 0, roleTitle: "CEO", templateName: "CEO", tier: "top" as TierLevel, systemRole: false },
+      { employeeNumber: 1, roleTitle: "COO", templateName: "COO", tier: "mid" as TierLevel, systemRole: false },
+      { employeeNumber: 2, roleTitle: "CTO", templateName: "CTO", tier: "top" as TierLevel, systemRole: false },
+      { employeeNumber: 3, roleTitle: "Facilitator", templateName: "Facilitator", tier: "mid" as TierLevel, systemRole: true },
+    ];
+
+    for (const entry of defaults) {
+      let role = staff.roles.find((item) => item.title === entry.roleTitle);
+      if (!role) {
+        role = {
+          assigneeLabel: "",
+          createdAt: now,
+          id: crypto.randomUUID(),
+          identityId: "",
+          notes: `${entry.roleTitle} role for autonomous org bootstrap.`,
+          status: "assigned",
+          teamId: team.id,
+          templateName: entry.templateName,
+          tier: entry.tier,
+          title: entry.roleTitle,
+          updatedAt: now,
+        };
+        staff.roles.push(role);
+      }
+      let identity = staff.identities.find((item) => item.roleId === role.id);
+      if (!identity) {
+        identity = {
+          createdAt: now,
+          employeeNumber: entry.employeeNumber,
+          id: crypto.randomUUID(),
+          influence: buildIdentityInfluence(entry.roleTitle),
+          memoryRoot: `memory/${role.id}`,
+          name: buildIdentityName(entry.roleTitle, entry.employeeNumber),
+          personaSummary: buildIdentitySummary(entry.roleTitle, organization.name),
+          promptFile: `prompts/agents/${entry.roleTitle.toLowerCase()}-system.txt`,
+          roleId: role.id,
+          roleTitle: entry.roleTitle,
+          systemRole: entry.systemRole,
+          templateName: entry.templateName,
+          updatedAt: now,
+        };
+        staff.identities.push(identity);
+      }
+      role.identityId = identity.id;
+      role.assigneeLabel = identity.name;
+      role.status = "assigned";
+      await ensureIdentityMemory(orgId, identity);
+    }
+
+    staff = await writeStaffState(orgId, staff);
+    const flow = await readFlow(orgId);
+    if (flow.length === 0) {
+      await writeOrganizationScopedJson(orgId, "flow.json", [
+        {
+          agentId: "",
+          assigneeType: "role_assignment",
+          assigneeValue: "CEO",
+          cadence: "continuous",
+          createdAt: now,
+          enabled: true,
+          id: crypto.randomUUID(),
+          lastRunAt: null,
+          name: "Executive bootstrap",
+          notes: "Review the organization, define next capability steps, and dispatch initial objectives.",
+          objective: "Initialize the autonomous executive operating cadence for orgos.",
+          trigger: "auto",
+        },
+        {
+          agentId: "",
+          assigneeType: "role_assignment",
+          assigneeValue: "Facilitator",
+          cadence: "cycle",
+          createdAt: now,
+          enabled: true,
+          id: crypto.randomUUID(),
+          lastRunAt: null,
+          name: "Facilitated reflection cycle",
+          notes: "Keep meeting scope, retrospectives, and memory consolidation bounded and productive.",
+          objective: "Run a bounded facilitation and reflection cycle for active work.",
+          trigger: "reflection",
+        },
+      ]);
+    }
+
+    const memoryIndex = {
+      generatedAt: now,
+      identities: staff.identities.map((identity) => ({
+        id: identity.id,
+        memoryRoot: identity.memoryRoot,
+        name: identity.name,
+        roleTitle: identity.roleTitle,
+      })),
+      organizationId: orgId,
+      version: 1,
+    };
+    await writeOrganizationScopedJson(orgId, path.join("memory", "index.json"), memoryIndex);
+    return {
+      flow: await readFlow(orgId),
+      memoryIndex,
+      staff,
+    };
   }
 
   // ── Node telemetry polling ────────────────────────────────────────────────
@@ -1839,12 +2142,12 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       ) ?? null
       : null;
     const orgId = organizationsState.activeOrganizationId;
-    const [schedule, meetings, mailInbox, hire, projects, evals] = orgId
+    const [flow, meetings, mailInbox, staff, projects, evals] = orgId
       ? await Promise.all([
-        readSchedule(orgId),
+        readFlow(orgId),
         listMeetings(orgId),
         listMail(orgId, "inbox"),
-        readHireState(orgId),
+        readStaffState(orgId),
         readProjects(orgId),
         readEvals(orgId),
       ])
@@ -1857,14 +2160,15 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       filesystem: {
         roots: buildFilesystemRoots(activeOrganization),
       },
-      hire,
+      flow,
+      memory: orgId ? await readOrganizationScopedJsonWithFallbacks(orgId, [path.join("memory", "index.json")], { identities: [], version: 1 }) : { identities: [], version: 1 },
       mailInbox,
       meetings,
       organizations: organizationsState.organizations,
       activeOrganizationId: organizationsState.activeOrganizationId,
       projects,
       queue: getQueueSnapshot(),
-      schedule,
+      staff,
       skills,
       sources: sourcesConfig.sources,
     };
@@ -1980,6 +2284,14 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       const payload = (await request.json()) as Partial<AppearanceConfig>;
       const config = await writeAppearanceConfig(payload);
       return Response.json(config);
+    }
+
+    if (url.pathname === "/api/system/auto-bootstrap" && request.method === "POST") {
+      const payload = (await request.json()) as { orgId?: string };
+      if (!payload.orgId) return new Response("Bad Request", { status: 400 });
+      const result = await ensureAutoBootstrap(payload.orgId);
+      if (!result) return new Response("Not Found", { status: 404 });
+      return Response.json(result);
     }
 
     if (url.pathname === "/api/files/list") {
@@ -2278,31 +2590,44 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     // ── Tools API ────────────────────────────────────────────────────────────
 
     if (url.pathname === "/api/tools/list") {
-      // Returns the skill-based tool registry derived from .skills/ directory
       const skills = await listSkillFiles();
-      return Response.json({ tools: skills });
+      const tools = [
+        { name: "sources.inspect", file: "/api/inference/discover", scope: "system" },
+        { name: "sources.save", file: "/api/system/sources", scope: "system" },
+        { name: "files.list", file: "/api/files/list", scope: "system|organization" },
+        { name: "files.write", file: "/api/text/write", scope: "system|organization" },
+        { name: "memory.bootstrap", file: "/api/system/auto-bootstrap", scope: "organization" },
+        { name: "staff.write", file: "/api/staff/write", scope: "organization" },
+        { name: "flow.write", file: "/api/flow/create", scope: "organization" },
+        { name: "mail.write", file: "/api/mail/write", scope: "organization" },
+        { name: "meet.write", file: "/api/meet/write", scope: "organization" },
+        { name: "projects.write", file: "/api/projects/write", scope: "organization" },
+        { name: "evals.write", file: "/api/evals/write", scope: "organization" },
+        { name: "skills.registry", file: ".skills/", scope: "system" },
+      ];
+      return Response.json({ tools, skills });
     }
 
-    // ── Schedule API ─────────────────────────────────────────────────────────
+    // ── Flow API ─────────────────────────────────────────────────────────────
 
-    if (url.pathname === "/api/schedule/list") {
+    if (url.pathname === "/api/flow/list" || url.pathname === "/api/schedule/list") {
       const orgId = url.searchParams.get("orgId");
       if (!orgId) return new Response("Bad Request", { status: 400 });
-      const tasks = await readSchedule(orgId);
+      const tasks = await readFlow(orgId);
       return Response.json({ tasks });
     }
 
-    if (url.pathname === "/api/schedule/create" && request.method === "POST") {
+    if ((url.pathname === "/api/flow/create" || url.pathname === "/api/schedule/create") && request.method === "POST") {
       const payload = (await request.json()) as { orgId?: string } & Partial<ScheduledTask>;
       if (!payload.orgId) return new Response("Bad Request", { status: 400 });
-      const task = await writeScheduleTask(payload.orgId, payload);
+      const task = await writeFlowTask(payload.orgId, payload);
       return Response.json(task);
     }
 
-    if (url.pathname === "/api/schedule/delete" && request.method === "POST") {
+    if ((url.pathname === "/api/flow/delete" || url.pathname === "/api/schedule/delete") && request.method === "POST") {
       const payload = (await request.json()) as { id?: string; orgId?: string };
       if (!payload.id || !payload.orgId) return new Response("Bad Request", { status: 400 });
-      const ok = await deleteScheduleTask(payload.orgId, payload.id);
+      const ok = await deleteFlowTask(payload.orgId, payload.id);
       if (!ok) return new Response("Not Found", { status: 404 });
       return Response.json({ ok: true });
     }
@@ -2375,18 +2700,18 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       return Response.json(updated);
     }
 
-    if (url.pathname === "/api/hire/read") {
+    if (url.pathname === "/api/staff/read" || url.pathname === "/api/hire/read") {
       const orgId = url.searchParams.get("orgId");
       if (!orgId) return new Response("Bad Request", { status: 400 });
-      const hire = await readHireState(orgId);
-      return Response.json(hire);
+      const staff = await readStaffState(orgId);
+      return Response.json(staff);
     }
 
-    if (url.pathname === "/api/hire/write" && request.method === "POST") {
+    if ((url.pathname === "/api/staff/write" || url.pathname === "/api/hire/write") && request.method === "POST") {
       const payload = (await request.json()) as { orgId?: string } & Partial<HireState>;
       if (!payload.orgId) return new Response("Bad Request", { status: 400 });
-      const hire = await writeHireState(payload.orgId, payload);
-      return Response.json(hire);
+      const staff = await writeStaffState(payload.orgId, payload);
+      return Response.json(staff);
     }
 
     if (url.pathname === "/api/projects/list") {

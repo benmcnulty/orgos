@@ -821,6 +821,7 @@ function createSourceRecord(overrides = {}) {
     active: false,
     address: "",
     availableModels: [],
+    contextWindow: 128000,
     detail: "Configure and verify this inference source.",
     hostname: "",
     id: crypto.randomUUID(),
@@ -875,10 +876,21 @@ function defaultLocalSourceName() {
   return "Localhost Ollama";
 }
 
+function resolveSourceContextWindow(source) {
+  if (typeof source.contextWindow === "number" && Number.isFinite(source.contextWindow)) {
+    return source.contextWindow;
+  }
+  if (source.tier === "top" && source.model === "gemma4:26b") {
+    return 256000;
+  }
+  return 128000;
+}
+
 function normalizeSavedSource(value) {
   return createSourceRecord({
     active: Boolean(value.active),
     address: value.address ?? "",
+    contextWindow: resolveSourceContextWindow(value),
     id: value.id ?? crypto.randomUUID(),
     kind: value.kind === SOURCE_KIND_LOCAL ? SOURCE_KIND_LOCAL : SOURCE_KIND_SAVED,
     labelCustomized: Boolean(value.labelCustomized),
@@ -971,6 +983,32 @@ function renderSystemMode() {
   modeToggle.setAttribute("aria-label", `System ${isAuto ? "auto" : "idle"} mode`);
   modeToggle.title = `System ${isAuto ? "auto" : "idle"} mode`;
   modeToggleLabel.textContent = isAuto ? "auto" : "idle";
+}
+
+async function bootstrapAutoMode() {
+  if (systemMode !== "auto" || !activeOrganizationId) {
+    return;
+  }
+
+  try {
+    await fetchJson("/api/system/auto-bootstrap", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ orgId: activeOrganizationId }),
+    });
+    await Promise.all([
+      loadSchedulePanelData(),
+      loadHirePanelData(),
+      loadProjectsPanelData(),
+      loadEvalsPanelData(),
+      loadMailPanelData(),
+      loadMeetPanelData(),
+    ]);
+    setAboutState("Auto bootstrap ready");
+  } catch (error) {
+    console.error(error);
+    setAboutState("Auto bootstrap failed");
+  }
 }
 
 function setColorState(message, busy = false) {
@@ -1465,15 +1503,22 @@ function panelLabel(panelId) {
     [PANEL_AGENTS]: "Agents",
     [PANEL_SKILLS]: "Skills",
     [PANEL_TOOLS]: "Tools",
-    [PANEL_SCHEDULE]: "Schedule",
+    [PANEL_SCHEDULE]: "Flow",
     [PANEL_MEET]: "Meet",
     [PANEL_MAIL]: "Mail",
     [PANEL_QUEUE]: "Queue",
-    [PANEL_HIRE]: "Hire",
+    [PANEL_HIRE]: "Staff",
     [PANEL_PROJECTS]: "Projects",
     [PANEL_EVALS]: "Evals",
   };
   return labels[panelId] ?? panelId;
+}
+
+function formatContextWindowLabel(value) {
+  if (!Number.isFinite(value)) {
+    return "128k";
+  }
+  return `${Math.round(value / 1000)}k`;
 }
 
 function panelIconMarkup(panelId) {
@@ -1762,6 +1807,11 @@ function mergeDetectedSources(detectedSources) {
       source.hostname = detected.hostname ?? source.hostname;
       source.instructions = [];
       source.note = detected.note || preferred.warning || source.note;
+      source.contextWindow = resolveSourceContextWindow({
+        contextWindow: detected.contextWindow,
+        model: source.model || preferred.model,
+        tier: source.tier,
+      });
       source.verified = true;
       source.model =
         source.availableModels.includes(source.model) && source.model
@@ -1815,6 +1865,11 @@ function mergeDetectedSources(detectedSources) {
             : defaultDetectedName(detected, nextSources.length + 1),
         note: detected.note || preferred.warning,
         persisted: address === "http://127.0.0.1:11434",
+        contextWindow: resolveSourceContextWindow({
+          contextWindow: detected.contextWindow,
+          model: preferred.model,
+          tier: address === "http://127.0.0.1:11434" ? "mid" : "mid",
+        }),
         verified: Boolean(detected.available),
       }),
     );
@@ -1885,10 +1940,10 @@ async function loadWorkspaceBootstrap() {
   agentFiles = payload.agents ?? [];
   skillFiles = payload.skills ?? [];
   queueState = payload.queue ?? [];
-  scheduleTasks = payload.schedule ?? [];
+  scheduleTasks = payload.flow ?? payload.schedule ?? [];
   meetings = payload.meetings ?? [];
   mailMessages = (payload.mailInbox ?? []).map((message) => ({ ...message, persisted: true }));
-  hireState = payload.hire ?? createEmptyHireState();
+  hireState = payload.staff ?? payload.hire ?? createEmptyHireState();
   projects = payload.projects ?? [];
   evals = payload.evals ?? [];
   ensureScheduleSelection();
@@ -1923,6 +1978,7 @@ async function persistSources() {
     .map((source) => ({
       active: source.kind === SOURCE_KIND_LOCAL ? true : Boolean(source.active),
       address: source.address,
+      contextWindow: resolveSourceContextWindow(source),
       id: source.id,
       kind: source.kind === SOURCE_KIND_LOCAL ? SOURCE_KIND_LOCAL : SOURCE_KIND_SAVED,
       labelCustomized: Boolean(source.labelCustomized),
@@ -1959,6 +2015,7 @@ async function persistSources() {
         model: saved.model ?? source.model,
         name: saved.name ?? source.name,
         persisted: true,
+        contextWindow: resolveSourceContextWindow(saved),
         tier: normalizeTier(saved.tier),
       };
     })
@@ -2061,6 +2118,11 @@ async function verifySource(sourceId) {
         ? source.model
         : preferred.model;
     source.note = payload.note || preferred.warning;
+    source.contextWindow = resolveSourceContextWindow({
+      contextWindow: payload.contextWindow,
+      model: source.model,
+      tier: source.tier,
+    });
     source.verified = Boolean(payload.available);
     if (source.verified) {
       source.persisted = true;
@@ -2195,8 +2257,8 @@ function createSourceMenuItem(source, index) {
   item.dataset.sourceId = source.id;
   fragment.querySelector('[data-role="name"]').textContent = source.name;
   fragment.querySelector('[data-role="meta"]').textContent = source.active
-    ? `${source.tier} tier, active`
-    : `${source.tier} tier, inactive`;
+    ? `${source.tier} tier · ${Math.round(resolveSourceContextWindow(source) / 1000)}k · active`
+    : `${source.tier} tier · ${Math.round(resolveSourceContextWindow(source) / 1000)}k · inactive`;
 
   if (source.id === selectedSourceId) {
     selectButton.classList.add("is-selected");
@@ -2222,6 +2284,7 @@ function createSourceDetail(source) {
   card.querySelector('[data-field="address"]').value = source.address;
   card.querySelector('[data-field="tier"]').value = source.tier;
   card.querySelector('[data-field="active"]').checked = source.active;
+  card.querySelector('[data-role="context-window"]').textContent = `${Math.round(resolveSourceContextWindow(source) / 1000)}k`;
   card.querySelector('[data-role="status"]').textContent = source.verified
     ? "Connected"
     : "Disconnected";
@@ -2751,6 +2814,23 @@ function textDocumentStatusLabel(documentRecord) {
     ? "unsaved changes"
     : (documentRecord.persisted ? "saved" : "unsaved");
   return parsedPrefix ? `${parsedPrefix} • ${dirtyLabel}` : dirtyLabel;
+}
+
+function findIdentityForRole(roleId) {
+  return hireState?.identities?.find((identity) => identity.roleId === roleId) ?? null;
+}
+
+function describeFlowMeta(task) {
+  const parts = [];
+  if (task.enabled === false) {
+    parts.push("disabled");
+  } else {
+    parts.push(task.trigger ?? "auto");
+  }
+  if (task.cadence) {
+    parts.push(task.cadence);
+  }
+  return parts.join(" · ");
 }
 
 function refreshTextCardState(card, documentRecord) {
@@ -3463,7 +3543,7 @@ async function loadSchedulePanelData() {
   }
   setPanelState(scheduleState, "Loading...", true);
   try {
-    const data = await fetchJson(`/api/schedule/list?orgId=${encodeURIComponent(activeOrganizationId)}`);
+    const data = await fetchJson(`/api/flow/list?orgId=${encodeURIComponent(activeOrganizationId)}`);
     scheduleTasks = data.tasks ?? [];
     ensureScheduleSelection();
     setPanelState(scheduleState, "");
@@ -3478,29 +3558,27 @@ function renderSchedulePanel() {
   if (!scheduleList || !scheduleDetail) return;
   if (!activeOrganizationId) {
     scheduleList.replaceChildren();
-    requireActiveOrganization(scheduleDetail, "Activate an organization to manage scheduled work.");
+    requireActiveOrganization(scheduleDetail, "Activate an organization to sequence flow objectives.");
     return;
   }
   ensureScheduleSelection();
   scheduleList.replaceChildren();
-  scheduleTasks
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .forEach((task) => {
-      scheduleList.append(
-        createMenuCard({
-          id: task.id,
-          meta: task.enabled ? task.cronExpression : "disabled",
-          name: task.name || "untitled task",
-          selected: task.id === selectedScheduleId,
-          type: "schedule",
-        }),
-      );
-    });
+  scheduleTasks.forEach((task) => {
+    scheduleList.append(
+      createMenuCard({
+        id: task.id,
+        meta: describeFlowMeta(task),
+        name: task.name || "untitled flow",
+        selected: task.id === selectedScheduleId,
+        type: "schedule",
+      }),
+    );
+  });
 
   scheduleDetail.replaceChildren();
   const selected = scheduleTasks.find((task) => task.id === selectedScheduleId);
   if (!selected) {
-    scheduleDetail.append(emptyDetailCard("Create a task to schedule recurring agent work."));
+    scheduleDetail.append(emptyDetailCard("Create a flow to sequence continuous work without idle time."));
     return;
   }
 
@@ -3510,8 +3588,8 @@ function renderSchedulePanel() {
   card.innerHTML = `
     <div class="source-card__header">
       <div class="source-card__identity">
-        <p class="source-card__status">${selected.name || "untitled task"}</p>
-        <p class="source-card__meta-detail">${selected.enabled ? "enabled" : "disabled"}</p>
+        <p class="source-card__status">${selected.name || "untitled flow"}</p>
+        <p class="source-card__meta-detail">${describeFlowMeta(selected)}</p>
       </div>
       <div class="source-card__actions">
         <button class="chrome-button source-card__button" data-action="save-schedule" type="button">save</button>
@@ -3520,12 +3598,12 @@ function renderSchedulePanel() {
     </div>
     <div class="field-grid">
       <label class="field">
-        <span class="field__label">task</span>
+        <span class="field__label">flow</span>
         <input class="field__control" data-field="name" type="text" value="${escapeHtml(selected.name ?? "")}" />
       </label>
       <label class="field">
-        <span class="field__label">cron</span>
-        <input class="field__control" data-field="cronExpression" type="text" value="${escapeHtml(selected.cronExpression ?? "")}" />
+        <span class="field__label">cadence</span>
+        <input class="field__control" data-field="cadence" type="text" value="${escapeHtml(selected.cadence ?? selected.cronExpression ?? "")}" />
       </label>
     </div>
     <div class="field-grid field-grid--compact">
@@ -3541,6 +3619,10 @@ function renderSchedulePanel() {
         <input class="field__control" data-field="assigneeValue" type="text" value="${escapeHtml(selected.assigneeValue ?? "")}" />
       </label>
     </div>
+    <label class="field">
+      <span class="field__label">objective</span>
+      <textarea class="field__control field__control--textarea" data-field="objective">${escapeHtml(selected.objective ?? "")}</textarea>
+    </label>
     <label class="field">
       <span class="field__label">notes</span>
       <textarea class="field__control field__control--textarea" data-field="notes">${escapeHtml(selected.notes ?? "")}</textarea>
@@ -3735,7 +3817,7 @@ async function loadHirePanelData() {
   }
   setPanelState(hireStateLabel, "Loading...", true);
   try {
-    hireState = await fetchJson(`/api/hire/read?orgId=${encodeURIComponent(activeOrganizationId)}`);
+    hireState = await fetchJson(`/api/staff/read?orgId=${encodeURIComponent(activeOrganizationId)}`);
     ensureHireSelection();
     setPanelState(hireStateLabel, "");
   } catch (error) {
@@ -3749,7 +3831,7 @@ function renderHirePanel() {
   if (!hireMenu || !hireDetail) return;
   if (!activeOrganizationId) {
     hireMenu.replaceChildren();
-    requireActiveOrganization(hireDetail, "Activate an organization to shape its departments, teams, and roles.");
+    requireActiveOrganization(hireDetail, "Activate an organization to staff departments, teams, roles, and identities.");
     return;
   }
   ensureHireSelection();
@@ -3774,9 +3856,12 @@ function renderHirePanel() {
     }));
   });
   (hireState?.roles ?? []).forEach((role) => {
+    const identity = findIdentityForRole(role.id);
     hireMenu.append(createMenuCard({
       id: role.id,
-      meta: `${role.status} · ${role.templateName || "unassigned"}`,
+      meta: identity
+        ? `employee ${identity.employeeNumber} · ${identity.name}`
+        : `${role.status} · ${role.templateName || "unassigned"}`,
       name: role.title || "new role",
       selected: selectedHireKey === `role:${role.id}`,
       type: "role",
@@ -3828,6 +3913,7 @@ function renderHirePanel() {
     `;
     card.querySelector('[data-field="departmentId"]').value = item.departmentId ?? "";
   } else {
+    const identity = findIdentityForRole(item.id);
     const teamOptions = (hireState?.teams ?? []).map((team) =>
       `<option value="${team.id}">${escapeHtml(team.name)}</option>`
     ).join("");
@@ -3853,6 +3939,15 @@ function renderHirePanel() {
       <div class="field-grid field-grid--compact">
         <label class="field"><span class="field__label">status</span><select class="field__control" data-field="status"><option value="open">open</option><option value="assigned">assigned</option></select></label>
         <label class="field"><span class="field__label">assignee</span><input class="field__control" data-field="assigneeLabel" type="text" value="${escapeHtml(item.assigneeLabel ?? "")}" /></label>
+      </div>
+      <div class="field-grid field-grid--compact">
+        <label class="field"><span class="field__label">identity</span><input class="field__control" type="text" value="${escapeHtml(identity?.name ?? "not generated")}" readonly /></label>
+        <label class="field"><span class="field__label">employee</span><input class="field__control" type="text" value="${identity ? `employee ${identity.employeeNumber}` : "unassigned"}" readonly /></label>
+      </div>
+      <label class="field"><span class="field__label">persona</span><textarea class="field__control field__control--textarea" readonly>${escapeHtml(identity?.personaSummary ?? "Identity will be generated during auto bootstrap or when assigned.")}</textarea></label>
+      <div class="field-grid field-grid--compact">
+        <label class="field"><span class="field__label">memory root</span><input class="field__control" type="text" value="${escapeHtml(identity?.memoryRoot ?? "memory/pending")}" readonly /></label>
+        <label class="field"><span class="field__label">prompt file</span><input class="field__control" type="text" value="${escapeHtml(identity?.promptFile ?? "prompts/agents/pending.txt")}" readonly /></label>
       </div>
       <label class="field"><span class="field__label">notes</span><textarea class="field__control field__control--textarea" data-field="notes">${escapeHtml(item.notes ?? "")}</textarea></label>
     `;
@@ -4025,7 +4120,7 @@ async function saveScheduleTask(id) {
   if (!task || !activeOrganizationId) return;
   setPanelState(scheduleState, "Saving...", true);
   try {
-    const saved = await fetchJson("/api/schedule/create", {
+    const saved = await fetchJson("/api/flow/create", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ ...task, orgId: activeOrganizationId }),
@@ -4041,7 +4136,7 @@ async function saveScheduleTask(id) {
 
 async function deleteScheduleTaskRecord(id) {
   if (!activeOrganizationId) return;
-  await fetchJson("/api/schedule/delete", {
+  await fetchJson("/api/flow/delete", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ id, orgId: activeOrganizationId }),
@@ -4054,15 +4149,16 @@ async function deleteScheduleTaskRecord(id) {
 function addScheduleTask() {
   const item = {
     id: crypto.randomUUID(),
-    name: "new task",
-    cronExpression: "0 9 * * 1-5",
+    name: "new flow",
+    cadence: "continuous",
     assigneeType: "agent_template",
     assigneeValue: agentFiles[0]?.name ?? "",
     enabled: true,
     notes: "",
+    objective: "",
+    trigger: "auto",
     createdAt: new Date().toISOString(),
     lastRunAt: null,
-    nextRunAt: null,
     agentId: "",
   };
   scheduleTasks = [item, ...scheduleTasks];
@@ -4180,7 +4276,14 @@ async function saveMailMessageRecord(id) {
 }
 
 function createEmptyHireState() {
-  return { departments: [], teams: [], roles: [], updatedAt: new Date().toISOString(), version: 1 };
+  return {
+    departments: [],
+    identities: [],
+    roles: [],
+    teams: [],
+    updatedAt: new Date().toISOString(),
+    version: 1,
+  };
 }
 
 function addHireRecord(type) {
@@ -4237,7 +4340,7 @@ async function saveHireStateRecord() {
   if (!hireState || !activeOrganizationId) return;
   setPanelState(hireStateLabel, "Saving...", true);
   try {
-    hireState = await fetchJson("/api/hire/write", {
+    hireState = await fetchJson("/api/staff/write", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ ...hireState, orgId: activeOrganizationId }),
@@ -4565,6 +4668,9 @@ async function saveOrganization(organizationId) {
     syncFilesystemState();
     openPanel(PANEL_ABOUT);
     setAboutState("Organization saved");
+    if (systemMode === "auto" && activeOrganizationId) {
+      await bootstrapAutoMode();
+    }
   } catch (error) {
     console.error(error);
     if (String(error).includes("409")) {
@@ -4616,6 +4722,9 @@ async function loadOrganization(organizationId) {
     syncFilesystemState();
     openPanel(PANEL_ABOUT);
     setAboutState("Organization active");
+    if (systemMode === "auto" && activeOrganizationId) {
+      await bootstrapAutoMode();
+    }
   } finally {
     loadingOrganizationId = null;
     aboutState.classList.remove("is-busy");
@@ -4744,10 +4853,13 @@ function openPanel(panelId) {
         const name = document.createElement("div");
         name.className = "tool-card__name";
         name.textContent = tool.name;
+        const scope = document.createElement("div");
+        scope.className = "tool-card__meta";
+        scope.textContent = tool.scope ?? "shared";
         const desc = document.createElement("div");
         desc.className = "tool-card__description";
         desc.textContent = tool.file ?? "";
-        card.append(name, desc);
+        card.append(name, scope, desc);
         toolRegistry.append(card);
       }
     }).catch(() => {});
@@ -4944,6 +5056,9 @@ modeToggle?.addEventListener("click", () => {
   systemMode = systemMode === "auto" ? "idle" : "auto";
   persistSystemMode();
   renderSystemMode();
+  if (systemMode === "auto") {
+    void bootstrapAutoMode();
+  }
 });
 
 appearanceThemeGrid?.addEventListener("click", (event) => {
@@ -6134,6 +6249,9 @@ async function initialize() {
     organizations.some((org) => org.persisted && org.id === activeOrganizationId);
   if (!hasSavedOrg) {
     openPanel(PANEL_ABOUT);
+  }
+  if (systemMode === "auto" && activeOrganizationId) {
+    await bootstrapAutoMode();
   }
   await discoverSources();
 }
