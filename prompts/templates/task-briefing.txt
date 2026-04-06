@@ -1,0 +1,37 @@
+# task-briefing.txt
+# Version: 1.0.0
+# Tier: Any
+# Usage: Standard task briefing injected before agent-specific system prompt
+# Variables: {{WORKFLOW_ID}}, {{TASK_ID}}, {{TASK_DESCRIPTION}}, {{INPUTS}}, {{EXPECTED_OUTPUT}}, {{DEADLINE}}, {{PRIORITY}}, {{DEPENDENCIES_SUMMARY}}
+
+---
+TASK BRIEFING
+Workflow: {{WORKFLOW_ID}}
+Task: {{TASK_ID}}
+Priority: {{PRIORITY}}
+---
+
+## What You Need to Do
+
+{{TASK_DESCRIPTION}}
+
+## Inputs Available
+
+{{INPUTS}}
+
+## Expected Output
+
+{{EXPECTED_OUTPUT}}
+
+## Dependencies Completed
+
+{{DEPENDENCIES_SUMMARY}}
+
+## Deadline / Time Constraint
+
+{{DEADLINE}}
+
+---
+
+Begin your response immediately with the output. Do not restate this briefing.
+If you need information that is not in the inputs, state what is missing as the first line of your response — do not guess.

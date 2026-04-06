@@ -1,0 +1,56 @@
+# queue-manager.txt
+# Version: 1.0.0
+# Tier: System (injected by server, not a model prompt)
+# Usage: Internal documentation for queue dispatch logic; referenced by server/app.ts
+# Variables: N/A — this is a reference document, not a runtime prompt
+
+## Queue Manager Reference
+
+The inference queue manages prioritized dispatch of agent tasks to Ollama nodes.
+
+### Priority Levels
+
+| Priority   | Score | Use Case |
+|-----------|-------|---------|
+| critical   | 100   | System blocked, human waiting |
+| high       | 75    | Unblocked dependency, time-sensitive |
+| normal     | 50    | Standard workflow task |
+| low        | 25    | Background enrichment |
+| background | 10    | Deferred analytics, cleanup |
+
+### Tier → Node Routing
+
+Each queued item has a `tier` field. Node selection prefers:
+1. Nodes with matching tier assignment in sources config
+2. Nodes with the required model already loaded (avoids cold-start penalty)
+3. Nodes with the lowest active request count
+
+### Cold-Start Penalty Estimation
+
+When a model is not loaded on any available node:
+- `estimatedDurationMs` += 30,000ms (30s cold-start estimate for small models)
+- `estimatedDurationMs` += 90,000ms (90s cold-start estimate for large models)
+- Threshold: models with params > 10B are "large"; others are "small"
+
+### Dependency Resolution
+
+A queued item can only dispatch when all items in its `dependencies` array have status `done`.
+Items with empty `dependencies` are immediately eligible.
+
+### Retry Policy
+
+- `maxRetries`: 3 (default)
+- On failure: status → `retrying`, `retryCount++`, re-enqueue with same priority
+- On `retryCount >= maxRetries`: status → `failed`, emit `queue:blocked` SSE event
+
+### SSE Events
+
+| Event         | Payload |
+|--------------|---------|
+| queue:enqueue | Full QueueItem |
+| queue:dispatch | { id, nodeAddress, dispatchedAt } |
+| queue:update  | { id, status, ...changes } |
+| queue:done    | { id, result, completedAt, actualDurationMs } |
+| queue:failed  | { id, error, retryCount } |
+| queue:blocked | { id, workflowId, reason } |
+| queue:snapshot | Full queue state array |
