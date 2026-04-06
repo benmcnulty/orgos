@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { cp, mkdtemp, readFile, rm } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -15,6 +15,12 @@ beforeAll(async () => {
     recursive: true,
   });
   await cp(path.join(process.cwd(), ".data"), path.join(fixtureRoot, ".data"), {
+    recursive: true,
+  });
+  await cp(path.join(process.cwd(), ".agents"), path.join(fixtureRoot, ".agents"), {
+    recursive: true,
+  });
+  await cp(path.join(process.cwd(), ".skills"), path.join(fixtureRoot, ".skills"), {
     recursive: true,
   });
 
@@ -80,14 +86,300 @@ describe("orgos app integration", () => {
     expect(typeof payload.activeOrganizationId === "string" || payload.activeOrganizationId === null).toBe(true);
     expect(Array.isArray(payload.organizations)).toBe(true);
     expect(Array.isArray(payload.sources)).toBe(true);
+    expect(payload.filesystem).toMatchObject({
+      roots: expect.any(Array),
+    });
+    expect(payload.appearance).toMatchObject({
+      accent: expect.any(String),
+      theme: expect.any(String),
+      version: 1,
+    });
     expect(payload.organizations.length).toBeGreaterThan(0);
-    expect(payload.sources[0]).toMatchObject({
+    const localSource = payload.sources.find(
+      (source: { address: string; kind: string }) =>
+        source.address === "http://127.0.0.1:11434" && source.kind === "local_default",
+    );
+    expect(localSource).toBeTruthy();
+    expect(localSource).toMatchObject({
       active: true,
       address: "http://127.0.0.1:11434",
       kind: "local_default",
-      tier: "mid",
     });
-    expect(typeof payload.sources[0].name).toBe("string");
+    expect(typeof localSource.name).toBe("string");
+    // New fields from Phase 2 bootstrap extension
+    expect(Array.isArray(payload.agents)).toBe(true);
+    expect(Array.isArray(payload.skills)).toBe(true);
+    expect(Array.isArray(payload.queue)).toBe(true);
+    expect(payload.agents.length).toBeGreaterThan(0);
+    expect(payload.skills.length).toBeGreaterThan(0);
+    const ceoAgent = payload.agents.find(
+      (a: { file?: string; name?: string }) => a.file === "ceo.md" || a.name === "CEO",
+    );
+    expect(ceoAgent).toBeTruthy();
+    expect(ceoAgent.file).toBe("ceo.md");
+  });
+
+  test("lists, reads, writes, and deletes agent files in .agents/", async () => {
+    const listResponse = await app.fetch(
+      new Request("http://orgos.local/api/agents/list"),
+    );
+    const listPayload = await listResponse.json();
+    expect(listResponse.status).toBe(200);
+    expect(Array.isArray(listPayload.agents)).toBe(true);
+    expect(listPayload.agents.length).toBeGreaterThan(0);
+
+    const readResponse = await app.fetch(
+      new Request("http://orgos.local/api/agents/read?name=ceo"),
+    );
+    const readPayload = await readResponse.json();
+    expect(readResponse.status).toBe(200);
+    expect(typeof readPayload.content).toBe("string");
+    expect(readPayload.content).toContain("CEO");
+
+    const writeResponse = await app.fetch(
+      new Request("http://orgos.local/api/agents/write", {
+        body: JSON.stringify({ name: "test-agent", content: "# Test Agent\n" }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+    expect(writeResponse.status).toBe(200);
+    expect((await writeResponse.json()).ok).toBe(true);
+
+    const verifyRead = await app.fetch(
+      new Request("http://orgos.local/api/agents/read?name=test-agent"),
+    );
+    expect(verifyRead.status).toBe(200);
+    expect((await verifyRead.json()).content).toContain("# Test Agent");
+
+    const deleteResponse = await app.fetch(
+      new Request("http://orgos.local/api/agents/delete", {
+        body: JSON.stringify({ name: "test-agent" }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+    expect(deleteResponse.status).toBe(200);
+    expect((await deleteResponse.json()).ok).toBe(true);
+
+    const afterDelete = await app.fetch(
+      new Request("http://orgos.local/api/agents/read?name=test-agent"),
+    );
+    expect(afterDelete.status).toBe(404);
+  });
+
+  test("lists and reads skill files in .skills/", async () => {
+    const listResponse = await app.fetch(
+      new Request("http://orgos.local/api/skills/list"),
+    );
+    const listPayload = await listResponse.json();
+    expect(listResponse.status).toBe(200);
+    expect(Array.isArray(listPayload.skills)).toBe(true);
+    expect(listPayload.skills.length).toBeGreaterThan(0);
+
+    const readResponse = await app.fetch(
+      new Request("http://orgos.local/api/skills/read?name=memory"),
+    );
+    const readPayload = await readResponse.json();
+    expect(readResponse.status).toBe(200);
+    expect(typeof readPayload.content).toBe("string");
+    expect(readPayload.content).toContain("Memory");
+  });
+
+  test("creates, lists, and deletes schedule tasks", async () => {
+    const bootstrapResponse = await app.fetch(
+      new Request("http://orgos.local/api/workspace/bootstrap"),
+    );
+    const bootstrap = await bootstrapResponse.json();
+    const orgId = bootstrap.activeOrganizationId ?? bootstrap.organizations[0]?.id;
+
+    expect(typeof orgId).toBe("string");
+
+    const createResponse = await app.fetch(
+      new Request("http://orgos.local/api/schedule/create", {
+        body: JSON.stringify({
+          name: "Daily summary",
+          agentId: "ceo",
+          cronExpression: "0 9 * * *",
+          enabled: true,
+          orgId,
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+    const created = await createResponse.json();
+    expect(createResponse.status).toBe(200);
+    expect(created.name).toBe("Daily summary");
+    expect(typeof created.id).toBe("string");
+
+    const listResponse = await app.fetch(
+      new Request(`http://orgos.local/api/schedule/list?orgId=${encodeURIComponent(orgId)}`),
+    );
+    const listPayload = await listResponse.json();
+    expect(listResponse.status).toBe(200);
+    expect(listPayload.tasks.some((t: { id: string }) => t.id === created.id)).toBe(true);
+
+    const deleteResponse = await app.fetch(
+      new Request("http://orgos.local/api/schedule/delete", {
+        body: JSON.stringify({ id: created.id, orgId }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+    expect(deleteResponse.status).toBe(200);
+    expect((await deleteResponse.json()).ok).toBe(true);
+  });
+
+  test("enqueues and retrieves inference queue items", async () => {
+    const enqueueResponse = await app.fetch(
+      new Request("http://orgos.local/api/queue/enqueue", {
+        body: JSON.stringify({
+          agentId: "ceo",
+          tier: "top",
+          model: "gemma4:26b",
+          priority: "normal",
+          promptMessages: [{ role: "user", content: "Hello" }],
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+    const enqueued = await enqueueResponse.json();
+    expect(enqueueResponse.status).toBe(200);
+    expect(enqueued.status).toBe("pending");
+    expect(enqueued.agentId).toBe("ceo");
+
+    const stateResponse = await app.fetch(
+      new Request("http://orgos.local/api/queue/state"),
+    );
+    const state = await stateResponse.json();
+    expect(stateResponse.status).toBe(200);
+    expect(Array.isArray(state.items)).toBe(true);
+    expect(state.items.some((i: { id: string }) => i.id === enqueued.id)).toBe(true);
+  });
+
+  test("lists filesystem roots and reads and writes supported text files", async () => {
+    await mkdir(path.join(fixtureRoot, ".data", "system", "notes"), { recursive: true });
+    await writeFile(
+      path.join(fixtureRoot, ".data", "system", "notes", "guide.md"),
+      "# guide\n",
+      "utf8",
+    );
+
+    const listResponse = await app.fetch(
+      new Request("http://orgos.local/api/files/list?root=system&path=notes"),
+    );
+    const listing = await listResponse.json();
+
+    expect(listResponse.status).toBe(200);
+    expect(listing).toMatchObject({
+      available: true,
+      path: "notes",
+      root: "system",
+    });
+    expect(
+      listing.entries.some(
+        (entry: { editable: boolean; name: string; type: string }) =>
+          entry.name === "guide.md" && entry.type === "file" && entry.editable,
+      ),
+    ).toBe(true);
+
+    const readResponse = await app.fetch(
+      new Request("http://orgos.local/api/text/read?root=system&path=notes/guide.md"),
+    );
+    const readPayload = await readResponse.json();
+    expect(readResponse.status).toBe(200);
+    expect(readPayload.content).toContain("# guide");
+
+    const writeResponse = await app.fetch(
+      new Request("http://orgos.local/api/text/write", {
+        body: JSON.stringify({
+          content: '{"ok":true}\n',
+          overwrite: false,
+          path: "notes/config.json",
+          root: "system",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      }),
+    );
+    const writtenFile = await readFile(
+      path.join(fixtureRoot, ".data", "system", "notes", "config.json"),
+      "utf8",
+    );
+
+    expect(writeResponse.status).toBe(200);
+    expect(writtenFile).toBe('{"ok":true}\n');
+  });
+
+  test("moves deleted files into the active organization's deleted area", async () => {
+    const saveResponse = await app.fetch(
+      new Request("http://orgos.local/api/organizations/save", {
+        body: JSON.stringify({
+          activate: true,
+          organization: {
+            description: "File owner",
+            industry: "technology",
+            industryCustom: "",
+            name: "File Org",
+          },
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      }),
+    );
+    const saved = await saveResponse.json();
+    const organization = saved.organizations.find(
+      (entry: { name: string }) => entry.name === "File Org",
+    );
+
+    await mkdir(path.join(fixtureRoot, ".data", "organizations", organization.id, "docs"), {
+      recursive: true,
+    });
+    await writeFile(
+      path.join(fixtureRoot, ".data", "organizations", organization.id, "docs", "draft.txt"),
+      "hello\n",
+      "utf8",
+    );
+
+    const deleteResponse = await app.fetch(
+      new Request("http://orgos.local/api/files/delete", {
+        body: JSON.stringify({
+          path: "docs/draft.txt",
+          root: "organization",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      }),
+    );
+
+    expect(deleteResponse.status).toBe(200);
+    expect(
+      await Bun.file(
+        path.join(fixtureRoot, ".data", "organizations", organization.id, "docs", "draft.txt"),
+      ).exists(),
+    ).toBe(false);
+    expect(
+      await Bun.file(
+        path.join(
+          fixtureRoot,
+          ".data",
+          "system",
+          "deleted",
+          organization.id,
+          "organization",
+          "docs",
+          "draft.txt",
+        ),
+      ).exists(),
+    ).toBe(true);
   });
 
   test("persists shared system source configuration in .data/system", async () => {
@@ -161,6 +453,40 @@ describe("orgos app integration", () => {
       model: "gemma4:latest",
       name: "air",
       tier: "top",
+    });
+  });
+
+  test("persists shared appearance configuration in .data/system", async () => {
+    const saveResponse = await app.fetch(
+      new Request("http://orgos.local/api/system/appearance", {
+        body: JSON.stringify({
+          accent: "cyan",
+          theme: "dark",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      }),
+    );
+    const savePayload = await saveResponse.json();
+    const savedFile = JSON.parse(
+      await readFile(
+        path.join(fixtureRoot, ".data", "system", "appearance.json"),
+        "utf8",
+      ),
+    );
+
+    expect(saveResponse.status).toBe(200);
+    expect(savePayload).toMatchObject({
+      accent: "cyan",
+      theme: "dark",
+      version: 1,
+    });
+    expect(savedFile).toMatchObject({
+      accent: "cyan",
+      theme: "dark",
+      version: 1,
     });
   });
 
