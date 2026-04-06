@@ -109,6 +109,7 @@ textarea {
   block-size: var(--header-height);
   padding: 0.9rem var(--space-4) 0.7rem;
   border-block-end: var(--stroke-width) solid rgba(17, 17, 17, 0.14);
+  z-index: 30;
 }
 
 .header-slot {
@@ -124,9 +125,63 @@ textarea {
   inset-inline-start: var(--space-3);
 }
 
+.mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.18rem 0.22rem 0.18rem 0.18rem;
+  border: var(--stroke-width) solid rgba(17, 17, 17, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+  box-shadow:
+    inset 0.04rem 0.04rem 0 rgba(255, 255, 255, 0.46),
+    0.08rem 0.08rem 0 rgba(17, 17, 17, 0.05);
+}
+
+.mode-toggle__track {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  inline-size: 2.25rem;
+  block-size: 1.3rem;
+  padding: 0.12rem;
+  border-radius: 999px;
+  background: rgba(17, 17, 17, 0.14);
+}
+
+.mode-toggle__thumb {
+  inline-size: 0.94rem;
+  block-size: 0.94rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0.08rem 0.08rem 0.14rem rgba(17, 17, 17, 0.18);
+  transition: transform 160ms ease, background-color 160ms ease;
+}
+
+.mode-toggle.is-auto .mode-toggle__track {
+  background: rgba(17, 17, 17, 0.24);
+}
+
+.mode-toggle.is-auto .mode-toggle__thumb {
+  transform: translateX(0.95rem);
+  background: rgba(17, 17, 17, 0.92);
+}
+
+.mode-toggle__label {
+  min-inline-size: 2.4rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--structure);
+  text-align: center;
+}
+
 .header-slot--right {
   inset-inline-end: var(--space-3);
-  gap: 0.9rem;
+  gap: 0.5rem;
+  align-items: flex-start;
+  transform: translateY(-48%);
 }
 
 .header-caption {
@@ -135,6 +190,21 @@ textarea {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--structure);
+  cursor: pointer;
+}
+
+.header-caption-group {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.header-caption-subtitle {
+  min-block-size: 1em;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(64, 64, 64, 0.7);
 }
 
 .hero-mark {
@@ -255,6 +325,7 @@ textarea {
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.45),
     0 0 0 1px rgba(17, 17, 17, 0.08);
+  z-index: 3;
 }
 
 .header-tab.is-active::after {
@@ -335,6 +406,16 @@ textarea {
   block-size: 0.6rem;
 }
 
+.header-tab__close:hover,
+.header-tab__close:active {
+  transform: translateY(-50%);
+}
+
+.header-action:hover,
+.header-action:active {
+  transform: none;
+}
+
 .header-tab-scroll svg {
   inline-size: 0.64rem;
   block-size: 0.64rem;
@@ -351,19 +432,20 @@ textarea {
 
 .source-indicator-wrap {
   position: relative;
-  align-self: end;
+  align-self: center;
+  z-index: 40;
 }
 
 .source-indicator {
   position: relative;
-  inline-size: calc(var(--icon-button-size) + 0.8rem);
-  block-size: calc(var(--icon-button-size) + 0.8rem);
+  inline-size: calc(var(--icon-button-size) + 1.2rem);
+  block-size: calc(var(--icon-button-size) + 1.2rem);
   display: grid;
   place-items: center;
   border: 0;
   border-radius: 999px;
   background: transparent;
-  opacity: 0.42;
+  opacity: 0.72;
   justify-self: end;
 }
 
@@ -372,8 +454,8 @@ textarea {
 }
 
 .source-indicator__icon {
-  inline-size: 2.3rem;
-  block-size: 2.3rem;
+  inline-size: 2.85rem;
+  block-size: 2.85rem;
 }
 
 .source-indicator__bulb {
@@ -390,26 +472,30 @@ textarea {
 
 .source-indicator__count {
   position: absolute;
-  inset-block-start: 50%;
+  inset-block-start: 48%;
   inset-inline-start: 50%;
-  min-inline-size: 1.2rem;
-  block-size: 1.2rem;
-  padding-inline: 0.28rem;
-  border-radius: 999px;
-  background: var(--ink);
-  color: var(--surface);
-  font-size: 0.62rem;
-  font-weight: 700;
-  line-height: 1.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 1.32rem;
+  max-inline-size: 2.4rem;
+  padding-inline: 0.1rem;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
   text-align: center;
-  transform: translate(-50%, -18%);
+  transform: translate(-50%, -50%);
   z-index: 1;
+  pointer-events: none;
 }
 
 .source-tooltip {
   position: absolute;
-  inset-block-start: calc(100% + 0.5rem);
-  inset-inline-end: calc(100% - 1.8rem);
+  inset-block-start: 50%;
+  inset-inline-end: calc(100% + 0.45rem);
   min-inline-size: 14rem;
   max-inline-size: 22rem;
   padding: var(--space-2) var(--space-3);
@@ -419,20 +505,21 @@ textarea {
   box-shadow:
     0.1rem 0.1rem 0 rgba(17, 17, 17, 0.06),
     0.2rem 0.3rem 0.5rem rgba(96, 96, 96, 0.14);
+  transform: translateY(-34%);
   z-index: 100;
 }
 
 .source-tooltip::before {
   content: "";
   position: absolute;
-  inset-block-start: -0.42rem;
-  inset-inline-end: 1.4rem;
+  inset-block-start: 50%;
+  inset-inline-end: -0.42rem;
   inline-size: 0.78rem;
   block-size: 0.78rem;
   border-inline-start: var(--stroke-width) solid rgba(17, 17, 17, 0.14);
   border-block-start: var(--stroke-width) solid rgba(17, 17, 17, 0.14);
   background: var(--surface);
-  transform: rotate(45deg);
+  transform: translateY(-50%) rotate(135deg);
 }
 
 .source-tooltip__title {
@@ -477,8 +564,9 @@ textarea {
   display: grid;
   justify-items: end;
   gap: 0.1rem;
-  min-inline-size: 8.8rem;
+  min-inline-size: 10.2rem;
   font-variant-numeric: tabular-nums;
+  padding-block-start: 0.28rem;
 }
 
 .clock-panel__time,
@@ -489,15 +577,15 @@ textarea {
 }
 
 .clock-panel__time {
-  min-inline-size: 8.8rem;
-  font-size: 1.36rem;
+  min-inline-size: 10.2rem;
+  font-size: 1.62rem;
   font-weight: 700;
   letter-spacing: -0.03em;
   text-align: right;
 }
 
 .clock-panel__date {
-  min-inline-size: 8.8rem;
+  min-inline-size: 10.2rem;
   font-size: 0.76rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -563,7 +651,8 @@ textarea {
 .header-utility-stack {
   display: grid;
   justify-items: end;
-  gap: 0.2rem;
+  gap: 0.18rem;
+  padding-block-start: 0.02rem;
 }
 
 .icon-button {
@@ -620,17 +709,37 @@ textarea {
   box-shadow:
     inset 0.04rem 0.04rem 0.08rem rgba(255, 255, 255, 0.5),
     inset -0.05rem -0.05rem 0.1rem rgba(96, 96, 96, 0.12);
+  opacity: 0.58;
 }
 
 .header-action svg {
-  inline-size: 0.72rem;
-  block-size: 0.72rem;
+  inline-size: 0.68rem;
+  block-size: 0.68rem;
+}
+
+.header-tab__close:hover,
+.header-tab__close:active {
+  transform: translateY(-50%);
+}
+
+.header-action:hover,
+.header-action:active {
+  transform: none;
+}
+
+.header-action:hover {
+  background: transparent;
+}
+
+.header-action:hover {
+  background: transparent;
 }
 
 .workspace-area {
   position: absolute;
   inset-block: var(--header-height) 0;
   inset-inline: 0;
+  z-index: 10;
 }
 
 .desktop-area {
@@ -661,6 +770,12 @@ textarea {
     0.18rem 0.18rem 0.28rem rgba(96, 96, 96, 0.1);
 }
 
+.desktop-icon:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+  filter: saturate(0.6);
+}
+
 .desktop-icon__graphic {
   inline-size: 3rem;
   block-size: 3rem;
@@ -680,6 +795,14 @@ textarea {
   font-weight: 700;
   text-transform: lowercase;
   line-height: 1.1;
+}
+
+.source-card__meta-detail {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(64, 64, 64, 0.72);
 }
 
 .panel-region {
@@ -737,6 +860,15 @@ textarea {
   color: #242424;
 }
 
+.panel-copy--about {
+  max-inline-size: 34rem;
+  color: rgba(36, 36, 36, 0.9);
+}
+
+.panel-scan-state--hidden {
+  display: none;
+}
+
 .panel-scan-state {
   min-inline-size: 6rem;
   padding-block-start: 0.1rem;
@@ -750,6 +882,28 @@ textarea {
 
 .panel-scan-state.is-busy {
   opacity: 0.8;
+}
+
+.panel-count {
+  display: grid;
+  justify-items: end;
+  min-inline-size: 4.4rem;
+}
+
+.panel-count__number {
+  font-size: 1.32rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.panel-count__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.05;
+  text-transform: uppercase;
+  color: var(--structure);
 }
 
 .chrome-button.is-busy,
@@ -797,6 +951,11 @@ textarea {
   gap: var(--space-4);
 }
 
+.panel-layout--about {
+  grid-template-columns: minmax(15rem, 18rem) minmax(0, 1fr);
+  align-items: stretch;
+}
+
 .panel-sidebar {
   min-block-size: 0;
   display: grid;
@@ -806,6 +965,26 @@ textarea {
   border: var(--stroke-width) solid rgba(17, 17, 17, 0.1);
   border-radius: 1rem;
   background: rgba(255, 255, 255, 0.44);
+}
+
+.panel-section-header {
+  display: grid;
+  gap: 0.16rem;
+}
+
+.panel-section-header__eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--structure);
+}
+
+.panel-section-header__detail {
+  font-size: 0.84rem;
+  line-height: 1.35;
+  color: rgba(64, 64, 64, 0.76);
+  display: none;
 }
 
 .source-menu {
@@ -835,11 +1014,15 @@ textarea {
   border-radius: 0.9rem;
   background: rgba(255, 255, 255, 0.78);
   text-align: left;
+  transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
 }
 
 .source-menu-item__select.is-selected {
   border-color: var(--line);
   background: var(--surface);
+  box-shadow:
+    inset 0.04rem 0.04rem 0 rgba(255, 255, 255, 0.86),
+    0.08rem 0.08rem 0 rgba(17, 17, 17, 0.06);
 }
 
 .source-menu-item__row {
@@ -870,6 +1053,11 @@ textarea {
 .panel-detail {
   min-block-size: 0;
   overflow: auto;
+}
+
+.panel-detail--about {
+  display: grid;
+  align-content: start;
 }
 
 .panel-footer {
@@ -906,6 +1094,8 @@ textarea {
 .source-card__identity {
   display: grid;
   gap: 0.25rem;
+  align-content: start;
+  min-block-size: 0.25rem;
 }
 
 .source-card__eyebrow {
@@ -924,7 +1114,25 @@ textarea {
 .source-card__actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-2);
+}
+
+.source-card__actions--end {
+  justify-content: flex-end;
+  padding-block-start: var(--space-1);
+}
+
+.source-card__meta-detail {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(64, 64, 64, 0.72);
+}
+
+.source-card__meta-detail--footer {
+  padding-block-start: var(--space-1);
 }
 
 .source-card__controls {
@@ -953,6 +1161,11 @@ textarea {
 
 .source-card__button {
   min-inline-size: 5.2rem;
+}
+
+.source-card__button--danger,
+.confirm-modal__danger {
+  border-color: rgba(17, 17, 17, 0.24);
 }
 
 .source-badge {
@@ -1027,6 +1240,67 @@ textarea {
   color: var(--structure);
 }
 
+.confirm-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+}
+
+.confirm-modal__scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(191, 191, 191, 0.52);
+  backdrop-filter: blur(0.12rem);
+}
+
+.confirm-modal__dialog {
+  position: relative;
+  z-index: 1;
+  inline-size: min(28rem, calc(100vw - 2rem));
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: var(--stroke-width) solid rgba(17, 17, 17, 0.16);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow:
+    0.14rem 0.14rem 0 rgba(17, 17, 17, 0.08),
+    0.32rem 0.32rem 0.7rem rgba(96, 96, 96, 0.18);
+}
+
+.confirm-modal__header {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.confirm-modal__eyebrow {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--structure);
+}
+
+.confirm-modal__title {
+  font-size: 1.16rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.confirm-modal__body {
+  font-size: 0.96rem;
+  line-height: 1.45;
+  color: #242424;
+}
+
+.confirm-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
 @media (min-width: 48rem) {
   .panel-layout {
     grid-template-columns: minmax(16rem, 18.5rem) minmax(0, 1fr);
@@ -1042,6 +1316,10 @@ textarea {
 }
 
 @media (max-width: 47.99rem) {
+  .panel-layout--about {
+    grid-template-columns: 1fr;
+  }
+
   .app-header {
     padding-inline: var(--space-2);
   }
@@ -1055,11 +1333,15 @@ textarea {
   }
 
   .source-tooltip {
+    inset-block-start: calc(100% + 0.5rem);
     inset-inline-end: 0;
+    transform: none;
   }
 
   .source-tooltip::before {
+    inset-block-start: -0.42rem;
     inset-inline-end: 0.9rem;
+    transform: rotate(45deg);
   }
 
   .clock-panel {

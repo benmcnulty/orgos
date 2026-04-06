@@ -12,6 +12,8 @@ const clockTime = document.querySelector("#clock-time");
 const clockDate = document.querySelector("#clock-date");
 const fullscreenButton = document.querySelector("#fullscreen-button");
 const windowedButton = document.querySelector("#windowed-button");
+const modeToggle = document.querySelector("#mode-toggle");
+const modeToggleLabel = document.querySelector("#mode-toggle-label");
 const aboutIcon = document.querySelector("#about-icon");
 const sourcesIcon = document.querySelector("#sources-icon");
 const panelHeaderBar = document.querySelector("#panel-header-bar");
@@ -26,6 +28,8 @@ const aboutPanel = document.querySelector("#about-panel");
 const sourcesPanel = document.querySelector("#sources-panel");
 const rescanSourcesButton = document.querySelector("#rescan-sources");
 const scanState = document.querySelector("#scan-state");
+const scanCountNumber = document.querySelector("#scan-count-number");
+const scanCountLabel = document.querySelector("#scan-count-label");
 const aboutState = document.querySelector("#about-state");
 const addSourceButton = document.querySelector("#add-source");
 const addOrganizationButton = document.querySelector("#add-organization");
@@ -41,10 +45,15 @@ const organizationMenuItemTemplate = document.querySelector(
 );
 const headerTabTemplate = document.querySelector("#header-tab-template");
 const headerCaption = document.querySelector("#header-caption");
+const headerCaptionSubtitle = document.querySelector("#header-caption-subtitle");
 const sourceIndicatorWrap = document.querySelector("#source-indicator-wrap");
 const sourceIndicator = document.querySelector("#source-indicator");
 const sourceIndicatorCount = document.querySelector("#source-indicator-count");
 const sourceTooltip = document.querySelector("#source-tooltip");
+const confirmModal = document.querySelector("#confirm-modal");
+const confirmModalTitle = document.querySelector("#confirm-modal-title");
+const confirmModalBody = document.querySelector("#confirm-modal-body");
+const confirmModalConfirm = document.querySelector("#confirm-modal-confirm");
 
 const telemetry = [];
 let wakeLock = null;
@@ -63,12 +72,17 @@ let navMode = "desktop";
 let keyboardNavigationVisible = false;
 let savingOrganizationId = null;
 let loadingOrganizationId = null;
+let savingSourceIds = new Set();
+let systemMode = "idle";
 
 let sourceState = [];
+let sourceDrafts = new Map();
 let detectedSourceMap = new Map();
 let organizations = [];
 let activeOrganizationId = null;
 let organizationDrafts = new Map();
+let organizationRecentIds = [];
+let pendingConfirmation = null;
 
 const ABOUT_ICON_MARKUP = `
   <svg viewBox="0 0 64 64" focusable="false">
@@ -116,6 +130,7 @@ function createDraftOrganization(overrides = {}) {
     id: `draft-${crypto.randomUUID()}`,
     industry: "technology",
     industryCustom: "",
+    lastActiveAt: "",
     name: "",
     persisted: false,
     updatedAt: "",
@@ -130,6 +145,7 @@ function normalizeOrganization(value) {
     id: value.id ?? `draft-${crypto.randomUUID()}`,
     industry: value.industry ?? "technology",
     industryCustom: value.industryCustom ?? "",
+    lastActiveAt: value.lastActiveAt ?? "",
     name: value.name ?? "",
     persisted: true,
     updatedAt: value.updatedAt ?? "",
@@ -158,6 +174,18 @@ function createSourceRecord(overrides = {}) {
   };
 }
 
+function cloneSource(source) {
+  return {
+    ...source,
+    availableModels: [...(source.availableModels ?? [])],
+    instructions: [...(source.instructions ?? [])],
+  };
+}
+
+function defaultLocalSourceName() {
+  return "Localhost Ollama";
+}
+
 function normalizeSavedSource(value) {
   return createSourceRecord({
     active: Boolean(value.active),
@@ -176,6 +204,14 @@ function setScanState(message) {
   scanState.textContent = message;
 }
 
+function setDetectedCount(count) {
+  if (!scanCountNumber || !scanCountLabel) {
+    return;
+  }
+  scanCountNumber.textContent = String(count);
+  scanCountLabel.textContent = "detected";
+}
+
 function setAboutState(message) {
   aboutState.textContent = message;
 }
@@ -184,6 +220,111 @@ function updateHeaderCaption() {
   if (!headerCaption) return;
   const activeOrg = organizations.find((org) => org.id === activeOrganizationId && org.persisted);
   headerCaption.textContent = activeOrg?.name?.trim() || "welcome to orgos";
+  if (!headerCaptionSubtitle) return;
+  headerCaptionSubtitle.textContent = activeOrg?.createdAt
+    ? `Founded in ${new Date(activeOrg.createdAt).getFullYear()}`
+    : "";
+}
+
+function loadSystemMode() {
+  try {
+    const stored = localStorage.getItem("orgos.systemMode");
+    systemMode = stored === "auto" ? "auto" : "idle";
+  } catch {
+    systemMode = "idle";
+  }
+}
+
+function persistSystemMode() {
+  try {
+    localStorage.setItem("orgos.systemMode", systemMode);
+  } catch {
+    console.debug("[orgos] could not persist system mode");
+  }
+}
+
+function renderSystemMode() {
+  if (!modeToggle || !modeToggleLabel) {
+    return;
+  }
+  const isAuto = systemMode === "auto";
+  modeToggle.classList.toggle("is-auto", isAuto);
+  modeToggle.setAttribute("aria-pressed", String(isAuto));
+  modeToggle.setAttribute("aria-label", `System ${isAuto ? "auto" : "idle"} mode`);
+  modeToggle.title = `System ${isAuto ? "auto" : "idle"} mode`;
+  modeToggleLabel.textContent = isAuto ? "auto" : "idle";
+}
+
+function formatFoundedLabel(organization) {
+  if (!organization?.createdAt) {
+    return "";
+  }
+
+  const year = new Date(organization.createdAt).getFullYear();
+  return Number.isFinite(year) ? `Founded in ${year}` : "";
+}
+
+function formatLastActiveLabel(organization) {
+  const timestamp =
+    organization?.lastActiveAt ||
+    organization?.updatedAt ||
+    organization?.createdAt ||
+    "";
+  if (!timestamp) {
+    return "last active unknown";
+  }
+
+  const value = new Date(timestamp);
+  if (Number.isNaN(value.getTime())) {
+    return "last active unknown";
+  }
+
+  const now = new Date();
+  const sameDay =
+    value.getFullYear() === now.getFullYear() &&
+    value.getMonth() === now.getMonth() &&
+    value.getDate() === now.getDate();
+
+  return sameDay
+    ? `last active ${value.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`
+    : `last active ${value.toLocaleDateString([], {
+      day: "numeric",
+      month: "short",
+    }).toUpperCase()}`;
+}
+
+function updateDesktopAppAvailability() {
+  document.querySelectorAll(".desktop-icon").forEach((icon) => {
+    const requiresOrganization = icon.dataset.appScope === "organization";
+    const isEnabled = !requiresOrganization || Boolean(activeOrganizationId);
+    icon.disabled = !isEnabled;
+
+    if (isEnabled) {
+      icon.removeAttribute("data-disabled-reason");
+      const activeTitle = icon.getAttribute("aria-label") ?? "";
+      icon.title = activeTitle;
+      return;
+    }
+
+    const reason = "An active organization is required for this application";
+    icon.dataset.disabledReason = reason;
+    icon.title = reason;
+  });
+}
+
+function syncSourceDrafts() {
+  sourceDrafts = new Map(sourceState.map((source) => [source.id, cloneSource(source)]));
+}
+
+function isSourceDirty(source) {
+  const baseline = sourceDrafts.get(source.id);
+  if (!baseline) {
+    return !source.persisted;
+  }
+
+  return ["name", "address", "tier", "model", "active"].some(
+    (key) => source[key] !== baseline[key],
+  );
 }
 
 function updateSourceIndicator() {
@@ -437,8 +578,12 @@ function ensureOrganizationSelection() {
   selectedOrganizationId = organizations[0]?.id ?? null;
 }
 
+function touchOrganizationRecent(id) {
+  organizationRecentIds = [id, ...organizationRecentIds.filter((value) => value !== id)];
+}
+
 function getDesktopIcons() {
-  return [aboutIcon, sourcesIcon].filter(Boolean);
+  return [aboutIcon, sourcesIcon].filter((icon) => icon && !icon.disabled);
 }
 
 function updateDesktopNavHighlight() {
@@ -453,6 +598,14 @@ function updateDesktopNavHighlight() {
 
 function getInactiveOpenPanelIds() {
   return openPanelIds.filter((panelId) => panelId !== activePanelId);
+}
+
+function getHeaderNavigablePanelIds() {
+  return [...openPanelIds];
+}
+
+function isDesktopVisible() {
+  return activePanelId === null || showingDesktop;
 }
 
 function updateNavigationHighlights() {
@@ -482,6 +635,43 @@ function findOrganization(id) {
   return organizations.find((organization) => organization.id === id) ?? null;
 }
 
+function findSourceById(id) {
+  return sourceState.find((source) => source.id === id) ?? null;
+}
+
+function sortOrganizations(list) {
+  const recentRank = new Map(organizationRecentIds.map((id, index) => [id, index]));
+  return [...list].sort((left, right) => {
+    if (left.id === activeOrganizationId) return -1;
+    if (right.id === activeOrganizationId) return 1;
+
+    const leftRecent = recentRank.get(left.id);
+    const rightRecent = recentRank.get(right.id);
+    if (leftRecent !== undefined || rightRecent !== undefined) {
+      if (leftRecent === undefined) return 1;
+      if (rightRecent === undefined) return -1;
+      return leftRecent - rightRecent;
+    }
+
+    return left.name.localeCompare(right.name);
+  });
+}
+
+function openConfirmation(options) {
+  pendingConfirmation = options;
+  confirmModalTitle.textContent = options.title;
+  confirmModalBody.textContent = options.body;
+  confirmModalConfirm.textContent = options.confirmLabel ?? "delete";
+  confirmModal.hidden = false;
+  confirmModal.setAttribute("aria-hidden", "false");
+}
+
+function closeConfirmation() {
+  pendingConfirmation = null;
+  confirmModal.hidden = true;
+  confirmModal.setAttribute("aria-hidden", "true");
+}
+
 function isOrganizationDirty(organization) {
   if (!organization.persisted) {
     return true;
@@ -497,6 +687,22 @@ function isOrganizationDirty(organization) {
   );
 }
 
+function normalizeOrganizationNameKey(name) {
+  return name.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function hasDuplicateOrganizationName(name, excludeId = null) {
+  const target = normalizeOrganizationNameKey(name);
+  if (!target) {
+    return false;
+  }
+
+  return organizations.some((organization) =>
+    organization.id !== excludeId &&
+    normalizeOrganizationNameKey(organization.name) === target
+  );
+}
+
 function mergeDetectedSources(detectedSources) {
   detectedSourceMap = new Map(detectedSources.map((source) => [source.address, source]));
   const savedSources = sourceState.filter(
@@ -506,31 +712,50 @@ function mergeDetectedSources(detectedSources) {
   const nextSources = [];
   const savedByAddress = new Map(savedSources.map((source) => [source.address, source]));
 
-  for (const [address, detected] of detectedSourceMap) {
-    const saved = savedByAddress.get(address);
-    const preferred = pickPreferredModel(detected.models ?? []);
-    if (saved) {
-      saved.availableModels = detected.models ?? [];
-      saved.detail = detected.detail ?? saved.detail;
-      saved.hostname = detected.hostname ?? saved.hostname;
-      saved.instructions = [];
-      saved.note = detected.note || preferred.warning || saved.note;
-      saved.verified = true;
-      saved.model =
-        saved.availableModels.includes(saved.model) && saved.model
-          ? saved.model
+  for (const source of savedSources) {
+    const detected = detectedSourceMap.get(source.address);
+    if (detected) {
+      const preferred = pickPreferredModel(detected.models ?? []);
+      source.availableModels = detected.models ?? [];
+      source.detail = detected.detail ?? source.detail;
+      source.hostname = detected.hostname ?? source.hostname;
+      source.instructions = [];
+      source.note = detected.note || preferred.warning || source.note;
+      source.verified = true;
+      source.model =
+        source.availableModels.includes(source.model) && source.model
+          ? source.model
           : preferred.model;
-      if (saved.kind === SOURCE_KIND_LOCAL) {
-        saved.name = "Localhost Ollama";
-        saved.active = true;
-      } else if (!saved.labelCustomized) {
-        saved.name = defaultDetectedName(detected, nextSources.length + 1);
+      if (source.kind === SOURCE_KIND_LOCAL) {
+        source.active = true;
+        if (!source.labelCustomized) {
+          source.name = defaultLocalSourceName();
+        }
+      } else if (!source.labelCustomized) {
+        source.name = defaultDetectedName(detected, nextSources.length + 1);
       }
-      nextSources.push(saved);
-      savedByAddress.delete(address);
+      savedByAddress.delete(source.address);
+    }
+
+    if (source.kind === SOURCE_KIND_LOCAL) {
+      source.active = true;
+      if (!source.labelCustomized) {
+        source.name = defaultLocalSourceName();
+      }
+    }
+    nextSources.push(source);
+  }
+
+  for (const [address, detected] of detectedSourceMap) {
+    if (savedByAddress.has(address)) {
       continue;
     }
 
+    if (savedSources.some((source) => source.address === address)) {
+      continue;
+    }
+
+    const preferred = pickPreferredModel(detected.models ?? []);
     nextSources.push(
       createSourceRecord({
         active: false,
@@ -545,7 +770,7 @@ function mergeDetectedSources(detectedSources) {
         model: preferred.model,
         name:
           address === "http://127.0.0.1:11434"
-            ? "Localhost Ollama"
+            ? defaultLocalSourceName()
             : defaultDetectedName(detected, nextSources.length + 1),
         note: detected.note || preferred.warning,
         persisted: address === "http://127.0.0.1:11434",
@@ -554,19 +779,12 @@ function mergeDetectedSources(detectedSources) {
     );
   }
 
-  for (const source of savedByAddress.values()) {
-    if (source.kind === SOURCE_KIND_LOCAL) {
-      source.active = true;
-      source.name = "Localhost Ollama";
-    }
-    nextSources.push(source);
-  }
-
   for (const source of manualSources) {
     nextSources.push(source);
   }
 
-  sourceState = sortSources(nextSources);
+  sourceState = nextSources;
+  syncSourceDrafts();
   ensureSourceSelection();
   renderSources();
 }
@@ -584,7 +802,7 @@ async function loadWorkspaceBootstrap() {
         kind: SOURCE_KIND_LOCAL,
         labelCustomized: false,
         model: "",
-        name: "Localhost Ollama",
+        name: defaultLocalSourceName(),
         tier: "mid",
       }),
     );
@@ -606,8 +824,15 @@ async function loadWorkspaceBootstrap() {
       .map((organization) => [organization.id, { ...organization }]),
   );
 
+  organizationRecentIds = organizations.map((organization) => organization.id);
+  if (activeOrganizationId) {
+    touchOrganizationRecent(activeOrganizationId);
+    organizations = sortOrganizations(organizations);
+  }
+
   ensureSourceSelection();
   ensureOrganizationSelection();
+  syncSourceDrafts();
   renderSources();
   renderOrganizations();
 }
@@ -627,7 +852,10 @@ async function persistSources() {
       kind: source.kind === SOURCE_KIND_LOCAL ? SOURCE_KIND_LOCAL : SOURCE_KIND_SAVED,
       labelCustomized: Boolean(source.labelCustomized),
       model: source.model,
-      name: source.kind === SOURCE_KIND_LOCAL ? "Localhost Ollama" : source.name,
+      name:
+        source.kind === SOURCE_KIND_LOCAL && !source.labelCustomized
+          ? defaultLocalSourceName()
+          : source.name,
       tier: source.tier,
     }));
 
@@ -662,11 +890,14 @@ async function persistSources() {
     .map((source) => {
       if (source.kind === SOURCE_KIND_LOCAL) {
         source.active = true;
+        if (!source.labelCustomized) {
+          source.name = defaultLocalSourceName();
+        }
       }
       return source;
     });
 
-  sourceState = sortSources(sourceState);
+  syncSourceDrafts();
   renderSources();
 }
 
@@ -686,7 +917,8 @@ async function discoverSources() {
   try {
     const payload = await fetchJson("/api/inference/discover");
     mergeDetectedSources(payload.sources ?? []);
-    setScanState(`${payload.sources?.length ?? 0} sources detected`);
+    setDetectedCount(payload.sources?.length ?? 0);
+    setScanState("Ready");
   } catch (error) {
     console.error(error);
     setScanState("Scan failed");
@@ -781,8 +1013,42 @@ async function verifySource(sourceId) {
   }
 }
 
+async function saveSource(sourceId) {
+  let source = sourceState.find((item) => item.id === sourceId);
+  if (!source || savingSourceIds.has(sourceId)) {
+    return;
+  }
+
+  savingSourceIds.add(sourceId);
+  renderSources();
+
+  try {
+    source.persisted = true;
+    source.kind = source.kind === SOURCE_KIND_LOCAL ? SOURCE_KIND_LOCAL : SOURCE_KIND_SAVED;
+    await persistSources();
+    source = sourceState.find((item) => item.id === sourceId) ?? source;
+    await verifySource(source.id);
+  } finally {
+    savingSourceIds.delete(sourceId);
+    syncSourceDrafts();
+    renderSources();
+  }
+}
+
+function discardSourceChanges(sourceId) {
+  const baseline = sourceDrafts.get(sourceId);
+  if (!baseline) {
+    return;
+  }
+
+  sourceState = sourceState.map((source) =>
+    source.id === sourceId ? cloneSource(baseline) : source
+  );
+  renderSources();
+}
+
 function updateSourceField(sourceId, field, value, options = {}) {
-  const { rerender = true } = options;
+  const { rerender = true, persist = false } = options;
   const source = sourceState.find((item) => item.id === sourceId);
   if (!source) {
     return;
@@ -790,17 +1056,21 @@ function updateSourceField(sourceId, field, value, options = {}) {
 
   source[field] = value;
   if (field === "name") {
-    source.labelCustomized = source.kind !== SOURCE_KIND_LOCAL;
+    source.labelCustomized = value.trim() !== "" && value.trim() !== defaultLocalSourceName();
   }
   if (field === "address") {
     source.verified = false;
     source.availableModels = [];
+    source.model = "";
+    source.detail = "Save changes to verify this inference source.";
+    source.instructions = [];
+    source.note = "";
     if (source.kind !== SOURCE_KIND_LOCAL && source.kind !== SOURCE_KIND_SAVED) {
       source.kind = SOURCE_KIND_MANUAL;
     }
   }
 
-  if (source.persisted && field !== "model") {
+  if (persist && source.persisted && field !== "model") {
     void persistSources();
   }
 
@@ -822,6 +1092,7 @@ function moveSource(sourceId, direction) {
 
   const [source] = sourceState.splice(index, 1);
   sourceState.splice(target, 0, source);
+  void persistSources();
   renderSources();
 }
 
@@ -868,8 +1139,8 @@ function createSourceDetail(source) {
   const deleteButton = card.querySelector('[data-action="delete"]');
   const badge = card.querySelector('[data-role="detail-badge"]');
   const detail = card.querySelector('[data-role="detail"]');
-  const note = card.querySelector('[data-role="note"]');
   const toggle = card.querySelector(".source-card__toggle");
+  const editActions = card.querySelector('[data-role="source-edit-actions"]');
 
   card.dataset.sourceId = source.id;
   card.querySelector('[data-field="name"]').value = source.name;
@@ -878,22 +1149,22 @@ function createSourceDetail(source) {
   card.querySelector('[data-field="active"]').checked = source.active;
   card.querySelector('[data-role="status"]').textContent = source.verified
     ? "Connected"
-    : source.kind === SOURCE_KIND_DETECTED
-      ? "Detected"
-      : "Not verified";
+    : "Disconnected";
   if (source.verified && source.persisted) {
     badge.hidden = false;
     badge.textContent = "verified";
     badge.classList.add("source-badge--verified");
+    verifyButton.hidden = true;
   } else if (source.kind === SOURCE_KIND_DETECTED) {
     badge.hidden = false;
     badge.textContent = "detected";
     badge.classList.remove("source-badge--verified");
+    verifyButton.hidden = false;
   } else {
     badge.hidden = true;
+    verifyButton.hidden = false;
   }
   detail.textContent = source.detail;
-  note.textContent = source.note;
 
   const instructions = card.querySelector('[data-role="instructions"]');
   instructions.replaceChildren();
@@ -909,11 +1180,40 @@ function createSourceDetail(source) {
   verifyButton.classList.toggle("is-busy", verifyingSourceIds.has(source.id));
   card.classList.toggle("is-busy", verifyingSourceIds.has(source.id));
   detail.classList.toggle("is-busy", verifyingSourceIds.has(source.id));
-  note.classList.toggle("is-busy", verifyingSourceIds.has(source.id));
   toggle.classList.toggle("is-busy", verifyingSourceIds.has(source.id));
   deleteButton.hidden = source.kind === SOURCE_KIND_LOCAL;
+  renderSourceEditActions(editActions, source);
 
   return fragment;
+}
+
+function renderSourceEditActions(target, source) {
+  if (!target) {
+    return;
+  }
+
+  target.replaceChildren();
+  if (!isSourceDirty(source)) {
+    return;
+  }
+
+  const discardButton = document.createElement("button");
+  discardButton.className = "chrome-button source-card__button";
+  discardButton.dataset.action = "discard-source";
+  discardButton.type = "button";
+  discardButton.textContent = "discard";
+  discardButton.disabled = savingSourceIds.has(source.id) || verifyingSourceIds.has(source.id);
+  target.append(discardButton);
+
+  const saveButton = document.createElement("button");
+  saveButton.className = "chrome-button source-card__button";
+  saveButton.dataset.action = "save-source";
+  saveButton.type = "button";
+  const isBusy = savingSourceIds.has(source.id);
+  saveButton.textContent = isBusy ? "saving..." : "save";
+  saveButton.disabled = isBusy || verifyingSourceIds.has(source.id);
+  saveButton.classList.toggle("is-busy", isBusy);
+  target.append(saveButton);
 }
 
 function renderSources() {
@@ -944,10 +1244,7 @@ function createOrganizationMenuItem(organization) {
   } else if (organization.id === activeOrganizationId) {
     fragment.querySelector('[data-role="meta"]').textContent = "active";
   } else {
-    fragment.querySelector('[data-role="meta"]').textContent =
-      organization.industry === "custom" && organization.industryCustom
-        ? organization.industryCustom
-        : organization.industry;
+    fragment.querySelector('[data-role="meta"]').textContent = formatLastActiveLabel(organization);
   }
 
   if (organization.id === selectedOrganizationId) {
@@ -959,6 +1256,8 @@ function createOrganizationMenuItem(organization) {
 
 function renderOrganizationAction(target, organization) {
   target.replaceChildren();
+  const hasDuplicateName = hasDuplicateOrganizationName(organization.name, organization.id);
+  const hasValidName = Boolean(organization.name.trim());
 
   if (isOrganizationDirty(organization) || !organization.persisted) {
     const button = document.createElement("button");
@@ -967,7 +1266,7 @@ function renderOrganizationAction(target, organization) {
     button.type = "button";
     const isBusy = savingOrganizationId === organization.id;
     button.textContent = isBusy ? "saving..." : "save";
-    button.disabled = isBusy || loadingOrganizationId !== null;
+    button.disabled = isBusy || loadingOrganizationId !== null || !hasValidName || hasDuplicateName;
     button.classList.toggle("is-busy", isBusy);
     target.append(button);
     return;
@@ -995,28 +1294,56 @@ function renderOrganizationAction(target, organization) {
 function createOrganizationDetail(organization) {
   const fragment = organizationCardTemplate.content.cloneNode(true);
   const card = fragment.querySelector(".source-card");
+  const deleteButton = card.querySelector('[data-action="delete-organization"]');
+  const nameField = card.querySelector('[data-field="name"]');
   card.dataset.organizationId = organization.id;
 
-  card.querySelector('[data-field="name"]').value = organization.name;
+  nameField.value = organization.name;
   card.querySelector('[data-field="industry"]').value = organization.industry;
   card.querySelector('[data-field="industryCustom"]').value = organization.industryCustom;
   card.querySelector('[data-field="description"]').value = organization.description;
 
-  const status = card.querySelector('[data-role="status"]');
-  status.textContent = organization.persisted
-    ? organization.id === activeOrganizationId
-      ? "Active"
-      : "Saved"
-    : "Draft";
+  const founded = card.querySelector('[data-role="founded"]');
+  founded.textContent = formatFoundedLabel(organization);
+  founded.hidden = !founded.textContent;
 
   const customField = card.querySelector('[data-role="industry-custom-field"]');
   customField.hidden = organization.industry !== "custom";
+  deleteButton.textContent = organization.persisted ? "delete" : "cancel";
+  nameField.setCustomValidity(
+    hasDuplicateOrganizationName(organization.name, organization.id)
+      ? "Organization name already in use"
+      : "",
+  );
 
   renderOrganizationAction(card.querySelector('[data-role="org-action"]'), organization);
   return fragment;
 }
 
+function refreshOrganizationDetailCard(card, organization) {
+  if (!card || !organization) {
+    return;
+  }
+
+  const founded = card.querySelector('[data-role="founded"]');
+  const customField = card.querySelector('[data-role="industry-custom-field"]');
+  const deleteButton = card.querySelector('[data-action="delete-organization"]');
+  const nameField = card.querySelector('[data-field="name"]');
+
+  founded.textContent = formatFoundedLabel(organization);
+  founded.hidden = !founded.textContent;
+  customField.hidden = organization.industry !== "custom";
+  deleteButton.textContent = organization.persisted ? "delete" : "cancel";
+  nameField.setCustomValidity(
+    hasDuplicateOrganizationName(organization.name, organization.id)
+      ? "Organization name already in use"
+      : "",
+  );
+  renderOrganizationAction(card.querySelector('[data-role="org-action"]'), organization);
+}
+
 function renderOrganizations() {
+  organizations = sortOrganizations(organizations);
   ensureOrganizationSelection();
   organizationMenu.replaceChildren();
   organizations.forEach((organization) => {
@@ -1030,6 +1357,7 @@ function renderOrganizations() {
     organizationDetail.append(createOrganizationDetail(selected));
   }
   updateHeaderCaption();
+  updateDesktopAppAvailability();
 }
 
 async function saveOrganization(organizationId) {
@@ -1037,6 +1365,12 @@ async function saveOrganization(organizationId) {
   if (!organization) {
     return;
   }
+  if (hasDuplicateOrganizationName(organization.name, organization.id)) {
+    setAboutState("Organization name already in use");
+    renderOrganizations();
+    return;
+  }
+  const wasPersisted = organization.persisted;
 
   savingOrganizationId = organizationId;
   setAboutState("Saving organization...");
@@ -1046,7 +1380,7 @@ async function saveOrganization(organizationId) {
   try {
     const organizationsState = await fetchJson("/api/organizations/save", {
       body: JSON.stringify({
-        activate: !activeOrganizationId,
+        activate: !wasPersisted,
         organization: {
           id: organization.persisted ? organization.id : undefined,
           description: organization.description,
@@ -1066,13 +1400,23 @@ async function saveOrganization(organizationId) {
     organizationDrafts = new Map(
       organizations.map((entry) => [entry.id, { ...entry }]),
     );
-    if (!organization.persisted) {
-      const match = organizations.find((entry) => entry.name === organization.name);
-      if (match) {
-        selectedOrganizationId = match.id;
-      }
+    const match =
+      organizations.find((entry) => entry.id === organization.id) ??
+      organizations.find((entry) => entry.name === organization.name);
+    if (match) {
+      selectedOrganizationId = match.id;
+      touchOrganizationRecent(match.id);
     }
+    organizations = sortOrganizations(organizations);
+    openPanel(PANEL_ABOUT);
     setAboutState("Organization saved");
+  } catch (error) {
+    console.error(error);
+    if (String(error).includes("409")) {
+      setAboutState("Organization name already in use");
+    } else {
+      setAboutState("Organization save failed");
+    }
   } finally {
     savingOrganizationId = null;
     aboutState.classList.remove("is-busy");
@@ -1097,16 +1441,88 @@ async function loadOrganization(organizationId) {
 
     organizations = organizationsState.organizations.map(normalizeOrganization);
     activeOrganizationId = organizationsState.activeOrganizationId;
+    touchOrganizationRecent(organizationId);
+    organizations = sortOrganizations(organizations);
     organizationDrafts = new Map(
       organizations.map((entry) => [entry.id, { ...entry }]),
     );
     selectedOrganizationId = organizationId;
+    openPanel(PANEL_ABOUT);
     setAboutState("Organization active");
   } finally {
     loadingOrganizationId = null;
     aboutState.classList.remove("is-busy");
     renderOrganizations();
   }
+}
+
+async function deleteOrganization(organizationId) {
+  const deletedWasActive = organizationId === activeOrganizationId;
+  const organizationsState = await fetchJson("/api/organizations/delete", {
+    body: JSON.stringify({ id: organizationId }),
+    headers: {
+      "content-type": "application/json",
+    },
+    method: "POST",
+  });
+
+  organizations = organizationsState.organizations.map(normalizeOrganization);
+  activeOrganizationId = organizationsState.activeOrganizationId;
+  organizationDrafts = new Map(
+    organizations.map((entry) => [entry.id, { ...entry }]),
+  );
+  organizationRecentIds = organizationRecentIds.filter((id) => id !== organizationId);
+
+  if (activeOrganizationId) {
+    touchOrganizationRecent(activeOrganizationId);
+    organizations = sortOrganizations(organizations);
+    const selectedExists = organizations.some((organization) => organization.id === selectedOrganizationId);
+    selectedOrganizationId = selectedExists ? selectedOrganizationId : activeOrganizationId;
+    setAboutState("Organization deleted");
+    openPanel(PANEL_ABOUT);
+  } else if (organizations.length > 0) {
+    organizations = sortOrganizations(organizations);
+    selectedOrganizationId = organizations[0].id;
+    setAboutState("Welcome to orgos");
+    if (deletedWasActive) {
+      openPanel(PANEL_ABOUT);
+      showingDesktop = false;
+    }
+  } else {
+    const draft = createDraftOrganization();
+    organizations = [draft];
+    selectedOrganizationId = draft.id;
+    activeOrganizationId = null;
+    organizationRecentIds = [draft.id];
+    setAboutState("Create your first organization");
+    if (deletedWasActive) {
+      openPanel(PANEL_ABOUT);
+      showingDesktop = false;
+    }
+  }
+
+  renderOrganizations();
+}
+
+function cancelDraftOrganization(organizationId) {
+  organizations = organizations.filter((organization) => organization.id !== organizationId);
+  organizationRecentIds = organizationRecentIds.filter((id) => id !== organizationId);
+
+  if (organizations.length === 0) {
+    const draft = createDraftOrganization();
+    organizations = [draft];
+    selectedOrganizationId = draft.id;
+    activeOrganizationId = null;
+    organizationRecentIds = [draft.id];
+    setAboutState("Create your first organization");
+  } else {
+    const nextSelection = organizations.find((organization) => organization.id === activeOrganizationId)
+      ?? organizations[0];
+    selectedOrganizationId = nextSelection?.id ?? null;
+    setAboutState(activeOrganizationId ? "Organization active" : "Ready");
+  }
+
+  renderOrganizations();
 }
 
 function openPanel(panelId) {
@@ -1132,7 +1548,7 @@ function closePanel(panelId) {
 function renderPanels() {
   panelHeaderBar.hidden = openPanelIds.length === 0;
   panelRegion.hidden = activePanelId === null || showingDesktop;
-  desktopArea.hidden = !showingDesktop && activePanelId !== null;
+  desktopArea.hidden = !isDesktopVisible();
   aboutPanel.hidden = activePanelId !== PANEL_ABOUT || showingDesktop;
   sourcesPanel.hidden = activePanelId !== PANEL_SOURCES || showingDesktop;
   workspaceArea.classList.toggle("has-open-panels", openPanelIds.length > 0);
@@ -1232,6 +1648,12 @@ windowedButton.addEventListener("click", async () => {
   await toggleFullscreen();
 });
 
+modeToggle?.addEventListener("click", () => {
+  systemMode = systemMode === "auto" ? "idle" : "auto";
+  persistSystemMode();
+  renderSystemMode();
+});
+
 document.addEventListener("fullscreenchange", async () => {
   syncFullscreenButtons();
   if (document.fullscreenElement) {
@@ -1263,6 +1685,14 @@ aboutIcon.addEventListener("click", () => {
 });
 
 sourcesIcon.addEventListener("click", () => {
+  openPanel(PANEL_SOURCES);
+});
+
+headerCaption.addEventListener("click", () => {
+  openPanel(PANEL_ABOUT);
+});
+
+sourceIndicator.addEventListener("click", () => {
   openPanel(PANEL_SOURCES);
 });
 
@@ -1322,8 +1752,8 @@ function applyTabNavHighlight() {
   if (!keyboardNavigationVisible || navMode !== "header") {
     return;
   }
-  const inactivePanelIds = getInactiveOpenPanelIds();
-  const targetPanelId = inactivePanelIds[tabNavIndex];
+  const headerPanelIds = getHeaderNavigablePanelIds();
+  const targetPanelId = headerPanelIds[tabNavIndex];
   const tab = [...headerTabs.querySelectorAll(".header-tab")].find(
     (item) => item.dataset.panelId === targetPanelId,
   );
@@ -1333,9 +1763,10 @@ function applyTabNavHighlight() {
 }
 
 document.addEventListener("keydown", (event) => {
-  if (isTextInput(document.activeElement)) return;
+  if (isTextInput(event.target) || isTextInput(document.activeElement)) return;
   const icons = getDesktopIcons();
-  const inactivePanelIds = getInactiveOpenPanelIds();
+  const headerPanelIds = getHeaderNavigablePanelIds();
+  const desktopVisible = isDesktopVisible();
 
   if (event.key === " " || event.code === "Space") {
     event.preventDefault();
@@ -1355,7 +1786,7 @@ document.addEventListener("keydown", (event) => {
     const delta = event.key === "ArrowRight" ? 1 : -1;
     showKeyboardNavigation();
     if (navMode === "desktop") {
-      if (icons.length < 2 || !showingDesktop) return;
+      if (icons.length < 2 || !desktopVisible) return;
       event.preventDefault();
       desktopNavIndex = (desktopNavIndex + delta + icons.length) % icons.length;
       updateNavigationHighlights();
@@ -1363,9 +1794,9 @@ document.addEventListener("keydown", (event) => {
     }
 
     if (navMode === "header") {
-      if (inactivePanelIds.length < 2) return;
+      if (headerPanelIds.length < 2) return;
       event.preventDefault();
-      tabNavIndex = (tabNavIndex + delta + inactivePanelIds.length) % inactivePanelIds.length;
+      tabNavIndex = (tabNavIndex + delta + headerPanelIds.length) % headerPanelIds.length;
       updateNavigationHighlights();
     }
     return;
@@ -1373,11 +1804,14 @@ document.addEventListener("keydown", (event) => {
 
   if (event.key === "ArrowDown") {
     event.preventDefault();
+    const wasKeyboardNavigationVisible = keyboardNavigationVisible;
     showKeyboardNavigation();
     if (navMode === "desktop") {
-      if (!showingDesktop && activePanelId !== null) {
-        showingDesktop = true;
-        renderPanels();
+      if (desktopVisible && !wasKeyboardNavigationVisible) {
+        updateNavigationHighlights();
+        return;
+      }
+      if (!desktopVisible) {
         return;
       }
       const panelId = desktopNavIndex === 0 ? PANEL_ABOUT : PANEL_SOURCES;
@@ -1387,7 +1821,7 @@ document.addEventListener("keydown", (event) => {
     }
 
     if (navMode === "header") {
-      const targetPanelId = inactivePanelIds[tabNavIndex];
+      const targetPanelId = headerPanelIds[tabNavIndex];
       if (targetPanelId) {
         openPanel(targetPanelId);
         setNavMode("desktop");
@@ -1399,8 +1833,10 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "ArrowUp") {
     event.preventDefault();
     showKeyboardNavigation();
-    if (navMode === "desktop" && inactivePanelIds.length > 0) {
-      tabNavIndex = 0;
+    if (navMode === "desktop" && headerPanelIds.length > 0) {
+      tabNavIndex = desktopVisible
+        ? 0
+        : Math.max(0, headerPanelIds.indexOf(activePanelId ?? headerPanelIds[0]));
       setNavMode("header");
       headerTabsViewport.scrollTo({ left: 0, behavior: "smooth" });
       return;
@@ -1451,7 +1887,6 @@ addSourceButton.addEventListener("click", () => {
     name: `Source ${sourceState.length + 1}`,
   });
   sourceState.push(source);
-  sourceState = sortSources(sourceState);
   selectedSourceId = source.id;
   renderSources();
 });
@@ -1460,6 +1895,7 @@ addOrganizationButton.addEventListener("click", () => {
   const organization = createDraftOrganization();
   organizations.push(organization);
   selectedOrganizationId = organization.id;
+  touchOrganizationRecent(organization.id);
   renderOrganizations();
   setAboutState("Draft organization");
 });
@@ -1510,7 +1946,31 @@ sourceDetail.addEventListener("input", (event) => {
     return;
   }
 
-  updateSourceField(sourceId, field, target.value, { rerender: false });
+  updateSourceField(sourceId, field, target.value, { persist: false, rerender: false });
+  renderSourceEditActions(card.querySelector('[data-role="source-edit-actions"]'), findSourceById(sourceId));
+});
+
+sourceDetail.addEventListener("mousedown", (event) => {
+  const target = event.target.closest("button");
+  if (!target) {
+    return;
+  }
+
+  const action = target.dataset.action;
+  if (!action) {
+    return;
+  }
+
+  if (
+    action === "save-source" ||
+    action === "discard-source" ||
+    action === "verify" ||
+    action === "delete"
+  ) {
+    // Keep focus on the current field so blur/change handlers do not
+    // mutate the card before the button click is processed.
+    event.preventDefault();
+  }
 });
 
 sourceDetail.addEventListener("change", (event) => {
@@ -1527,11 +1987,15 @@ sourceDetail.addEventListener("change", (event) => {
   }
 
   if (target.type === "checkbox") {
-    updateSourceField(sourceId, field, target.checked);
+    updateSourceField(sourceId, field, target.checked, { persist: false, rerender: false });
+    renderSourceEditActions(card.querySelector('[data-role="source-edit-actions"]'), findSourceById(sourceId));
     return;
   }
 
-  updateSourceField(sourceId, field, target.value);
+  updateSourceField(sourceId, field, target.value, { persist: false, rerender: false });
+  if (target.tagName === "SELECT") {
+    renderSourceEditActions(card.querySelector('[data-role="source-edit-actions"]'), findSourceById(sourceId));
+  }
 });
 
 sourceDetail.addEventListener("click", async (event) => {
@@ -1556,6 +2020,16 @@ sourceDetail.addEventListener("click", async (event) => {
     return;
   }
 
+  if (action === "save-source") {
+    await saveSource(sourceId);
+    return;
+  }
+
+  if (action === "discard-source") {
+    discardSourceChanges(sourceId);
+    return;
+  }
+
   if (action === "delete") {
     deleteSource(sourceId);
   }
@@ -1573,6 +2047,7 @@ organizationMenu.addEventListener("click", (event) => {
   }
 
   selectedOrganizationId = item.dataset.organizationId;
+  touchOrganizationRecent(selectedOrganizationId);
   renderOrganizations();
 });
 
@@ -1590,6 +2065,7 @@ organizationDetail.addEventListener("input", (event) => {
   }
 
   organization[field] = target.value;
+  refreshOrganizationDetailCard(card, organization);
 });
 
 organizationDetail.addEventListener("change", (event) => {
@@ -1606,17 +2082,8 @@ organizationDetail.addEventListener("change", (event) => {
   }
 
   organization[field] = target.value;
-  renderOrganizations();
-});
-
-organizationDetail.addEventListener("focusout", (event) => {
-  const card = event.target.closest(".source-card");
-  if (!card) {
-    return;
-  }
-
-  if (card.dataset.organizationId === selectedOrganizationId) {
-    renderOrganizations();
+  if (field === "industry") {
+    refreshOrganizationDetailCard(card, organization);
   }
 });
 
@@ -1644,10 +2111,53 @@ organizationDetail.addEventListener("click", async (event) => {
 
   if (action === "load-organization") {
     await loadOrganization(organizationId);
+    return;
+  }
+
+  if (action === "delete-organization") {
+    const organization = findOrganization(organizationId);
+    if (!organization) {
+      return;
+    }
+
+    if (!organization.persisted) {
+      cancelDraftOrganization(organizationId);
+      return;
+    }
+
+    openConfirmation({
+      body: "This permanently deletes the organization and its stored orgos data. This action cannot be undone.",
+      confirmLabel: "delete",
+      onConfirm: async () => {
+        await deleteOrganization(organizationId);
+      },
+      title: "Delete organization?",
+    });
+  }
+});
+
+confirmModal.addEventListener("click", async (event) => {
+  const target = event.target.closest("button, [data-action=\"cancel-modal\"]");
+  if (!target) {
+    return;
+  }
+
+  const action = target.dataset.action;
+  if (action === "cancel-modal") {
+    closeConfirmation();
+    return;
+  }
+
+  if (action === "confirm-modal" && pendingConfirmation) {
+    const { onConfirm } = pendingConfirmation;
+    closeConfirmation();
+    await onConfirm();
   }
 });
 
 async function initialize() {
+  loadSystemMode();
+  renderSystemMode();
   try {
     const appContent = await loadAppContent();
     titleElement.textContent = (appContent.title ?? "orgos").replaceAll(/\s+/g, " ");
@@ -1657,6 +2167,7 @@ async function initialize() {
   }
 
   await loadWorkspaceBootstrap();
+  setDetectedCount(sourceState.length);
   updateNavigationHighlights();
   const hasSavedOrg = activeOrganizationId !== null &&
     organizations.some((org) => org.persisted && org.id === activeOrganizationId);
