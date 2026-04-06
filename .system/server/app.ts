@@ -1,5 +1,5 @@
 import { existsSync, watch } from "node:fs";
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
@@ -59,6 +59,7 @@ type OrganizationAbout = {
   id: string;
   industry: string;
   industryCustom: string;
+  lastActiveAt?: string;
   name: string;
   updatedAt: string;
 };
@@ -67,6 +68,10 @@ type OrganizationsIndex = {
   activeOrganizationId: string | null;
   version: number;
 };
+
+type OrganizationSaveResult =
+  | { ok: true; state: Awaited<ReturnType<typeof readOrganizations>> }
+  | { ok: false; reason: "duplicate_name" | "invalid_name" };
 
 const contentTypes = new Map([
   [".html", "text/html; charset=utf-8"],
@@ -83,6 +88,15 @@ const contentTypes = new Map([
 export function resolveContentType(filePath: string) {
   const extension = path.extname(filePath);
   return contentTypes.get(extension) ?? "application/octet-stream";
+}
+
+function slugifyOrganizationName(name: string) {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-");
 }
 
 export function safeJoin(baseDir: string, requestPath: string) {
@@ -517,11 +531,16 @@ export function createOrgosApp(rootDir: string): OrgosApp {
 
   async function writeSourcesConfig(sources: StoredSource[]) {
     const deduped = new Map<string, StoredSource>();
+    const orderedAddresses: string[] = [];
 
     for (const source of sources) {
       const normalizedAddress = normalizeInferenceAddress(source.address);
       if (!normalizedAddress) {
         continue;
+      }
+
+      if (!deduped.has(normalizedAddress)) {
+        orderedAddresses.push(normalizedAddress);
       }
 
       deduped.set(normalizedAddress, {
@@ -533,7 +552,7 @@ export function createOrgosApp(rootDir: string): OrgosApp {
         model: source.model ?? "",
         name:
           source.kind === "local_default"
-            ? "Localhost Ollama"
+            ? (source.labelCustomized && source.name ? source.name : "Localhost Ollama")
             : (source.name || new URL(normalizedAddress).hostname),
         tier:
           source.tier === "top" || source.tier === "low" ? source.tier : "mid",
@@ -541,19 +560,15 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     }
 
     if (!deduped.has("http://127.0.0.1:11434")) {
+      orderedAddresses.unshift("http://127.0.0.1:11434");
       deduped.set("http://127.0.0.1:11434", createDefaultStoredSource());
     }
 
     const payload: SourcesConfig = {
-      sources: [...deduped.values()].sort((left, right) => {
-        if (left.kind === "local_default") {
-          return -1;
-        }
-        if (right.kind === "local_default") {
-          return 1;
-        }
-        return left.name.localeCompare(right.name);
-      }),
+      sources: orderedAddresses
+        .filter((address, index, list) => list.indexOf(address) === index)
+        .map((address) => deduped.get(address))
+        .filter((source): source is StoredSource => Boolean(source)),
       version: 1,
     };
 
@@ -614,28 +629,46 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     };
   }
 
-  async function saveOrganization(payload: Partial<OrganizationAbout>, activate = false) {
+  async function saveOrganization(payload: Partial<OrganizationAbout>, activate = false): Promise<OrganizationSaveResult> {
     const now = new Date().toISOString();
-    const id = payload.id || `org-${crypto.randomUUID()}`;
-    const existing = await readOrganizationAbout(id);
+    const normalizedName = (payload.name ?? "").trim();
+    const desiredId = slugifyOrganizationName(normalizedName);
+    if (!desiredId) {
+      return { ok: false, reason: "invalid_name" };
+    }
+
+    const previousId = payload.id ?? null;
+    const id = desiredId;
+    const existing = previousId ? await readOrganizationAbout(previousId) : null;
+    const conflicting = id !== previousId ? await readOrganizationAbout(id) : null;
+    if (conflicting) {
+      return { ok: false, reason: "duplicate_name" };
+    }
+
     const organization: OrganizationAbout = {
       createdAt: existing?.createdAt ?? now,
       description: payload.description ?? existing?.description ?? "",
       id,
       industry: payload.industry ?? existing?.industry ?? "custom",
       industryCustom: payload.industryCustom ?? existing?.industryCustom ?? "",
-      name: payload.name ?? existing?.name ?? "",
+      lastActiveAt: activate
+        ? now
+        : existing?.lastActiveAt ?? "",
+      name: normalizedName,
       updatedAt: now,
     };
 
+    if (existing && previousId && previousId !== id) {
+      await rename(path.join(organizationsDir, previousId), path.join(organizationsDir, id));
+    }
     await writeOrganizationAbout(organization);
     const index = await readOrganizationsIndex();
-    if (activate || !index.activeOrganizationId) {
+    if (activate || !index.activeOrganizationId || index.activeOrganizationId === previousId) {
       index.activeOrganizationId = id;
     }
     await writeJsonFile(organizationsIndexPath, index);
 
-    return readOrganizations();
+    return { ok: true, state: await readOrganizations() };
   }
 
   async function activateOrganization(id: string) {
@@ -644,9 +677,34 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       return null;
     }
 
+    organization.lastActiveAt = new Date().toISOString();
+    organization.updatedAt = organization.updatedAt || organization.lastActiveAt;
+    await writeOrganizationAbout(organization);
+
     const index = await readOrganizationsIndex();
     index.activeOrganizationId = id;
     await writeJsonFile(organizationsIndexPath, index);
+    return readOrganizations();
+  }
+
+  async function deleteOrganization(id: string) {
+    const organization = await readOrganizationAbout(id);
+    if (!organization) {
+      return null;
+    }
+
+    await rm(path.join(organizationsDir, id), {
+      force: true,
+      recursive: true,
+    });
+
+    const organizationsState = await readOrganizations();
+    const index = await readOrganizationsIndex();
+    if (index.activeOrganizationId === id) {
+      index.activeOrganizationId = null;
+      await writeJsonFile(organizationsIndexPath, index);
+    }
+
     return readOrganizations();
   }
 
@@ -697,7 +755,18 @@ export function createOrgosApp(rootDir: string): OrgosApp {
         return;
       }
 
-      console.log(`reload ${filename}`);
+      const normalizedFilename = filename.replaceAll("\\", "/");
+      const isManagedDataWrite =
+        targetDir === dataDir &&
+        (
+          normalizedFilename.startsWith("system/") ||
+          normalizedFilename.startsWith("organizations/")
+        );
+      if (isManagedDataWrite) {
+        return;
+      }
+
+      console.log(`reload ${normalizedFilename}`);
       broadcastReload();
     });
   }
@@ -757,17 +826,36 @@ export function createOrgosApp(rootDir: string): OrgosApp {
         activate?: boolean;
         organization?: Partial<OrganizationAbout>;
       };
-      const organizations = await saveOrganization(
+      const result = await saveOrganization(
         payload.organization ?? {},
         Boolean(payload.activate),
       );
-      return Response.json(organizations);
+      if (!result.ok) {
+        return Response.json(
+          { error: result.reason },
+          { status: result.reason === "duplicate_name" ? 409 : 400 },
+        );
+      }
+      return Response.json(result.state);
     }
 
     if (url.pathname === "/api/organizations/activate" && request.method === "POST") {
       const payload = (await request.json()) as { id?: string };
       const organizations = payload.id
         ? await activateOrganization(payload.id)
+        : null;
+
+      if (!organizations) {
+        return new Response("Not Found", { status: 404 });
+      }
+
+      return Response.json(organizations);
+    }
+
+    if (url.pathname === "/api/organizations/delete" && request.method === "POST") {
+      const payload = (await request.json()) as { id?: string };
+      const organizations = payload.id
+        ? await deleteOrganization(payload.id)
         : null;
 
       if (!organizations) {

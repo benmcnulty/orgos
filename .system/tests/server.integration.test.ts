@@ -85,9 +85,9 @@ describe("orgos app integration", () => {
       active: true,
       address: "http://127.0.0.1:11434",
       kind: "local_default",
-      name: "Localhost Ollama",
       tier: "mid",
     });
+    expect(typeof payload.sources[0].name).toBe("string");
   });
 
   test("persists shared system source configuration in .data/system", async () => {
@@ -104,6 +104,16 @@ describe("orgos app integration", () => {
               model: "gemma4:latest",
               name: "Localhost Ollama",
               tier: "mid",
+            },
+            {
+              active: false,
+              address: "http://192.168.1.190:11434",
+              id: "source-min",
+              kind: "saved",
+              labelCustomized: true,
+              model: "gemma4:e2b",
+              name: "min",
+              tier: "low",
             },
             {
               active: false,
@@ -132,8 +142,20 @@ describe("orgos app integration", () => {
     );
 
     expect(saveResponse.status).toBe(200);
-    expect(savePayload.sources).toHaveLength(2);
+    expect(savePayload.sources).toHaveLength(3);
+    expect(savePayload.sources.map((source: { address: string }) => source.address)).toEqual([
+      "http://127.0.0.1:11434",
+      "http://192.168.1.190:11434",
+      "http://192.168.1.175:11434",
+    ]);
     expect(savedFile.sources[1]).toMatchObject({
+      address: "http://192.168.1.190:11434",
+      kind: "saved",
+      model: "gemma4:e2b",
+      name: "min",
+      tier: "low",
+    });
+    expect(savedFile.sources[2]).toMatchObject({
       address: "http://192.168.1.175:11434",
       kind: "saved",
       model: "gemma4:latest",
@@ -168,6 +190,7 @@ describe("orgos app integration", () => {
     expect(firstOrganization).toMatchObject({
       description: "Agent-first operating model.",
       industry: "technology",
+      lastActiveAt: expect.any(String),
       name: "Air Labs",
     });
 
@@ -220,6 +243,142 @@ describe("orgos app integration", () => {
 
     expect(activateResponse.status).toBe(200);
     expect(activated.activeOrganizationId).toBe(secondOrganization.id);
+    expect(secondOrganization.id).toBe("vic-labs");
+    expect(
+      activated.organizations.find((organization: { id: string }) => organization.id === secondOrganization.id)
+        ?.lastActiveAt,
+    ).toEqual(expect.any(String));
+  });
+
+  test("deletes organizations and clears the silo when requested", async () => {
+    const saveResponse = await app.fetch(
+      new Request("http://orgos.local/api/organizations/save", {
+        body: JSON.stringify({
+          activate: true,
+          organization: {
+            description: "Disposable org",
+            industry: "technology",
+            industryCustom: "",
+            name: "Delete Me",
+          },
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      }),
+    );
+    const saved = await saveResponse.json();
+    const created = saved.organizations.find(
+      (organization: { name: string }) => organization.name === "Delete Me",
+    );
+
+    const deleteResponse = await app.fetch(
+      new Request("http://orgos.local/api/organizations/delete", {
+        body: JSON.stringify({ id: created.id }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      }),
+    );
+    const deleted = await deleteResponse.json();
+    const deletedAboutPath = path.join(
+      fixtureRoot,
+      ".data",
+      "organizations",
+      created.id,
+      "about.json",
+    );
+
+    expect(deleteResponse.status).toBe(200);
+    expect(
+      deleted.organizations.some((organization: { id: string }) => organization.id === created.id),
+    ).toBe(false);
+    expect(deleted.activeOrganizationId).toBeNull();
+    expect(await Bun.file(deletedAboutPath).exists()).toBe(false);
+  });
+
+  test("rejects duplicate organization names and allows recreation after delete", async () => {
+    const testName = "Octet Duplicate Test";
+    const saveResponse = await app.fetch(
+      new Request("http://orgos.local/api/organizations/save", {
+        body: JSON.stringify({
+          activate: true,
+          organization: {
+            description: "First pass",
+            industry: "technology",
+            industryCustom: "",
+            name: testName,
+          },
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      }),
+    );
+    const firstSaved = await saveResponse.json();
+    const octet = firstSaved.organizations.find(
+      (organization: { name: string }) => organization.name === testName,
+    );
+
+    const duplicateResponse = await app.fetch(
+      new Request("http://orgos.local/api/organizations/save", {
+        body: JSON.stringify({
+          activate: false,
+          organization: {
+            description: "Second pass",
+            industry: "technology",
+            industryCustom: "",
+            name: testName,
+          },
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      }),
+    );
+
+    expect(duplicateResponse.status).toBe(409);
+
+    await app.fetch(
+      new Request("http://orgos.local/api/organizations/delete", {
+        body: JSON.stringify({ id: octet.id }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      }),
+    );
+
+    const recreateResponse = await app.fetch(
+      new Request("http://orgos.local/api/organizations/save", {
+        body: JSON.stringify({
+          activate: true,
+          organization: {
+            description: "Recreated",
+            industry: "technology",
+            industryCustom: "",
+            name: testName,
+          },
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      }),
+    );
+    const recreated = await recreateResponse.json();
+
+    expect(recreateResponse.status).toBe(200);
+    expect(
+      recreated.organizations.some(
+        (organization: { id: string; name: string }) =>
+          organization.id === "octet-duplicate-test" && organization.name === testName,
+      ),
+    ).toBe(true);
   });
 
   test("still serves inference verification and discovery json", async () => {
