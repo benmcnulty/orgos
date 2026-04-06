@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>orgos</title>
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="app-header">
+        <div class="header-slot header-slot--left">
+          <span class="header-caption" id="header-caption">welcome to orgos</span>
+        </div>
+
+        <div class="header-slot header-slot--right">
+          <div class="clock-panel" aria-live="polite">
+            <p class="clock-panel__time" id="clock-time">--:--</p>
+            <p class="clock-panel__date" id="clock-date">------</p>
+          </div>
+          <div class="header-utility-stack">
+            <div class="header-actions" aria-label="Display controls">
+              <button
+                class="icon-button header-action"
+                id="fullscreen-button"
+                type="button"
+                aria-label="Enter full screen"
+                title="Enter full screen"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M8 4H4v4M16 4h4v4M20 16v4h-4M4 16v4h4" />
+                </svg>
+              </button>
+              <button
+                class="icon-button header-action"
+                id="windowed-button"
+                type="button"
+                aria-label="Exit full screen"
+                title="Exit full screen"
+                hidden
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M10 10L5 5M5 8V5h3M14 10l5-5M16 5h3v3M10 14l-5 5M5 16v3h3M14 14l5 5M16 19h3v-3" />
+                </svg>
+              </button>
+            </div>
+            <div class="source-indicator-wrap" id="source-indicator-wrap" hidden>
+              <button
+                class="source-indicator"
+                id="source-indicator"
+                type="button"
+                aria-label="Active inference sources"
+                title="Active inference sources"
+              >
+                <svg class="source-indicator__icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+                  <path
+                    class="source-indicator__bulb"
+                    d="M32 12c-8.8 0-16 7.2-16 16 0 5.9 3.2 11.1 8 13.9v4.6c0 .8.7 1.5 1.5 1.5h13c.8 0 1.5-.7 1.5-1.5v-4.6c4.8-2.8 8-8 8-13.9 0-8.8-7.2-16-16-16z"
+                  />
+                  <line class="source-indicator__bulb" x1="25.5" y1="51" x2="38.5" y2="51" />
+                  <line class="source-indicator__bulb" x1="28" y1="55" x2="36" y2="55" />
+                </svg>
+                <span class="source-indicator__count" id="source-indicator-count" hidden></span>
+              </button>
+              <div class="source-tooltip" id="source-tooltip" role="tooltip" hidden></div>
+            </div>
+          </div>
+        </div>
+
+        <button class="hero-mark" id="desktop-home" type="button" aria-label="Show desktop" title="Show desktop">
+          <svg
+            class="hello-mark"
+            viewBox="0 0 100 100"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <polygon
+              class="hello-mark__hexagon"
+              points="50,4 89.84,27 89.84,73 50,96 10.16,73 10.16,27"
+            />
+            <line class="hello-mark__guide" x1="50" y1="4" x2="50" y2="96" />
+            <line class="hello-mark__guide" x1="10.16" y1="27" x2="89.84" y2="73" />
+            <line class="hello-mark__guide" x1="10.16" y1="73" x2="89.84" y2="27" />
+            <text class="hello-mark__text" x="50" y="50" id="app-title">Loading...</text>
+          </svg>
+        </button>
+
+      </header>
+
+      <section class="workspace-area">
+        <div class="header-tab-strip" id="panel-header-bar" aria-label="Open applications" hidden>
+          <button
+            class="icon-button header-tab-scroll"
+            id="tab-scroll-left"
+            type="button"
+            aria-label="Scroll tabs left"
+            title="Scroll tabs left"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M15 6l-6 6 6 6" />
+            </svg>
+          </button>
+          <div class="header-tabs-viewport" id="header-tabs-viewport">
+            <nav class="header-tabs" id="header-tabs" aria-label="Open applications"></nav>
+          </div>
+          <button
+            class="icon-button header-tab-scroll"
+            id="tab-scroll-right"
+            type="button"
+            aria-label="Scroll tabs right"
+            title="Scroll tabs right"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+          </button>
+        </div>
+
+        <section class="desktop-area" id="desktop-area" aria-label="desktop workspace">
+          <button
+            class="desktop-icon"
+            id="about-icon"
+            type="button"
+            aria-label="Open About"
+            title="Open About"
+          >
+            <svg class="desktop-icon__graphic" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+              <circle class="desktop-icon__stroke" cx="32" cy="32" r="19" />
+              <path class="desktop-icon__stroke" d="M32 27v13M32 22.5h.01" />
+            </svg>
+            <span class="desktop-icon__label">About</span>
+          </button>
+
+          <button
+            class="desktop-icon"
+            id="sources-icon"
+            type="button"
+            aria-label="Open Sources"
+            title="Open Sources"
+          >
+            <svg class="desktop-icon__graphic" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+              <path
+                class="desktop-icon__stroke"
+                d="M32 12c-8.8 0-16 7.2-16 16 0 5.9 3.2 11.1 8 13.9v4.6c0 .8.7 1.5 1.5 1.5h13c.8 0 1.5-.7 1.5-1.5v-4.6c4.8-2.8 8-8 8-13.9 0-8.8-7.2-16-16-16z"
+              />
+              <line class="desktop-icon__stroke" x1="25.5" y1="51" x2="38.5" y2="51" />
+              <line class="desktop-icon__stroke" x1="28" y1="55" x2="36" y2="55" />
+            </svg>
+            <span class="desktop-icon__label">Sources</span>
+          </button>
+        </section>
+
+        <section class="panel-region" id="panel-region" hidden>
+          <section class="app-panel" id="about-panel" hidden>
+            <div class="app-panel__window">
+              <div class="panel-body">
+                <div class="panel-copy-row">
+                  <p class="panel-copy">
+                    Define the organizations that live inside orgos. Each organization is stored in its own data silo while shared system configurations remain above it.
+                  </p>
+                  <div class="panel-copy-row__actions">
+                    <p class="panel-scan-state" id="about-state" aria-live="polite">Ready</p>
+                  </div>
+                </div>
+
+                <div class="panel-layout">
+                  <aside class="panel-sidebar" aria-label="Organizations">
+                    <div class="source-menu" id="organization-menu"></div>
+                    <div class="panel-footer">
+                      <button class="icon-button panel-footer__button" id="add-organization" type="button" aria-label="Add organization" title="Add organization">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                          <path d="M12 5v14M5 12h14" />
+                        </svg>
+                      </button>
+                    </div>
+                  </aside>
+
+                  <section class="panel-detail" id="organization-detail"></section>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="app-panel" id="sources-panel" hidden>
+            <div class="app-panel__window">
+              <div class="panel-body">
+                <div class="panel-copy-row">
+                  <p class="panel-copy">
+                    Configure shared inference sources. Localhost stays active by default, and compatible LAN sources are detected for one-click adoption into the system configuration.
+                  </p>
+                  <div class="panel-copy-row__actions">
+                    <button class="chrome-button panel-copy-row__button" id="rescan-sources" type="button" aria-label="Rescan sources" title="Rescan sources">
+                      rescan
+                    </button>
+                    <p class="panel-scan-state" id="scan-state" aria-live="polite">Ready</p>
+                  </div>
+                </div>
+
+                <div class="panel-layout">
+                  <aside class="panel-sidebar" aria-label="Sources">
+                    <div class="source-menu" id="source-menu"></div>
+                    <div class="panel-footer">
+                      <button class="icon-button panel-footer__button" id="add-source" type="button" aria-label="Add source" title="Add source">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                          <path d="M12 5v14M5 12h14" />
+                        </svg>
+                      </button>
+                    </div>
+                  </aside>
+
+                  <section class="panel-detail" id="source-detail"></section>
+                </div>
+              </div>
+            </div>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <template id="header-tab-template">
+      <article class="header-tab">
+        <button class="header-tab__activate" data-action="activate-tab" type="button">
+          <span class="header-tab__icon" data-role="icon" aria-hidden="true"></span>
+          <span class="header-tab__label" data-role="label"></span>
+          <span class="header-tab__spacer" aria-hidden="true"></span>
+        </button>
+        <button class="icon-button header-tab__close" data-action="close-tab" type="button" aria-label="Close application" title="Close application">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+      </article>
+    </template>
+
+    <template id="source-menu-item-template">
+      <article class="source-menu-item">
+        <button class="source-menu-item__select" data-action="select" type="button">
+          <span class="source-menu-item__row">
+            <span class="source-menu-item__name" data-role="name"></span>
+          </span>
+          <span class="source-menu-item__meta" data-role="meta"></span>
+        </button>
+        <button class="icon-button source-menu-item__button" data-action="move-up" type="button" aria-label="Move source up" title="Move source up">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M12 18V6M7 11l5-5 5 5" />
+          </svg>
+        </button>
+        <button class="icon-button source-menu-item__button" data-action="move-down" type="button" aria-label="Move source down" title="Move source down">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M12 6v12M7 13l5 5 5-5" />
+          </svg>
+        </button>
+      </article>
+    </template>
+
+    <template id="organization-menu-item-template">
+      <article class="source-menu-item">
+        <button class="source-menu-item__select" data-action="select" type="button">
+          <span class="source-menu-item__row">
+            <span class="source-menu-item__name" data-role="name"></span>
+          </span>
+          <span class="source-menu-item__meta" data-role="meta"></span>
+        </button>
+      </article>
+    </template>
+
+    <template id="source-card-template">
+      <article class="source-card">
+        <div class="source-card__header">
+          <div class="source-card__identity">
+            <p class="source-card__eyebrow">system source</p>
+            <p class="source-card__status" data-role="status">Not verified</p>
+          </div>
+          <span class="source-badge" data-role="detail-badge" hidden>detected</span>
+        </div>
+
+        <div class="field-grid">
+          <label class="field">
+            <span class="field__label">server</span>
+            <input class="field__control" data-field="name" type="text" name="orgos_server_label" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-autocomplete="none" data-form-type="other" />
+          </label>
+          <label class="field">
+            <span class="field__label">url</span>
+            <input class="field__control" data-field="address" type="url" inputmode="url" name="orgos_server_url" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-autocomplete="none" data-form-type="other" />
+          </label>
+        </div>
+
+        <div class="field-grid field-grid--compact">
+          <label class="field">
+            <span class="field__label">tier</span>
+            <select class="field__control" data-field="tier">
+              <option value="top">top</option>
+              <option value="mid">mid</option>
+              <option value="low">low</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="field__label">model</span>
+            <select class="field__control" data-field="model">
+              <option value="">unavailable</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="source-card__controls">
+          <label class="source-card__toggle">
+            <input class="source-card__checkbox" data-field="active" type="checkbox" />
+            <span>active</span>
+          </label>
+          <div class="source-card__actions">
+            <button class="chrome-button source-card__button" data-action="verify" type="button">verify</button>
+            <button class="chrome-button source-card__button" data-action="delete" type="button">delete</button>
+          </div>
+        </div>
+
+        <p class="source-card__detail" data-role="detail"></p>
+        <ul class="source-card__instructions" data-role="instructions"></ul>
+        <p class="source-card__note" data-role="note"></p>
+      </article>
+    </template>
+
+    <template id="organization-card-template">
+      <article class="source-card">
+        <div class="source-card__header">
+          <div class="source-card__identity">
+            <p class="source-card__eyebrow">organization about</p>
+            <p class="source-card__status" data-role="status">Draft</p>
+          </div>
+          <div class="source-card__actions" data-role="org-action"></div>
+        </div>
+
+        <div class="field-grid">
+          <label class="field">
+            <span class="field__label">organization name</span>
+            <input class="field__control" data-field="name" type="text" name="orgos_organization_name" autocomplete="organization-title" autocorrect="off" autocapitalize="words" spellcheck="false" />
+          </label>
+          <label class="field">
+            <span class="field__label">industry</span>
+            <select class="field__control" data-field="industry">
+              <option value="technology">technology</option>
+              <option value="healthcare">healthcare</option>
+              <option value="finance">finance</option>
+              <option value="education">education</option>
+              <option value="manufacturing">manufacturing</option>
+              <option value="media">media</option>
+              <option value="retail">retail</option>
+              <option value="government">government</option>
+              <option value="nonprofit">nonprofit</option>
+              <option value="custom">custom</option>
+            </select>
+          </label>
+        </div>
+
+        <label class="field" data-role="industry-custom-field" hidden>
+          <span class="field__label">custom industry</span>
+          <input class="field__control" data-field="industryCustom" type="text" name="orgos_organization_industry_custom" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" />
+        </label>
+
+        <label class="field">
+          <span class="field__label">description</span>
+          <textarea class="field__control field__control--textarea" data-field="description" rows="7"></textarea>
+        </label>
+      </article>
+    </template>
+
+    <script type="module" src="/assets/app.js"></script>
+  </body>
+</html>

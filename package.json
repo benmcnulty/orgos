@@ -1,0 +1,11 @@
+{
+  "name": "orgos",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch .system/server/dev.ts",
+    "start": "bun .system/server/dev.ts",
+    "test": "bun test ./.system/tests/*.test.ts"
+  }
+}
