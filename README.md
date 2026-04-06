@@ -1,97 +1,114 @@
 # orgos
 
-`orgos` is a clean-slate reinvention of an organizational operating system
-built first for the agents that will operate within it, with human-facing
-surfaces added as observation and contribution layers rather than as the
-primary organizing model.
+`orgos` is an agent-first organizational operating system. It is being built as
+an observable local environment where shared system infrastructure, active
+organization data, staffed agent identities, flow sequencing, memory, files,
+and text assets all live on disk in readable JSON, Markdown, and plaintext.
 
 ## Current scope
 
-The repository now includes the first working desktop-style operating shell:
+The repository now includes a working desktop-style shell plus the first
+organization and orchestration applications:
 
-- Bun serves a live-reloading local application
-- `.system/` owns framework/runtime code
-- `.data/` owns saved system configuration and organization data
-- the browser renders an always-available header with the `orgos` mark,
-  subtle display controls, and a tab rail for active applications
-- the desktop currently exposes two application launchers:
-  - `About`
-  - `Sources`
-- `About` manages organization records and active-organization selection
-- `Sources` manages shared inference-source configuration and LAN discovery
-
-This is still an early baseline. The goal is to establish the operating-system
-patterns, data boundaries, and interaction contracts now so later agent
-features can build on stable foundations instead of ad hoc UI.
-
-## Applied technologies
-
-- Bun as the runtime and development server
-- Pure HTML for document structure
-- Pure CSS for layout, geometry, reset behavior, and responsive scaling
-- Pure JavaScript for browser behavior and application state
-- Ollama-hosted Gemma-family inference sources
+- `About`
+  organization records, activation, and siloed org metadata
+- `Sources`
+  shared inference source discovery, verification, tiering, and context windows
+- `Color`
+  live system theme and accent control
+- `Files`
+  orgos filesystem browser rooted in system, organization, and deleted areas
+- `Text`
+  raw and parsed editing for supported text assets
+- `Agents`
+  shared role-template definitions
+- `Skills`
+  shared skill registry
+- `Tools`
+  shared tool registry and orgos-integrated operations
+- `Flow`
+  continuous objective sequencing instead of human calendar scheduling
+- `Meet`
+  structured group discussion and consensus capture
+- `Mail`
+  human/agent and agent/agent messaging
+- `Queue`
+  inference dispatch and node telemetry observability
+- `Staff`
+  departments, teams, roles, staffed identities, and executive bootstrap
+- `Projects`
+  participant and output-focused project definition
+- `Evals`
+  quality and expectation records for workflows and assets
 
 ## Architecture
 
 ### `.system/`
 
-Owns the reusable application and framework layer:
+Owns runtime and application code:
 
 - `.system/server/`
-  Bun server runtime, route handling, inference discovery, and persistence APIs
+  Bun server, persistence APIs, inference discovery, bootstrap, and queue logic
 - `.system/public/`
-  browser-delivered HTML, CSS, and JavaScript
+  HTML, CSS, and JavaScript for the shell and applications
 - `.system/tests/`
-  automated unit, integration, and regression tests
+  unit, integration, and regression coverage
 
 ### `.data/`
 
-Owns the instance-specific and user-generated layer:
+Owns instance-specific system and organization state:
 
+- `.data/system/appearance.json`
+  shared appearance and theme state
 - `.data/system/sources.json`
-  shared inference-source configuration for the whole installation
+  shared inference sources, tiers, and context windows
 - `.data/system/organizations.json`
-  active organization index and system-level organization state
-- `.data/organizations/<organization-id>/about.json`
-  siloed organization metadata for each organization
-- `.data/content/`
-  instance presentation content such as the app title
+  organization index and active-org state
+- `.data/system/deleted/<org-id>/`
+  per-organization deleted-file area
+- `.data/organizations/<org-id>/about.json`
+  organization metadata
+- `.data/organizations/<org-id>/staff.json`
+  departments, teams, roles, and staffed identities
+- `.data/organizations/<org-id>/flow.json`
+  continuous sequencing and bootstrap flow records
+- `.data/organizations/<org-id>/mail.json`
+  organization mail records
+- `.data/organizations/<org-id>/meetings.json`
+  meeting records
+- `.data/organizations/<org-id>/projects.json`
+  project records
+- `.data/organizations/<org-id>/evals.json`
+  evaluation records
+- `.data/organizations/<org-id>/memory/`
+  per-identity memory silos with JSON maps and markdown/text artifacts
 
-The intended pattern is:
+### `.agents/` and `.skills/`
 
-- system-level configuration above organization silos
-- each organization in its own folder
-- future agent-readable documents and outputs stored inside the active
-  organization’s data space
-- `.system/` updates remaining separate from local saved data
+Shared reusable assets available to the system and its agents:
 
-## Current UI contract
+- `.agents/`
+  role templates and prompt-oriented agent definitions
+- `.skills/`
+  shared skill definitions that expose orgos capabilities to internal agents
 
-The current regression baseline includes:
+## Current operating model
 
-- neutral gray desktop-style shell with a fixed top header
-- embossed white hexagon/cube `orgos` mark centered in the header
-- subtle icon-only fullscreen and exit-fullscreen controls
-- tab rail at the bottom of the header for active applications
-- desktop launcher tiles for:
-  - `About`
-  - `Sources`
-- integrated application panels that fill the space below the header instead of
-  floating as overlays
-- `About` application with:
-  - left sidebar of organizations
-  - plus control for new organizations
-  - organization detail form for name, industry, custom industry, and description
-  - `save`, `load`, and `active` states
-- `Sources` application with:
-  - left sidebar of shared inference sources
-  - localhost source active by default
-  - authoritative LAN discovery of compatible Ollama nodes
-  - prepopulated but inactive detected sources
-  - verify flow that persists verified sources into system configuration
-  - verified badge state and disabled verify control during verification
-  - manual rescan and manual source creation/removal
+- System-level infrastructure lives above organization silos.
+- Organization-facing applications persist their data inside the active
+  organization folder.
+- `Sources` tracks inference tiers and context windows:
+  - standard sources default to `128k`
+  - top-tier `gemma4:26b` defaults to `256k`
+- `Staff` is the organization-structure source of truth.
+- `Flow` is objective-driven and queue-aware, not time-of-day based.
+- `Auto` mode can bootstrap initial executive staffing and memory for:
+  - `CEO`
+  - `COO`
+  - `CTO`
+  - `Facilitator`
+- Identity memory is observable on disk and structured for later consolidation,
+  reflection, and compaction.
 
 ## Development
 
@@ -101,7 +118,7 @@ Run the local development server with:
 bun run dev
 ```
 
-The default working URL for this repo is:
+Default local URL:
 
 ```text
 http://127.0.0.1:52464/
@@ -115,21 +132,19 @@ Run the automated suite with:
 bun test ./.system/tests/*.test.ts
 ```
 
-The suite covers:
+The test suite covers:
 
-- unit tests for helper logic and invariants
-- integration tests for served routes, discovery APIs, and persisted data files
-- regression tests for the current shell, application panels, and interaction baseline
+- isolated server helpers and inference discovery logic
+- persistence and filesystem APIs
+- bootstrap payloads and org-scoped/system-scoped data boundaries
+- UI regression for the integrated shell and application panels
 
-## Agent guidance
+## Guidance
 
-Repository guidance for development agents is documented in:
+Repository guidance for implementation agents is documented in:
 
 - `AGENTS.md`
 - `CLAUDE.md`
-
-These files should evolve as the agent-first operating-system model becomes
-more concrete.
 
 ## License
 

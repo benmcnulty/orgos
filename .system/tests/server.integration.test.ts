@@ -106,10 +106,22 @@ describe("orgos app integration", () => {
       kind: "local_default",
     });
     expect(typeof localSource.name).toBe("string");
+    expect(localSource.contextWindow).toBe(256000);
     // New fields from Phase 2 bootstrap extension
     expect(Array.isArray(payload.agents)).toBe(true);
     expect(Array.isArray(payload.skills)).toBe(true);
     expect(Array.isArray(payload.queue)).toBe(true);
+    expect(Array.isArray(payload.flow)).toBe(true);
+    expect(payload.staff).toMatchObject({
+      departments: expect.any(Array),
+      identities: expect.any(Array),
+      roles: expect.any(Array),
+      teams: expect.any(Array),
+    });
+    expect(payload.memory).toMatchObject({
+      identities: expect.any(Array),
+      version: 1,
+    });
     expect(payload.agents.length).toBeGreaterThan(0);
     expect(payload.skills.length).toBeGreaterThan(0);
     const ceoAgent = payload.agents.find(
@@ -117,6 +129,42 @@ describe("orgos app integration", () => {
     );
     expect(ceoAgent).toBeTruthy();
     expect(ceoAgent.file).toBe("ceo.md");
+  });
+
+  test("auto bootstrap creates executive staffing, identities, memory, and flow", async () => {
+    const bootstrapResponse = await app.fetch(
+      new Request("http://orgos.local/api/workspace/bootstrap"),
+    );
+    const bootstrap = await bootstrapResponse.json();
+    const orgId = bootstrap.activeOrganizationId ?? bootstrap.organizations[0]?.id;
+
+    const response = await app.fetch(
+      new Request("http://orgos.local/api/system/auto-bootstrap", {
+        body: JSON.stringify({ orgId }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.staff.roles.map((role: { title: string }) => role.title)).toEqual(
+      expect.arrayContaining(["CEO", "COO", "CTO", "Facilitator"]),
+    );
+    expect(payload.staff.identities.length).toBeGreaterThanOrEqual(4);
+    expect(payload.memoryIndex.identities.length).toBeGreaterThanOrEqual(4);
+    expect(payload.flow.length).toBeGreaterThanOrEqual(2);
+
+    const memoryIndexPath = path.join(
+      fixtureRoot,
+      ".data",
+      "organizations",
+      orgId,
+      "memory",
+      "index.json",
+    );
+    const memoryIndex = JSON.parse(await readFile(memoryIndexPath, "utf8"));
+    expect(memoryIndex.identities.length).toBeGreaterThanOrEqual(4);
   });
 
   test("lists, reads, writes, and deletes agent files in .agents/", async () => {
@@ -442,6 +490,7 @@ describe("orgos app integration", () => {
     ]);
     expect(savedFile.sources[1]).toMatchObject({
       address: "http://192.168.1.190:11434",
+      contextWindow: 128000,
       kind: "saved",
       model: "gemma4:e2b",
       name: "min",
@@ -449,11 +498,13 @@ describe("orgos app integration", () => {
     });
     expect(savedFile.sources[2]).toMatchObject({
       address: "http://192.168.1.175:11434",
+      contextWindow: 128000,
       kind: "saved",
       model: "gemma4:latest",
       name: "air",
       tier: "top",
     });
+    expect(savedFile.sources[0].contextWindow).toBe(128000);
   });
 
   test("persists shared appearance configuration in .data/system", async () => {

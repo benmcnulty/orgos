@@ -61,7 +61,11 @@ describe("ui regression baseline", () => {
     expect(html).toContain('id="agent-menu"');
     expect(html).toContain('id="agent-detail"');
     expect(html).toContain('id="skill-menu"');
+    expect(html).toContain('id="tool-registry"');
     expect(html).toContain('id="hire-menu"');
+    expect(html).toContain('id="add-hire-department"');
+    expect(html).toContain('id="add-hire-team"');
+    expect(html).toContain('id="add-hire-role"');
     expect(html).toContain('id="projects-menu"');
     expect(html).toContain('id="evals-menu"');
     expect(html).toContain('id="queue-metrics"');
@@ -164,6 +168,7 @@ describe("ui regression baseline", () => {
     expect(css).toContain(".agent-card");
     expect(css).toContain(".agent-editor");
     expect(css).toContain(".agent-frontmatter");
+    expect(css).toContain(".tool-card__meta");
     expect(css).toContain(".queue-node-card");
     expect(css).toContain(".queue-item-card");
     expect(css).toContain(".queue-item-status");
@@ -337,6 +342,10 @@ describe("ui regression baseline", () => {
     expect(script).toContain("function renderSystemMode()");
     expect(script).toContain("function formatFoundedLabel(organization)");
     expect(script).toContain("function formatLastActiveLabel(organization)");
+    expect(script).toContain("function formatContextWindowLabel(value)");
+    expect(script).toContain("function findIdentityForRole(roleId)");
+    expect(script).toContain("function describeFlowMeta(task)");
+    expect(script).toContain("async function bootstrapAutoMode()");
     expect(script).toContain("function updateDesktopAppAvailability()");
     expect(script).toContain("function updateDesktopNavHighlight()");
     expect(script).toContain("function getInactiveOpenPanelIds()");
@@ -394,6 +403,9 @@ describe("ui regression baseline", () => {
     expect(script).toContain("let hireState =");
     expect(script).toContain("let projects = [];");
     expect(script).toContain("let evals = [];");
+    expect(script).toContain('fetchJson("/api/system/auto-bootstrap"');
+    expect(script).toContain("/api/staff/read?orgId=${encodeURIComponent(activeOrganizationId)}");
+    expect(script).toContain("/api/flow/list?orgId=${encodeURIComponent(activeOrganizationId)}");
     expect(script).toContain('fetchJson("/api/agents/list")');
     expect(script).toContain('fetchJson("/api/skills/list")');
     expect(script).toContain('"/__queue"');
