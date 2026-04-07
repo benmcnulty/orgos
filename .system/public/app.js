@@ -4923,7 +4923,7 @@ function renderHirePanel() {
       id: role.id,
       meta: identity
         ? `employee ${identity.employeeNumber} · ${identity.name}`
-        : `${role.status} · ${findRoleTemplateSummary(role.templateId)?.name || role.templateName || "unassigned"}`,
+        : `${role.status} · ${findRoleTemplateSummary(role.templateId)?.name || role.templateName || "no template"}`,
       name: role.title || "new role",
       selected: selectedHireKey === `role:${role.id}`,
       type: "role",
@@ -5034,13 +5034,13 @@ function renderHirePanel() {
         <label class="field"><span class="field__label">required tools</span><textarea class="field__control field__control--textarea" data-field="requiredTools">${escapeHtml(formatListForTextarea(item.requiredTools))}</textarea></label>
       </div>
       <div class="field-grid field-grid--compact">
-        <label class="field"><span class="field__label">identity</span><input class="field__control" type="text" value="${escapeHtml(identity?.name ?? "not generated")}" readonly /></label>
-        <label class="field"><span class="field__label">employee</span><input class="field__control" type="text" value="${identity ? `employee ${identity.employeeNumber}` : "unassigned"}" readonly /></label>
+        <label class="field"><span class="field__label">identity</span><input class="field__control" type="text" value="${escapeHtml(identity?.name ?? "—")}" readonly /></label>
+        <label class="field"><span class="field__label">employee</span><input class="field__control" type="text" value="${identity ? `employee ${identity.employeeNumber}` : "—"}" readonly /></label>
       </div>
-      <label class="field"><span class="field__label">persona</span><textarea class="field__control field__control--textarea" readonly>${escapeHtml(identity?.personaSummary ?? "Identity will be generated during auto bootstrap or when assigned.")}</textarea></label>
+      <label class="field"><span class="field__label">persona</span><textarea class="field__control field__control--textarea" readonly>${escapeHtml(identity?.personaSummary ?? "")}</textarea></label>
       <div class="field-grid field-grid--compact">
-        <label class="field"><span class="field__label">memory root</span><input class="field__control" type="text" value="${escapeHtml(identity?.memoryRoot ?? "memory/pending")}" readonly /></label>
-        <label class="field"><span class="field__label">prompt file</span><input class="field__control" type="text" value="${escapeHtml(identity?.promptFile ?? "prompts/agents/pending.txt")}" readonly /></label>
+        <label class="field"><span class="field__label">memory root</span><input class="field__control" type="text" value="${escapeHtml(identity?.memoryRoot ?? "—")}" readonly /></label>
+        <label class="field"><span class="field__label">prompt file</span><input class="field__control" type="text" value="${escapeHtml(identity?.promptFile ?? "—")}" readonly /></label>
       </div>
       <label class="field"><span class="field__label">notes</span><textarea class="field__control field__control--textarea" data-field="notes">${escapeHtml(item.notes ?? "")}</textarea></label>
     `;

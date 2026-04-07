@@ -524,9 +524,7 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy panel-copy--about">
-                    Manage the organizations inside orgos.
-                  </p>
+                  <p class="panel-copy">Manage organizations and edit their profile metadata.</p>
                   <p class="panel-scan-state panel-scan-state--hidden" id="about-state" aria-live="polite">Ready</p>
                 </div>
 
@@ -555,9 +553,7 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">
-                    Configure shared inference sources for orgos.
-                  </p>
+                  <p class="panel-copy">Configure shared inference sources and verify their availability.</p>
                   <div class="panel-copy-row__actions">
                     <button class="chrome-button panel-copy-row__button" id="rescan-sources" type="button" aria-label="Rescan sources" title="Rescan sources">
                       rescan
@@ -573,7 +569,7 @@
                 <div class="panel-layout">
                   <aside class="panel-sidebar" aria-label="Sources">
                     <div class="panel-section-header">
-                      <p class="panel-section-header__eyebrow">inference sources</p>
+                      <p class="panel-section-header__eyebrow">sources</p>
                     </div>
                     <div class="source-menu" id="source-menu"></div>
                     <div class="panel-footer">
@@ -595,9 +591,7 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">
-                    Tune the shared system appearance for orgos.
-                  </p>
+                  <p class="panel-copy">Tune the system appearance and accent color.</p>
                   <p class="panel-scan-state panel-scan-state--hidden" id="color-state" aria-live="polite">Ready</p>
                 </div>
 
@@ -639,7 +633,7 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Monitor system and organization runtime state in one place.</p>
+                  <p class="panel-copy">Monitor system and organization runtime in one view.</p>
                   <p class="panel-scan-state panel-scan-state--hidden" id="status-state" aria-live="polite">Ready</p>
                 </div>
                 <div class="panel-layout panel-layout--status">
@@ -662,9 +656,7 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">
-                    Browse and refresh the orgos file system.
-                  </p>
+                  <p class="panel-copy">Browse, create, and edit files inside the active organization.</p>
                   <div class="panel-copy-row__actions">
                     <button class="icon-button panel-copy-row__icon-button" id="refresh-files" type="button" aria-label="Refresh files" title="Refresh files">
                       <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -711,16 +703,14 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">
-                    View and edit plaintext documents inside orgos.
-                  </p>
+                  <p class="panel-copy">View and edit plaintext documents.</p>
                   <p class="panel-scan-state panel-scan-state--hidden" id="text-state" aria-live="polite">Ready</p>
                 </div>
 
                 <div class="panel-layout panel-layout--text">
                   <aside class="panel-sidebar" aria-label="Open text documents">
                     <div class="panel-section-header">
-                      <p class="panel-section-header__eyebrow">open files</p>
+                      <p class="panel-section-header__eyebrow">documents</p>
                     </div>
                     <div class="source-menu" id="text-document-menu"></div>
                     <div class="panel-footer">
@@ -748,7 +738,7 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Design the organization intranet with editable web fragments and tool previews.</p>
+                  <p class="panel-copy">Design the organization intranet with editable web fragments.</p>
                   <div class="panel-copy-row__actions">
                     <button class="icon-button panel-copy-row__icon-button" id="refresh-web" type="button" aria-label="Refresh web fragments" title="Refresh web fragments">
                       <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -782,7 +772,7 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Define and edit the agents this system can deploy.</p>
+                  <p class="panel-copy">Define agent identities, tiers, and prompt templates.</p>
                   <p class="panel-scan-state panel-scan-state--hidden" id="agents-state" aria-live="polite">Ready</p>
                 </div>
                 <div class="panel-layout panel-layout--agents">
@@ -809,7 +799,7 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Inspect the skill definitions agents can load at runtime.</p>
+                  <p class="panel-copy">Inspect skill definitions agents can load at runtime.</p>
                   <p class="panel-scan-state panel-scan-state--hidden" id="skills-state" aria-live="polite">Ready</p>
                 </div>
                 <div class="panel-layout panel-layout--skills">
@@ -829,7 +819,7 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Browse registered tools available to agents and test them directly.</p>
+                  <p class="panel-copy">Browse registered tools and run them against test inputs.</p>
                   <p class="panel-scan-state panel-scan-state--hidden" id="tools-state" aria-live="polite">Ready</p>
                 </div>
                 <div class="panel-layout panel-layout--tools">
@@ -866,7 +856,7 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Coordinate structured meetings between agents and capture decisions.</p>
+                  <p class="panel-copy">Coordinate meetings between agents and capture decisions.</p>
                   <div class="panel-copy-row__actions">
                     <button class="chrome-button panel-copy-row__button" id="create-meeting" type="button">new meeting</button>
                     <p class="panel-scan-state panel-scan-state--hidden" id="meet-state" aria-live="polite">Ready</p>
@@ -889,13 +879,13 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Route messages between agents and review the organization inbox.</p>
+                  <p class="panel-copy">Route messages between agents and review the inbox.</p>
                   <p class="panel-scan-state panel-scan-state--hidden" id="mail-state" aria-live="polite">Ready</p>
                 </div>
                 <div class="panel-layout panel-layout--mail">
                   <aside class="panel-sidebar" aria-label="Mail folders">
                     <div class="panel-section-header">
-                      <p class="panel-section-header__eyebrow">folder</p>
+                      <p class="panel-section-header__eyebrow">messages</p>
                     </div>
                     <div class="source-menu" id="mail-folder-menu">
                       <button class="source-item source-item--active" data-mail-folder="inbox" type="button">inbox</button>
@@ -912,7 +902,7 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Watch inference dispatch, tier routing, and node health in real time.</p>
+                  <p class="panel-copy">Watch inference dispatch, tier routing, and node health.</p>
                   <div class="panel-copy-row__actions">
                     <button class="chrome-button" id="queue-workflow-button" type="button">workflow</button>
                     <button class="chrome-button" id="queue-enqueue-button" type="button">dispatch</button>
@@ -983,13 +973,13 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Build the organizational structure — departments, teams, roles, and agent identities.</p>
+                  <p class="panel-copy">Define departments, teams, roles, and agent identities.</p>
                   <p class="panel-scan-state panel-scan-state--hidden" id="hire-state" aria-live="polite">Ready</p>
                 </div>
                 <div class="panel-layout panel-layout--hire">
                   <aside class="panel-sidebar" aria-label="Staff structure">
                     <div class="panel-section-header">
-                      <p class="panel-section-header__eyebrow">staff</p>
+                      <p class="panel-section-header__eyebrow">departments</p>
                     </div>
                     <div class="source-menu" id="hire-menu"></div>
                     <div class="panel-footer panel-footer--triple">
@@ -1014,7 +1004,7 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Define and track projects, assign roles, and connect them to flow objectives.</p>
+                  <p class="panel-copy">Track projects, assign participants, and link them to flow objectives.</p>
                   <p class="panel-scan-state panel-scan-state--hidden" id="projects-state" aria-live="polite">Ready</p>
                 </div>
                 <div class="panel-layout panel-layout--projects">
@@ -1039,13 +1029,13 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Define evaluations and review results across agents, skills, and workflows.</p>
+                  <p class="panel-copy">Define evaluations and review results across agents and workflows.</p>
                   <p class="panel-scan-state panel-scan-state--hidden" id="evals-state" aria-live="polite">Ready</p>
                 </div>
                 <div class="panel-layout panel-layout--evals">
                   <aside class="panel-sidebar" aria-label="Evaluations">
                     <div class="panel-section-header">
-                      <p class="panel-section-header__eyebrow">evals</p>
+                      <p class="panel-section-header__eyebrow">evaluations</p>
                     </div>
                     <div class="source-menu" id="evals-menu"></div>
                     <div class="panel-footer">

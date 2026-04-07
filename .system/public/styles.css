@@ -1483,10 +1483,6 @@ textarea {
   color: #242424;
 }
 
-.panel-copy--about {
-  max-inline-size: 34rem;
-  color: rgba(36, 36, 36, 0.9);
-}
 
 .panel-scan-state--hidden {
   display: none;
@@ -2684,7 +2680,6 @@ select.field__control {
 }
 
 .panel-copy,
-.panel-copy--about,
 .confirm-modal__body {
   color: var(--ink-muted);
 }

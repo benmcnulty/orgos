@@ -93,7 +93,7 @@ describe("ui regression baseline", () => {
     expect(html).toContain('id="queue-nodes"');
     expect(html).toContain('id="queue-items"');
     expect(html).toContain('id="organization-menu"');
-    expect(html).toContain('class="panel-copy panel-copy--about"');
+    expect(html).toContain('class="panel-copy"');
     expect(html).toContain('class="panel-layout panel-layout--about"');
     expect(html).toContain('id="organization-detail"');
     expect(html).toContain('id="source-menu"');
@@ -275,7 +275,6 @@ describe("ui regression baseline", () => {
     expect(css).toContain(".app-panel");
     expect(css).toContain(".app-panel__window");
     expect(css).toContain(".panel-layout");
-    expect(css).toContain(".panel-copy--about");
     expect(css).toContain(".panel-layout--about");
     expect(css).toContain(".panel-layout--status");
     expect(css).toContain(".panel-section-header");
