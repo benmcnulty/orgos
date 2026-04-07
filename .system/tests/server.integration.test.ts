@@ -85,7 +85,13 @@ describe("orgos app integration", () => {
     expect(response.status).toBe(200);
     expect(typeof payload.activeOrganizationId === "string" || payload.activeOrganizationId === null).toBe(true);
     expect(Array.isArray(payload.organizations)).toBe(true);
+    expect(Array.isArray(payload.openOrganizationIds)).toBe(true);
+    expect(Array.isArray(payload.organizationRuntime)).toBe(true);
     expect(Array.isArray(payload.sources)).toBe(true);
+    expect(Array.isArray(payload.notifications)).toBe(true);
+    expect(payload.organizationModes).toBeObject();
+    expect(payload.organizationAppearanceOverrides).toBeObject();
+    expect(payload.telemetry).toBeObject();
     expect(payload.filesystem).toMatchObject({
       roots: expect.any(Array),
     });
@@ -93,6 +99,11 @@ describe("orgos app integration", () => {
       accent: expect.any(String),
       theme: expect.any(String),
       version: 1,
+    });
+    expect(payload.templates).toMatchObject({
+      bundles: expect.any(Array),
+      organizationArchetypes: expect.any(Array),
+      roleTemplates: expect.any(Array),
     });
     expect(payload.organizations.length).toBeGreaterThan(0);
     const localSource = payload.sources.find(
@@ -118,6 +129,16 @@ describe("orgos app integration", () => {
       roles: expect.any(Array),
       teams: expect.any(Array),
     });
+    expect(payload.datamap).toMatchObject({
+      entries: expect.any(Array),
+      generatedAt: expect.any(String),
+      version: 1,
+    });
+    expect(payload.web).toMatchObject({
+      fragments: expect.any(Array),
+      preview: expect.any(String),
+      tools: expect.any(Array),
+    });
     expect(payload.memory).toMatchObject({
       identities: expect.any(Array),
       version: 1,
@@ -129,6 +150,94 @@ describe("orgos app integration", () => {
     );
     expect(ceoAgent).toBeTruthy();
     expect(ceoAgent.file).toBe("ceo.md");
+    expect(Array.isArray(ceoAgent.bundles)).toBe(true);
+    expect(Array.isArray(ceoAgent.effectiveSkills)).toBe(true);
+    expect(Array.isArray(ceoAgent.effectiveTools)).toBe(true);
+    expect(payload.orgosAgent).toMatchObject({
+      id: "orgos",
+      name: "orgos",
+      scope: "system",
+    });
+    if (payload.activeOrganizationId) {
+      expect(
+        payload.organizationRuntime.some(
+          (entry: { id: string }) => entry.id === payload.activeOrganizationId,
+        ),
+      ).toBe(true);
+    }
+  });
+
+  test("lists shared template assets", async () => {
+    const response = await app.fetch(
+      new Request("http://orgos.local/api/templates/list"),
+    );
+    const body = await response.text();
+    const payload = JSON.parse(body);
+
+    expect(response.status).toBe(200);
+    expect(payload.templates).toMatchObject({
+      bundles: expect.any(Array),
+      departmentTemplates: expect.any(Array),
+      organizationArchetypes: expect.any(Array),
+      processTemplates: expect.any(Array),
+      roleTemplates: expect.any(Array),
+      teamTemplates: expect.any(Array),
+      version: 1,
+    });
+    expect(body).toContain('"organizationArchetypes":[');
+    expect(body).toContain('"roleTemplates":[');
+  });
+
+  test("persists organization runtime state and board notifications", async () => {
+    const bootstrapResponse = await app.fetch(
+      new Request("http://orgos.local/api/workspace/bootstrap"),
+    );
+    const bootstrap = await bootstrapResponse.json();
+    const orgId = bootstrap.activeOrganizationId ?? bootstrap.organizations[0]?.id;
+    expect(typeof orgId).toBe("string");
+
+    const runtimeResponse = await app.fetch(
+      new Request("http://orgos.local/api/organizations/runtime", {
+        body: JSON.stringify({ id: orgId, mode: "auto", open: true, active: true }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+    const runtime = await runtimeResponse.json();
+    expect(runtimeResponse.status).toBe(200);
+    expect(runtime.activeOrganizationId).toBe(orgId);
+    expect(runtime.openOrganizationIds).toContain(orgId);
+    expect(runtime.organizationModes[orgId]).toBe("auto");
+
+    const notificationCreate = await app.fetch(
+      new Request("http://orgos.local/api/notifications/create", {
+        body: JSON.stringify({
+          level: "unread",
+          organizationId: orgId,
+          sourceApp: "meet",
+          summary: "Budget review agenda ready.",
+          targetId: "meeting-1",
+          targetPanel: "meet",
+          title: "Meeting planned",
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+    expect(notificationCreate.status).toBe(200);
+
+    const notificationsResponse = await app.fetch(
+      new Request("http://orgos.local/api/notifications/list"),
+    );
+    const notifications = await notificationsResponse.json();
+    expect(notificationsResponse.status).toBe(200);
+    expect(Array.isArray(notifications.notifications)).toBe(true);
+    expect(notifications.notifications[0]).toMatchObject({
+      organizationId: orgId,
+      sourceApp: "meet",
+      targetPanel: "meet",
+      unread: true,
+    });
   });
 
   test("auto bootstrap creates executive staffing, identities, memory, and flow", async () => {
@@ -149,11 +258,16 @@ describe("orgos app integration", () => {
 
     expect(response.status).toBe(200);
     expect(payload.staff.roles.map((role: { title: string }) => role.title)).toEqual(
-      expect.arrayContaining(["CEO", "COO", "CTO", "Facilitator"]),
+      expect.arrayContaining(["CEO", "COO", "CTO", "Orgos", "Facilitator"]),
     );
-    expect(payload.staff.identities.length).toBeGreaterThanOrEqual(4);
-    expect(payload.memoryIndex.identities.length).toBeGreaterThanOrEqual(4);
+    expect(payload.staff.identities.length).toBeGreaterThanOrEqual(5);
+    expect(payload.memoryIndex.identities.length).toBeGreaterThanOrEqual(5);
     expect(payload.flow.length).toBeGreaterThanOrEqual(2);
+    expect(payload.datamap).toMatchObject({
+      entries: expect.any(Array),
+      organizationId: orgId,
+      version: 1,
+    });
 
     const memoryIndexPath = path.join(
       fixtureRoot,
@@ -164,7 +278,18 @@ describe("orgos app integration", () => {
       "index.json",
     );
     const memoryIndex = JSON.parse(await readFile(memoryIndexPath, "utf8"));
-    expect(memoryIndex.identities.length).toBeGreaterThanOrEqual(4);
+    expect(memoryIndex.identities.length).toBeGreaterThanOrEqual(5);
+    const runtimePath = path.join(
+      fixtureRoot,
+      ".data",
+      "organizations",
+      orgId,
+      "orgos-runtime.json",
+    );
+    const runtime = JSON.parse(await readFile(runtimePath, "utf8"));
+    expect(runtime.primaryRoles).toEqual(
+      expect.arrayContaining(["CEO", "COO", "CTO", "Orgos", "Facilitator"]),
+    );
   });
 
   test("lists, reads, writes, and deletes agent files in .agents/", async () => {
@@ -244,7 +369,7 @@ describe("orgos app integration", () => {
     expect(typeof orgId).toBe("string");
 
     const createResponse = await app.fetch(
-      new Request("http://orgos.local/api/schedule/create", {
+      new Request("http://orgos.local/api/flow/create", {
         body: JSON.stringify({
           name: "Daily summary",
           agentId: "ceo",
@@ -269,7 +394,7 @@ describe("orgos app integration", () => {
     expect(listPayload.tasks.some((t: { id: string }) => t.id === created.id)).toBe(true);
 
     const deleteResponse = await app.fetch(
-      new Request("http://orgos.local/api/schedule/delete", {
+      new Request("http://orgos.local/api/flow/delete", {
         body: JSON.stringify({ id: created.id, orgId }),
         headers: { "content-type": "application/json" },
         method: "POST",
@@ -361,6 +486,100 @@ describe("orgos app integration", () => {
 
     expect(writeResponse.status).toBe(200);
     expect(writtenFile).toBe('{"ok":true}\n');
+  });
+
+  test("lists and writes organization web fragments", async () => {
+    const bootstrapResponse = await app.fetch(
+      new Request("http://orgos.local/api/workspace/bootstrap"),
+    );
+    const bootstrap = await bootstrapResponse.json();
+    const orgId = bootstrap.activeOrganizationId ?? bootstrap.organizations[0]?.id;
+
+    const listResponse = await app.fetch(
+      new Request(`http://orgos.local/api/web/list?orgId=${encodeURIComponent(orgId)}`),
+    );
+    const listed = await listResponse.json();
+    expect(listResponse.status).toBe(200);
+    expect(Array.isArray(listed.fragments)).toBe(true);
+    expect(typeof listed.preview).toBe("string");
+
+    const writeResponse = await app.fetch(
+      new Request("http://orgos.local/api/web/write", {
+        body: JSON.stringify({
+          content: "<section><h1>hello</h1></section>\n",
+          file: "fragments/test.htm",
+          orgId,
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+    const written = await writeResponse.json();
+    expect(writeResponse.status).toBe(200);
+    expect(written).toMatchObject({
+      file: "test.htm",
+      path: "web/fragments/test.htm",
+    });
+
+    const fragmentFile = await readFile(
+      path.join(
+        fixtureRoot,
+        ".data",
+        "organizations",
+        orgId,
+        "web",
+        "fragments",
+        "test.htm",
+      ),
+      "utf8",
+    );
+    expect(fragmentFile).toContain("<h1>hello</h1>");
+  });
+
+  test("rebuilds and reads deterministic organization datamaps", async () => {
+    const bootstrapResponse = await app.fetch(
+      new Request("http://orgos.local/api/workspace/bootstrap"),
+    );
+    const bootstrap = await bootstrapResponse.json();
+    const orgId = bootstrap.activeOrganizationId ?? bootstrap.organizations[0]?.id;
+
+    const rebuildResponse = await app.fetch(
+      new Request("http://orgos.local/api/datamap/rebuild", {
+        body: JSON.stringify({ orgId }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+    const rebuilt = await rebuildResponse.json();
+    expect(rebuildResponse.status).toBe(200);
+    expect(rebuilt).toMatchObject({
+      organizationId: orgId,
+      entries: expect.any(Array),
+      version: 1,
+    });
+
+    const readResponse = await app.fetch(
+      new Request(`http://orgos.local/api/datamap/read?orgId=${encodeURIComponent(orgId)}`),
+    );
+    const datamap = await readResponse.json();
+    expect(readResponse.status).toBe(200);
+    expect(datamap.entries.length).toBeGreaterThan(0);
+
+    const datamapFile = JSON.parse(
+      await readFile(
+        path.join(
+          fixtureRoot,
+          ".data",
+          "organizations",
+          orgId,
+          "memory",
+          "datamap.json",
+        ),
+        "utf8",
+      ),
+    );
+    expect(datamapFile.organizationId).toBe(orgId);
+    expect(Array.isArray(datamapFile.entries)).toBe(true);
   });
 
   test("moves deleted files into the active organization's deleted area", async () => {

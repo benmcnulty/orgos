@@ -57,6 +57,7 @@ type SourcesConfig = {
 };
 
 type OrganizationAbout = {
+  archetypeId?: string;
   createdAt: string;
   description: string;
   id: string;
@@ -67,8 +68,18 @@ type OrganizationAbout = {
   updatedAt: string;
 };
 
+type OrganizationRuntimeMode = "auto" | "idle";
+
+type OrganizationAppearanceOverride = {
+  accent: AppearanceAccent;
+  theme: AppearanceTheme;
+};
+
 type OrganizationsIndex = {
   activeOrganizationId: string | null;
+  openOrganizationIds: string[];
+  organizationAppearanceOverrides: Record<string, OrganizationAppearanceOverride>;
+  organizationModes: Record<string, OrganizationRuntimeMode>;
   version: number;
 };
 
@@ -89,6 +100,75 @@ type AppearanceConfig = {
   accent: AppearanceAccent;
   theme: AppearanceTheme;
   version: number;
+};
+
+type BoardNotificationLevel = "silent" | "unread";
+
+type BoardNotification = {
+  createdAt: string;
+  id: string;
+  level: BoardNotificationLevel;
+  organizationId: string | null;
+  sourceApp: string;
+  summary: string;
+  targetId: string;
+  targetPanel: string | null;
+  title: string;
+  unread: boolean;
+};
+
+type BoardNotificationsConfig = {
+  notifications: BoardNotification[];
+  version: number;
+};
+
+type OrganizationRuntimeSummary = {
+  headline: string;
+  id: string;
+  mode: OrganizationRuntimeMode;
+  name: string;
+  open: boolean;
+  status: string;
+  unread: number;
+};
+
+type DatamapEntry = {
+  citation: string;
+  excerpt: string;
+  headings: string[];
+  kind: string;
+  path: string;
+  title: string;
+};
+
+type DatamapRecord = {
+  entries: DatamapEntry[];
+  generatedAt: string;
+  organizationId: string;
+  version: number;
+};
+
+type TelemetryRecord = {
+  generatedAt: string;
+  inference: {
+    events: Array<{
+      address: string;
+      contextWindow: number;
+      model: string;
+      timestamp: string;
+      type: string;
+    }>;
+  };
+  version: number;
+};
+
+type WebFragmentSummary = {
+  id: string;
+  label: string;
+  name: string;
+  path: string;
+  type: string;
+  updatedAt: string;
 };
 
 type FileRootId = "system" | "organization" | "deleted";
@@ -160,14 +240,19 @@ type ScheduledTask = {
   agentId: string;
   assigneeType: "agent_template" | "role_assignment";
   assigneeValue: string;
+  contextRequirement: number;
   id: string;
   name: string;
   cadence: string;
   enabled: boolean;
   createdAt: string;
+  dependencyIds: string[];
+  evaluationRequired: boolean;
+  groupKey: string;
   lastRunAt: string | null;
   notes: string;
   objective: string;
+  workstream: string;
   trigger: "auto" | "manual" | "queue_relief" | "reflection" | "consolidation";
 };
 
@@ -202,6 +287,8 @@ type HireDepartment = {
   createdAt: string;
   id: string;
   name: string;
+  templateId?: string;
+  templateSource?: "system" | "local";
   summary: string;
   updatedAt: string;
 };
@@ -211,19 +298,27 @@ type HireTeam = {
   departmentId: string;
   id: string;
   name: string;
+  templateId?: string;
+  templateSource?: "system" | "local";
   summary: string;
   updatedAt: string;
 };
 
 type HireRole = {
   assigneeLabel: string;
+  bundleIds?: string[];
   createdAt: string;
+  evaluationFocus?: string;
   identityId: string;
   id: string;
   notes: string;
+  requiredSkills?: string[];
+  requiredTools?: string[];
   status: "assigned" | "open";
   teamId: string;
+  templateId?: string;
   templateName: string;
+  templateSource?: "system" | "local";
   tier: TierLevel;
   title: string;
   updatedAt: string;
@@ -292,7 +387,11 @@ type EvalsRecord = {
 };
 
 type AgentTemplateSummary = {
+  bundles?: string[];
   description: string;
+  domain?: string;
+  effectiveSkills?: string[];
+  effectiveTools?: string[];
   file: string;
   model: string;
   name: string;
@@ -301,6 +400,71 @@ type AgentTemplateSummary = {
   skills: string[];
   tier: TierLevel;
   tools: string[];
+};
+
+type TemplateBundle = {
+  category: string;
+  id: string;
+  name: string;
+  scope: string;
+  skills: string[];
+  summary: string;
+  tools: string[];
+};
+
+type RoleTemplateAsset = {
+  authority: string;
+  bundles: string[];
+  defaultTier: TierLevel;
+  dependencies: string[];
+  domain: string;
+  evaluationFocus: string;
+  id: string;
+  name: string;
+  outputs: string[];
+  requiredSkills: string[];
+  requiredTools: string[];
+  summary: string;
+  templateAgentName: string;
+};
+
+type TeamTemplateAsset = {
+  id: string;
+  name: string;
+  roleTemplateIds: string[];
+  summary: string;
+};
+
+type DepartmentTemplateAsset = {
+  id: string;
+  name: string;
+  summary: string;
+  teamTemplateIds: string[];
+};
+
+type OrganizationArchetypeAsset = {
+  departmentTemplateIds: string[];
+  id: string;
+  name: string;
+  processTemplateIds: string[];
+  summary: string;
+};
+
+type ProcessTemplateAsset = {
+  id: string;
+  kind: string;
+  name: string;
+  summary: string;
+};
+
+type TemplateCatalog = {
+  bundles: TemplateBundle[];
+  departmentTemplates: DepartmentTemplateAsset[];
+  organizationArchetypes: OrganizationArchetypeAsset[];
+  processTemplates: ProcessTemplateAsset[];
+  roleTemplates: RoleTemplateAsset[];
+  teamTemplates: TeamTemplateAsset[];
+  version: number;
 };
 
 // Module-level queue state — persists across requests
@@ -382,7 +546,8 @@ function slugifyOrganizationName(name: string) {
 
 export function safeJoin(baseDir: string, requestPath: string) {
   const resolved = path.normalize(path.join(baseDir, requestPath));
-  if (!resolved.startsWith(baseDir)) {
+  const base = baseDir.endsWith(path.sep) ? baseDir : baseDir + path.sep;
+  if (!resolved.startsWith(base) && resolved !== baseDir) {
     return null;
   }
 
@@ -757,12 +922,17 @@ export function createOrgosApp(rootDir: string): OrgosApp {
   const sourcesConfigPath = path.join(systemDir, "sources.json");
   const organizationsIndexPath = path.join(systemDir, "organizations.json");
   const appearanceConfigPath = path.join(systemDir, "appearance.json");
+  const notificationsConfigPath = path.join(systemDir, "notifications.json");
+  const telemetryConfigPath = path.join(systemDir, "telemetry.json");
   const deletedDir = path.join(systemDir, "deleted");
   const agentsDir = path.join(rootDir, ".agents");
   const skillsDir = path.join(rootDir, ".skills");
+  const templatesDir = path.join(rootDir, ".system", "templates");
+  const templateCatalogPath = path.join(templatesDir, "catalog.json");
   const watchDirs = [
     publicDir,
     dataDir,
+    templatesDir,
     path.join(rootDir, ".system", "server"),
   ];
 
@@ -810,6 +980,70 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       await writeJsonFile(filePath, fallback);
       return fallback;
     }
+  }
+
+  async function readTemplateCatalog(): Promise<TemplateCatalog> {
+    const fallback: TemplateCatalog = {
+      bundles: [],
+      departmentTemplates: [],
+      organizationArchetypes: [],
+      processTemplates: [],
+      roleTemplates: [],
+      teamTemplates: [],
+      version: 1,
+    };
+    const catalog = await readJsonOrDefault(templateCatalogPath, fallback);
+    return {
+      bundles: Array.isArray(catalog.bundles) ? catalog.bundles : [],
+      departmentTemplates: Array.isArray(catalog.departmentTemplates) ? catalog.departmentTemplates : [],
+      organizationArchetypes: Array.isArray(catalog.organizationArchetypes) ? catalog.organizationArchetypes : [],
+      processTemplates: Array.isArray(catalog.processTemplates) ? catalog.processTemplates : [],
+      roleTemplates: Array.isArray(catalog.roleTemplates) ? catalog.roleTemplates : [],
+      teamTemplates: Array.isArray(catalog.teamTemplates) ? catalog.teamTemplates : [],
+      version: typeof catalog.version === "number" ? catalog.version : 1,
+    };
+  }
+
+  function defaultWorkerBundle(catalog: TemplateCatalog): TemplateBundle | null {
+    return catalog.bundles.find((bundle) => bundle.id === "default-worker") ?? null;
+  }
+
+  function roleTemplateByAgentName(catalog: TemplateCatalog, agentName: string) {
+    const normalized = agentName.replace(/\.md$/i, "");
+    return catalog.roleTemplates.find((template) =>
+      template.templateAgentName.toLowerCase() === normalized.toLowerCase()
+      || template.name.toLowerCase() === normalized.toLowerCase()
+      || template.id.toLowerCase() === normalized.toLowerCase()
+    ) ?? null;
+  }
+
+  function findRoleTemplate(catalog: TemplateCatalog, templateId: string | undefined) {
+    if (!templateId) return null;
+    return catalog.roleTemplates.find((template) => template.id === templateId) ?? null;
+  }
+
+  function findDepartmentTemplate(catalog: TemplateCatalog, templateId: string | undefined) {
+    if (!templateId) return null;
+    return catalog.departmentTemplates.find((template) => template.id === templateId) ?? null;
+  }
+
+  function findTeamTemplate(catalog: TemplateCatalog, templateId: string | undefined) {
+    if (!templateId) return null;
+    return catalog.teamTemplates.find((template) => template.id === templateId) ?? null;
+  }
+
+  function roleTemplateSummary(template: RoleTemplateAsset) {
+    return {
+      authority: template.authority,
+      bundles: template.bundles,
+      defaultTier: template.defaultTier,
+      domain: template.domain,
+      evaluationFocus: template.evaluationFocus,
+      id: template.id,
+      name: template.name,
+      summary: template.summary,
+      templateAgentName: template.templateAgentName,
+    };
   }
 
   async function readSourcesConfig(): Promise<SourcesConfig> {
@@ -890,10 +1124,51 @@ export function createOrgosApp(rootDir: string): OrgosApp {
   }
 
   async function readOrganizationsIndex(): Promise<OrganizationsIndex> {
-    return readJsonOrDefault(organizationsIndexPath, {
+    const fallback: OrganizationsIndex = {
       activeOrganizationId: null,
-      version: 1,
-    });
+      openOrganizationIds: [],
+      organizationAppearanceOverrides: {},
+      organizationModes: {},
+      version: 2,
+    };
+    const raw = await readJsonOrDefault<Partial<OrganizationsIndex>>(organizationsIndexPath, fallback);
+    const activeOrganizationId =
+      typeof raw.activeOrganizationId === "string" && raw.activeOrganizationId
+        ? raw.activeOrganizationId
+        : null;
+    const openOrganizationIds = Array.isArray(raw.openOrganizationIds)
+      ? raw.openOrganizationIds.filter((id): id is string => typeof id === "string" && Boolean(id))
+      : activeOrganizationId
+        ? [activeOrganizationId]
+        : [];
+    const organizationModes = Object.fromEntries(
+      Object.entries(raw.organizationModes ?? {}).filter((entry): entry is [string, OrganizationRuntimeMode] =>
+        typeof entry[0] === "string" && (entry[1] === "auto" || entry[1] === "idle")
+      ),
+    );
+    const organizationAppearanceOverrides = Object.fromEntries(
+      Object.entries(raw.organizationAppearanceOverrides ?? {}).flatMap(([id, value]) => {
+        if (!value || typeof id !== "string") {
+          return [];
+        }
+        const normalizedOverride: OrganizationAppearanceOverride = {
+          accent: normalizeAppearanceAccent((value as Partial<OrganizationAppearanceOverride>).accent),
+          theme: normalizeAppearanceTheme((value as Partial<OrganizationAppearanceOverride>).theme),
+        };
+        return [[id, normalizedOverride]];
+      }),
+    );
+    const normalized: OrganizationsIndex = {
+      activeOrganizationId,
+      openOrganizationIds: [...new Set(activeOrganizationId ? [activeOrganizationId, ...openOrganizationIds] : openOrganizationIds)],
+      organizationAppearanceOverrides,
+      organizationModes,
+      version: 2,
+    };
+    if (JSON.stringify(raw) !== JSON.stringify(normalized)) {
+      await writeJsonFile(organizationsIndexPath, normalized);
+    }
+    return normalized;
   }
 
   function normalizeAppearanceTheme(value: string | undefined): AppearanceTheme {
@@ -952,6 +1227,114 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     return normalized;
   }
 
+  async function readNotificationsConfig(): Promise<BoardNotificationsConfig> {
+    const fallback: BoardNotificationsConfig = {
+      notifications: [],
+      version: 1,
+    };
+    const raw = await readJsonOrDefault<Partial<BoardNotificationsConfig>>(notificationsConfigPath, fallback);
+    const normalized: BoardNotificationsConfig = {
+      notifications: Array.isArray(raw.notifications)
+        ? raw.notifications
+          .filter((notification): notification is BoardNotification => Boolean(notification?.id))
+          .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+        : [],
+      version: 1,
+    };
+    if (JSON.stringify(raw) !== JSON.stringify(normalized)) {
+      await writeJsonFile(notificationsConfigPath, normalized);
+    }
+    return normalized;
+  }
+
+  async function writeNotificationsConfig(config: BoardNotificationsConfig) {
+    const normalized: BoardNotificationsConfig = {
+      notifications: [...config.notifications]
+        .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+        .slice(0, 200),
+      version: 1,
+    };
+    await writeJsonFile(notificationsConfigPath, normalized);
+    return normalized;
+  }
+
+  async function createBoardNotification(
+    payload: Omit<BoardNotification, "createdAt" | "id" | "unread"> & { unread?: boolean },
+  ) {
+    const config = await readNotificationsConfig();
+
+    // Deduplicate: suppress if an identical (sourceApp, targetPanel, targetId, title) notification
+    // was created within the last hour to prevent repeated auto-bootstrap entries.
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
+    const duplicate = config.notifications.find(
+      (n) =>
+        n.sourceApp === payload.sourceApp &&
+        n.targetPanel === payload.targetPanel &&
+        n.targetId === payload.targetId &&
+        n.title === payload.title &&
+        new Date(n.createdAt).getTime() > oneHourAgo,
+    );
+    if (duplicate) return duplicate;
+
+    const notification: BoardNotification = {
+      createdAt: new Date().toISOString(),
+      id: crypto.randomUUID(),
+      level: payload.level,
+      organizationId: payload.organizationId ?? null,
+      sourceApp: payload.sourceApp,
+      summary: payload.summary,
+      targetId: payload.targetId,
+      targetPanel: payload.targetPanel,
+      title: payload.title,
+      unread: payload.level === "unread" ? payload.unread !== false : false,
+    };
+    config.notifications.unshift(notification);
+    await writeNotificationsConfig(config);
+    return notification;
+  }
+
+  async function markBoardNotificationRead(id: string, unread: boolean) {
+    const config = await readNotificationsConfig();
+    const notification = config.notifications.find((entry) => entry.id === id);
+    if (!notification) {
+      return null;
+    }
+    notification.unread = unread;
+    await writeNotificationsConfig(config);
+    return notification;
+  }
+
+  async function readTelemetryConfig(): Promise<TelemetryRecord> {
+    const fallback: TelemetryRecord = {
+      generatedAt: new Date().toISOString(),
+      inference: { events: [] },
+      version: 1,
+    };
+    const raw = await readJsonOrDefault<Partial<TelemetryRecord>>(telemetryConfigPath, fallback);
+    return {
+      generatedAt: raw.generatedAt ?? fallback.generatedAt,
+      inference: {
+        events: Array.isArray(raw.inference?.events) ? raw.inference.events.slice(-200) : [],
+      },
+      version: 1,
+    };
+  }
+
+  async function recordInferenceTelemetry(type: string, payload: Partial<InferenceStatus> & { address?: string }) {
+    const config = await readTelemetryConfig();
+    config.generatedAt = new Date().toISOString();
+    config.inference.events.push({
+      address: payload.address ?? "",
+      contextWindow: typeof payload.contextWindow === "number" ? payload.contextWindow : 128000,
+      model: payload.model ?? "",
+      timestamp: new Date().toISOString(),
+      type,
+    });
+    config.inference.events = config.inference.events.slice(-500);
+    await writeJsonFile(telemetryConfigPath, config);
+    return config;
+  }
+
   async function readOrganizationAbout(id: string): Promise<OrganizationAbout | null> {
     const aboutPath = path.join(organizationsDir, id, "about.json");
     if (!existsSync(aboutPath)) {
@@ -994,6 +1377,9 @@ export function createOrgosApp(rootDir: string): OrgosApp {
 
     return {
       activeOrganizationId: index.activeOrganizationId,
+      openOrganizationIds: index.openOrganizationIds,
+      organizationAppearanceOverrides: index.organizationAppearanceOverrides,
+      organizationModes: index.organizationModes,
       organizations,
     };
   }
@@ -1023,6 +1409,102 @@ export function createOrgosApp(rootDir: string): OrgosApp {
   async function writeOrganizationScopedJson<T>(orgId: string, fileName: string, value: T) {
     await mkdir(path.join(organizationsDir, orgId), { recursive: true });
     await writeJsonFile(organizationDataPath(orgId, fileName), value);
+  }
+
+  async function ensureOrganizationWebScaffold(orgId: string, organizationName: string) {
+    const webRoot = path.join(organizationsDir, orgId, "web");
+    const fragmentsDir = path.join(webRoot, "fragments");
+    await mkdir(fragmentsDir, { recursive: true });
+    await ensureMemoryFile(
+      path.join(webRoot, "manifest.json"),
+      `${JSON.stringify({
+        createdAt: new Date().toISOString(),
+        description: `Intranet fragments for ${organizationName}`,
+        fragments: [
+          { file: "home.htm", label: "homepage" },
+          { file: "landing.htm", label: "landing page" },
+        ],
+        version: 1,
+      }, null, 2)}\n`,
+    );
+    await ensureMemoryFile(
+      path.join(fragmentsDir, "home.htm"),
+      `<section>\n  <h1>${organizationName}</h1>\n  <p>Welcome to the organization intranet homepage.</p>\n</section>\n`,
+    );
+    await ensureMemoryFile(
+      path.join(fragmentsDir, "landing.htm"),
+      `<section>\n  <h1>Landing page</h1>\n  <p>Connected internal destination for projects, meetings, and operating context.</p>\n</section>\n`,
+    );
+  }
+
+  async function listWebFragments(orgId: string): Promise<WebFragmentSummary[]> {
+    const about = await readOrganizationAbout(orgId);
+    if (!about) return [];
+    await ensureOrganizationWebScaffold(orgId, about.name);
+    const fragmentsDir = path.join(organizationsDir, orgId, "web", "fragments");
+    const entries = await readdir(fragmentsDir, { withFileTypes: true });
+    const fragments: WebFragmentSummary[] = [];
+    for (const entry of entries) {
+      if (!entry.isFile() || !entry.name.endsWith(".htm")) continue;
+      const stats = await lstat(path.join(fragmentsDir, entry.name));
+      fragments.push({
+        id: entry.name,
+        label: entry.name.replace(/\.htm$/i, "").replace(/[-_]+/g, " "),
+        name: entry.name,
+        path: path.join("web", "fragments", entry.name).replaceAll("\\", "/"),
+        type: "fragment",
+        updatedAt: stats.mtime.toISOString(),
+      });
+    }
+    return fragments.sort((left, right) => left.name.localeCompare(right.name));
+  }
+
+  async function renderWebPreview(orgId: string, fragmentPath?: string) {
+    const about = await readOrganizationAbout(orgId);
+    if (!about) {
+      return "<!doctype html><html><body><p>Organization not found.</p></body></html>";
+    }
+    await ensureOrganizationWebScaffold(orgId, about.name);
+    const fragments = await listWebFragments(orgId);
+    const target = fragmentPath
+      ? fragments.find((entry) => entry.path === fragmentPath)
+      : fragments[0];
+    if (!target) {
+      return "<!doctype html><html><body><p>No fragments found.</p></body></html>";
+    }
+    const content = await readFile(path.join(organizationsDir, orgId, target.path), "utf8");
+    return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${about.name} intranet</title>
+    <style>
+      body { font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; padding: 2rem; background: #f4f4f4; color: #161616; }
+      main { max-width: 56rem; margin: 0 auto; background: white; border-radius: 1rem; padding: 2rem; box-shadow: 0 1rem 2rem rgba(0,0,0,0.08); }
+      h1,h2,h3 { margin-top: 0; }
+    </style>
+  </head>
+  <body>
+    <main>${content}</main>
+  </body>
+</html>`;
+  }
+
+  async function writeWebFragment(orgId: string, file: string, content: string) {
+    const about = await readOrganizationAbout(orgId);
+    if (!about) return null;
+    await ensureOrganizationWebScaffold(orgId, about.name);
+    const safeFile = path.basename(file).replace(/[^a-z0-9._-]/gi, "");
+    if (!safeFile.endsWith(".htm")) {
+      return null;
+    }
+    const fragmentPath = path.join(organizationsDir, orgId, "web", "fragments", safeFile);
+    await writeFile(fragmentPath, content, "utf8");
+    return {
+      file: safeFile,
+      path: path.join("web", "fragments", safeFile).replaceAll("\\", "/"),
+    };
   }
 
   async function ensureMemoryFile(filePath: string, content: string) {
@@ -1085,6 +1567,36 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     };
   }
 
+  function applyAgentTemplateBundles(
+    summary: AgentTemplateSummary,
+    catalog: TemplateCatalog,
+  ): AgentTemplateSummary {
+    const workerBundle = defaultWorkerBundle(catalog);
+    const matchedTemplate = roleTemplateByAgentName(catalog, summary.file || summary.name);
+    const bundles = [
+      ...(workerBundle ? [workerBundle.id] : []),
+      ...((matchedTemplate?.bundles ?? []).filter((bundleId) => bundleId !== workerBundle?.id)),
+    ];
+    const bundleRecords = bundles
+      .map((bundleId) => catalog.bundles.find((bundle) => bundle.id === bundleId))
+      .filter(Boolean) as TemplateBundle[];
+    const effectiveSkills = [...new Set([
+      ...summary.skills,
+      ...bundleRecords.flatMap((bundle) => bundle.skills),
+    ])].sort();
+    const effectiveTools = [...new Set([
+      ...summary.tools,
+      ...bundleRecords.flatMap((bundle) => bundle.tools),
+    ])].sort();
+    return {
+      ...summary,
+      bundles,
+      domain: matchedTemplate?.domain ?? "general",
+      effectiveSkills,
+      effectiveTools,
+    };
+  }
+
   function normalizeTierLevel(value: string | null | undefined): TierLevel {
     return value === "top" || value === "low" ? value : "mid";
   }
@@ -1094,12 +1606,13 @@ export function createOrgosApp(rootDir: string): OrgosApp {
   async function listAgentFiles() {
     await mkdir(agentsDir, { recursive: true });
     const entries = await readdir(agentsDir, { withFileTypes: true });
+    const catalog = await readTemplateCatalog();
     const agents: AgentTemplateSummary[] = [];
     for (const entry of entries) {
       if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
       const file = entry.name;
       const content = await readFile(path.join(agentsDir, file), "utf8");
-      agents.push(parseAgentTemplate(content, file));
+      agents.push(applyAgentTemplateBundles(parseAgentTemplate(content, file), catalog));
     }
     return agents.sort((a, b) => a.name.localeCompare(b.name));
   }
@@ -1161,7 +1674,29 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       ["flow.json", "schedule.json"],
       [],
     );
-    return Array.isArray(tasks) ? tasks : [];
+    return Array.isArray(tasks)
+      ? tasks.map((task) => ({
+        agentId: task.agentId ?? "",
+        assigneeType: task.assigneeType === "role_assignment" ? "role_assignment" : "agent_template",
+        assigneeValue: task.assigneeValue ?? "",
+        cadence: task.cadence ?? (task as ScheduledTask & { cronExpression?: string }).cronExpression ?? "continuous",
+        contextRequirement: Number.isFinite(task.contextRequirement) ? Number(task.contextRequirement) : 128000,
+        createdAt: task.createdAt ?? new Date().toISOString(),
+        dependencyIds: Array.isArray(task.dependencyIds)
+          ? task.dependencyIds.filter((id): id is string => typeof id === "string" && Boolean(id))
+          : [],
+        enabled: task.enabled ?? true,
+        evaluationRequired: typeof task.evaluationRequired === "boolean" ? task.evaluationRequired : false,
+        groupKey: task.groupKey ?? "",
+        id: task.id ?? crypto.randomUUID(),
+        lastRunAt: task.lastRunAt ?? null,
+        name: task.name ?? "",
+        notes: task.notes ?? "",
+        objective: task.objective ?? "",
+        trigger: task.trigger ?? "auto",
+        workstream: task.workstream ?? "",
+      }))
+      : [];
   }
 
   async function writeFlowTask(orgId: string, task: Partial<ScheduledTask>) {
@@ -1173,14 +1708,25 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       assigneeType: task.assigneeType ?? existing?.assigneeType ?? "agent_template",
       assigneeValue: task.assigneeValue ?? existing?.assigneeValue ?? "",
       cadence: task.cadence ?? task.cronExpression ?? existing?.cadence ?? existing?.cronExpression ?? "continuous",
+      contextRequirement: Number.isFinite(task.contextRequirement)
+        ? Number(task.contextRequirement)
+        : existing?.contextRequirement ?? 128000,
       createdAt: existing?.createdAt ?? now,
+      dependencyIds: Array.isArray(task.dependencyIds)
+        ? task.dependencyIds.filter((id): id is string => typeof id === "string" && Boolean(id))
+        : existing?.dependencyIds ?? [],
       enabled: task.enabled ?? existing?.enabled ?? true,
+      evaluationRequired: typeof task.evaluationRequired === "boolean"
+        ? task.evaluationRequired
+        : existing?.evaluationRequired ?? false,
+      groupKey: task.groupKey ?? existing?.groupKey ?? "",
       id: task.id ?? crypto.randomUUID(),
       lastRunAt: existing?.lastRunAt ?? null,
       name: task.name ?? existing?.name ?? "",
       notes: task.notes ?? existing?.notes ?? "",
       objective: task.objective ?? existing?.objective ?? "",
       trigger: task.trigger ?? existing?.trigger ?? "auto",
+      workstream: task.workstream ?? existing?.workstream ?? "",
     };
     const rest = tasks.filter((t) => t.id !== updated.id);
     await writeOrganizationScopedJson(orgId, "flow.json", [...rest, updated]);
@@ -1234,6 +1780,15 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       `${JSON.stringify(meeting, null, 2)}\n`,
       "utf8",
     );
+    await createBoardNotification({
+      level: "unread",
+      organizationId: orgId,
+      sourceApp: "meet",
+      summary: `${meeting.title} is ready for review.`,
+      targetId: meeting.id,
+      targetPanel: "meet",
+      title: "Meeting planned",
+    });
     return meeting;
   }
 
@@ -1274,6 +1829,17 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       `${JSON.stringify(message, null, 2)}\n`,
       "utf8",
     );
+    if (/\b(board|human)\b/i.test(message.to)) {
+      await createBoardNotification({
+        level: "unread",
+        organizationId: orgId,
+        sourceApp: "mail",
+        summary: message.subject,
+        targetId: message.id,
+        targetPanel: "mail",
+        title: "Board message",
+      });
+    }
     return message;
   }
 
@@ -1289,10 +1855,51 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       version: 1,
     });
     return {
-      departments: Array.isArray(state.departments) ? state.departments : [],
+      departments: Array.isArray(state.departments)
+        ? state.departments.map((department) => ({
+          createdAt: department.createdAt ?? "",
+          id: department.id ?? crypto.randomUUID(),
+          name: department.name ?? "",
+          summary: department.summary ?? "",
+          templateId: department.templateId ?? "",
+          templateSource: department.templateSource === "local" ? "local" : "system",
+          updatedAt: department.updatedAt ?? "",
+        }))
+        : [],
       identities: Array.isArray(state.identities) ? state.identities : [],
-      roles: Array.isArray(state.roles) ? state.roles : [],
-      teams: Array.isArray(state.teams) ? state.teams : [],
+      roles: Array.isArray(state.roles)
+        ? state.roles.map((role) => ({
+          assigneeLabel: role.assigneeLabel ?? "",
+          bundleIds: Array.isArray(role.bundleIds) ? role.bundleIds : [],
+          createdAt: role.createdAt ?? "",
+          evaluationFocus: role.evaluationFocus ?? "",
+          identityId: role.identityId ?? "",
+          id: role.id ?? crypto.randomUUID(),
+          notes: role.notes ?? "",
+          requiredSkills: Array.isArray(role.requiredSkills) ? role.requiredSkills : [],
+          requiredTools: Array.isArray(role.requiredTools) ? role.requiredTools : [],
+          status: role.status === "assigned" ? "assigned" : "open",
+          teamId: role.teamId ?? "",
+          templateId: role.templateId ?? "",
+          templateName: role.templateName ?? "",
+          templateSource: role.templateSource === "local" ? "local" : "system",
+          tier: normalizeTierLevel(role.tier),
+          title: role.title ?? "",
+          updatedAt: role.updatedAt ?? "",
+        }))
+        : [],
+      teams: Array.isArray(state.teams)
+        ? state.teams.map((team) => ({
+          createdAt: team.createdAt ?? "",
+          departmentId: team.departmentId ?? "",
+          id: team.id ?? crypto.randomUUID(),
+          name: team.name ?? "",
+          summary: team.summary ?? "",
+          templateId: team.templateId ?? "",
+          templateSource: team.templateSource === "local" ? "local" : "system",
+          updatedAt: team.updatedAt ?? "",
+        }))
+        : [],
       updatedAt: state.updatedAt ?? "",
       version: 1,
     };
@@ -1370,6 +1977,17 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     const next = [...current.filter((item) => item.id !== record.id), record]
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     await writeOrganizationScopedJson(orgId, "evals.json", next);
+    if (record.status === "failed" || record.status === "failing") {
+      await createBoardNotification({
+        level: "unread",
+        organizationId: orgId,
+        sourceApp: "evals",
+        summary: record.resultSummary || record.criteria || "Evaluation needs attention.",
+        targetId: record.id,
+        targetPanel: "evals",
+        title: `${record.name} failed`,
+      });
+    }
     return record;
   }
 
@@ -1379,6 +1997,42 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     if (next.length === current.length) return false;
     await writeOrganizationScopedJson(orgId, "evals.json", next);
     return true;
+  }
+
+  async function buildOrganizationRuntimeSummary(
+    organization: OrganizationAbout,
+    index: OrganizationsIndex,
+    notifications: BoardNotification[],
+  ): Promise<OrganizationRuntimeSummary> {
+    const open = index.openOrganizationIds.includes(organization.id);
+    const mode = index.organizationModes[organization.id] ?? "idle";
+    const unread = notifications.filter((notification) => notification.organizationId === organization.id && notification.unread).length;
+    const [projects, meetings, evals] = await Promise.all([
+      readProjects(organization.id),
+      listMeetings(organization.id),
+      readEvals(organization.id),
+    ]);
+    const failingEval = evals.find((record) => record.status === "failing");
+    const activeProject = projects.find((project) => project.status === "active" || project.status === "blocked");
+    const pendingMeeting = meetings.find((meeting) => meeting.status !== "complete");
+    const headline = failingEval
+      ? `${failingEval.name} needs review`
+      : activeProject
+        ? `${activeProject.name} is ${activeProject.status}`
+        : pendingMeeting
+          ? `Meeting: ${pendingMeeting.title}`
+          : mode === "auto"
+            ? "Autonomous work in progress"
+            : "Standing by in idle mode";
+    return {
+      headline,
+      id: organization.id,
+      mode,
+      name: organization.name,
+      open,
+      status: `${open ? "open" : "closed"} · ${mode}`,
+      unread,
+    };
   }
 
   function buildIdentityName(roleTitle: string, employeeNumber: number) {
@@ -1393,6 +2047,7 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       CEO: `Strategic executive identity for ${organizationName}, optimized for synthesis, prioritization, and decisive organizational framing.`,
       COO: `Operational executive identity for ${organizationName}, optimized for sequencing, coordination, and throughput discipline.`,
       CTO: `Technical executive identity for ${organizationName}, optimized for tooling, JavaScript systems, and bespoke capability creation.`,
+      Orgos: `Organization-scoped orgos identity for ${organizationName}, optimized for facilitation, orchestration, evaluation, and deterministic systems stewardship.`,
       Facilitator: `Facilitation identity for ${organizationName}, optimized for agenda shaping, scope discipline, and consensus hygiene.`,
     };
     return summaries[roleTitle] ?? `Role identity for ${organizationName}, shaped to execute ${roleTitle} work with disciplined judgment.`;
@@ -1403,6 +2058,7 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       CEO: "Outside-work-optimal influence: calm board-level judgment, selective ambition, and disciplined synthesis under ambiguity.",
       COO: "Outside-work-optimal influence: logistics instinct, process clarity, and a bias toward smooth operational handoffs.",
       CTO: "Outside-work-optimal influence: curious builder energy, code craftsmanship, and controlled experimentation.",
+      Orgos: "Outside-work-optimal influence: facilitative systems thinking, procedural rigor, and measured stewardship of shared infrastructure.",
       Facilitator: "Outside-work-optimal influence: moderator poise, agenda stewardship, and active listening discipline.",
     };
     return influences[roleTitle] ?? "Outside-work-optimal influence: role-shaped judgment with creative variability and measured restraint.";
@@ -1456,9 +2112,75 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     return index;
   }
 
+  async function collectDatamapEntries(baseDir: string, relativePath = ""): Promise<DatamapEntry[]> {
+    const targetDir = safeJoin(baseDir, relativePath);
+    if (!targetDir || !existsSync(targetDir)) {
+      return [];
+    }
+    const entries = await readdir(targetDir, { withFileTypes: true });
+    const results: DatamapEntry[] = [];
+    for (const entry of entries) {
+      const entryRelative = path.join(relativePath, entry.name).replaceAll("\\", "/");
+      if (entry.isDirectory()) {
+        results.push(...await collectDatamapEntries(baseDir, entryRelative));
+        continue;
+      }
+      const extension = path.extname(entry.name).toLowerCase();
+      if (![".md", ".txt", ".json", ".htm"].includes(extension)) {
+        continue;
+      }
+      const content = await readFile(path.join(baseDir, entryRelative), "utf8");
+      const headings = content
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => /^#{1,6}\s+/.test(line))
+        .map((line) => line.replace(/^#{1,6}\s+/, ""));
+      const excerpt = content
+        .split("\n")
+        .map((line) => line.trim())
+        .find(Boolean) ?? "";
+      results.push({
+        citation: entryRelative,
+        excerpt: excerpt.slice(0, 220),
+        headings,
+        kind: extension.slice(1),
+        path: entryRelative,
+        title: headings[0] ?? entry.name.replace(extension, ""),
+      });
+    }
+    return results;
+  }
+
+  async function rebuildOrganizationDatamap(orgId: string) {
+    const organizationRoot = path.join(organizationsDir, orgId);
+    if (!existsSync(organizationRoot)) {
+      return null;
+    }
+    const datamap: DatamapRecord = {
+      entries: await collectDatamapEntries(organizationRoot),
+      generatedAt: new Date().toISOString(),
+      organizationId: orgId,
+      version: 1,
+    };
+    await writeOrganizationScopedJson(orgId, path.join("memory", "datamap.json"), datamap);
+    return datamap;
+  }
+
+  async function readOrganizationDatamap(orgId: string) {
+    const fallback: DatamapRecord = {
+      entries: [],
+      generatedAt: new Date().toISOString(),
+      organizationId: orgId,
+      version: 1,
+    };
+    return readOrganizationScopedJsonWithFallbacks(orgId, [path.join("memory", "datamap.json")], fallback);
+  }
+
   async function ensureAutoBootstrap(orgId: string) {
     const organization = await readOrganizationAbout(orgId);
     if (!organization) return null;
+    const catalog = await readTemplateCatalog();
+    const archetype = catalog.organizationArchetypes.find((entry) => entry.id === organization.archetypeId) ?? null;
 
     let staff = await readStaffState(orgId);
     const now = new Date().toISOString();
@@ -1493,7 +2215,8 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       { employeeNumber: 0, roleTitle: "CEO", templateName: "CEO", tier: "top" as TierLevel, systemRole: false },
       { employeeNumber: 1, roleTitle: "COO", templateName: "COO", tier: "mid" as TierLevel, systemRole: false },
       { employeeNumber: 2, roleTitle: "CTO", templateName: "CTO", tier: "top" as TierLevel, systemRole: false },
-      { employeeNumber: 3, roleTitle: "Facilitator", templateName: "Facilitator", tier: "mid" as TierLevel, systemRole: true },
+      { employeeNumber: 3, roleTitle: "Orgos", templateName: "orgos", tier: "mid" as TierLevel, systemRole: true },
+      { employeeNumber: 4, roleTitle: "Facilitator", templateName: "Facilitator", tier: "mid" as TierLevel, systemRole: true },
     ];
 
     for (const entry of defaults) {
@@ -1505,9 +2228,15 @@ export function createOrgosApp(rootDir: string): OrgosApp {
           id: crypto.randomUUID(),
           identityId: "",
           notes: `${entry.roleTitle} role for autonomous org bootstrap.`,
+          requiredSkills: findRoleTemplate(catalog, `${entry.roleTitle.toLowerCase()}-executive`)?.requiredSkills ?? [],
+          requiredTools: findRoleTemplate(catalog, `${entry.roleTitle.toLowerCase()}-executive`)?.requiredTools ?? [],
           status: "assigned",
           teamId: team.id,
+          templateId: findRoleTemplate(catalog, `${entry.roleTitle.toLowerCase()}-executive`)?.id
+            ?? findRoleTemplate(catalog, `${entry.roleTitle.toLowerCase()}-runtime`)?.id
+            ?? "",
           templateName: entry.templateName,
+          templateSource: "system",
           tier: entry.tier,
           title: entry.roleTitle,
           updatedAt: now,
@@ -1535,11 +2264,14 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       }
       role.identityId = identity.id;
       role.assigneeLabel = identity.name;
+      role.bundleIds = role.bundleIds ?? findRoleTemplate(catalog, role.templateId)?.bundles ?? ["default-worker"];
+      role.evaluationFocus = role.evaluationFocus ?? findRoleTemplate(catalog, role.templateId)?.evaluationFocus ?? "";
       role.status = "assigned";
       await ensureIdentityMemory(orgId, identity);
     }
 
     staff = await writeStaffState(orgId, staff);
+    await ensureOrganizationWebScaffold(orgId, organization.name);
     const flow = await readFlow(orgId);
     if (flow.length === 0) {
       await writeOrganizationScopedJson(orgId, "flow.json", [
@@ -1560,6 +2292,20 @@ export function createOrgosApp(rootDir: string): OrgosApp {
         {
           agentId: "",
           assigneeType: "role_assignment",
+          assigneeValue: "Orgos",
+          cadence: "continuous",
+          createdAt: now,
+          enabled: true,
+          id: crypto.randomUUID(),
+          lastRunAt: null,
+          name: "Intranet and tooling bootstrap",
+          notes: "Coordinate homepage, landing pages, and bespoke tool-test scaffolding for the organization intranet.",
+          objective: "Establish the organization intranet and initial tool surfaces.",
+          trigger: "auto",
+        },
+        {
+          agentId: "",
+          assigneeType: "role_assignment",
           assigneeValue: "Facilitator",
           cadence: "cycle",
           createdAt: now,
@@ -1571,7 +2317,71 @@ export function createOrgosApp(rootDir: string): OrgosApp {
           objective: "Run a bounded facilitation and reflection cycle for active work.",
           trigger: "reflection",
         },
+        {
+          agentId: "",
+          assigneeType: "role_assignment",
+          assigneeValue: "Orgos",
+          cadence: "continuous",
+          contextRequirement: 128000,
+          createdAt: now,
+          dependencyIds: [],
+          enabled: true,
+          evaluationRequired: true,
+          groupKey: "memory-kernel",
+          id: crypto.randomUUID(),
+          lastRunAt: null,
+          name: "Memory datamap maintenance",
+          notes: "Refresh memory datamaps, compact low-value working memory, and preserve citations into durable context views.",
+          objective: "Keep organization memory compact, queryable, and reliable for downstream agent context management.",
+          trigger: "consolidation",
+          workstream: "memory",
+        },
       ]);
+    }
+
+    if (archetype) {
+      const existingFlow = await readFlow(orgId);
+      if (!existingFlow.some((task) => task.name === "Archetype expansion review")) {
+        await writeFlowTask(orgId, {
+          assigneeType: "role_assignment",
+          assigneeValue: "Orgos",
+          cadence: "cycle",
+          contextRequirement: 128000,
+          dependencyIds: [],
+          enabled: true,
+          evaluationRequired: true,
+          groupKey: "org-growth",
+          name: "Archetype expansion review",
+          notes: `Review the ${archetype.name} template pack and recommend the next department, team, and role expansions only when justified by concrete work.`,
+          objective: `Grow ${organization.name} using the ${archetype.name} archetype without overstaffing or introducing unnecessary complexity.`,
+          trigger: "reflection",
+          workstream: "staffing",
+        });
+      }
+    }
+
+    const existingProjects = await readProjects(orgId);
+    if (!existingProjects.some((project) => project.name === "Founding roadmap")) {
+      await writeProject(orgId, {
+        name: "Founding roadmap",
+        outputs: "Executive plan, staffing expansion, intranet structure, initial tooling backlog.",
+        status: "active",
+        summary: "Initial planning and implementation roadmap for autonomous organization growth.",
+      });
+    }
+
+    const existingMeetings = await listMeetings(orgId);
+    if (!existingMeetings.some((meeting) => meeting.title === "Founding alignment")) {
+      await createMeeting(orgId, {
+        agenda: [
+          "Review organization purpose and immediate needs",
+          "Assign initial executive responsibilities",
+          "Plan intranet and tooling foundations",
+        ],
+        participants: ["CEO", "COO", "CTO", "Orgos", "Facilitator"],
+        summary: "Kickoff meeting for founding alignment and growth planning.",
+        title: "Founding alignment",
+      });
     }
 
     const memoryIndex = {
@@ -1586,8 +2396,26 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       version: 1,
     };
     await writeOrganizationScopedJson(orgId, path.join("memory", "index.json"), memoryIndex);
+    const datamap = await rebuildOrganizationDatamap(orgId);
+    await writeOrganizationScopedJson(orgId, "orgos-runtime.json", {
+      bootstrappedAt: now,
+      mode: "auto",
+      organizationId: orgId,
+      primaryRoles: ["CEO", "COO", "CTO", "Orgos", "Facilitator"],
+      version: 1,
+    });
+    await createBoardNotification({
+      level: "silent",
+      organizationId: orgId,
+      sourceApp: "staff",
+      summary: "Executive staffing, flow scaffolding, and memory silos are ready.",
+      targetId: orgId,
+      targetPanel: "staff",
+      title: "Autonomy bootstrap ready",
+    });
     return {
       flow: await readFlow(orgId),
+      datamap,
       memoryIndex,
       staff,
     };
@@ -2065,6 +2893,7 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     }
 
     const organization: OrganizationAbout = {
+      archetypeId: payload.archetypeId ?? existing?.archetypeId ?? "",
       createdAt: existing?.createdAt ?? now,
       description: payload.description ?? existing?.description ?? "",
       id,
@@ -2085,6 +2914,18 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     if (activate || !index.activeOrganizationId || index.activeOrganizationId === previousId) {
       index.activeOrganizationId = id;
     }
+    index.openOrganizationIds = [...new Set([id, ...index.openOrganizationIds.filter((value) => value !== previousId)])];
+    if (!index.organizationModes[id]) {
+      index.organizationModes[id] = "idle";
+    }
+    if (previousId && previousId !== id) {
+      delete index.organizationModes[previousId];
+      if (index.organizationAppearanceOverrides[previousId]) {
+        index.organizationAppearanceOverrides[id] = index.organizationAppearanceOverrides[previousId];
+        delete index.organizationAppearanceOverrides[previousId];
+      }
+      index.openOrganizationIds = index.openOrganizationIds.map((value) => value === previousId ? id : value);
+    }
     await writeJsonFile(organizationsIndexPath, index);
 
     return { ok: true, state: await readOrganizations() };
@@ -2102,6 +2943,85 @@ export function createOrgosApp(rootDir: string): OrgosApp {
 
     const index = await readOrganizationsIndex();
     index.activeOrganizationId = id;
+    index.openOrganizationIds = [...new Set([id, ...index.openOrganizationIds])];
+    if (!index.organizationModes[id]) {
+      index.organizationModes[id] = "idle";
+    }
+    await writeJsonFile(organizationsIndexPath, index);
+    return readOrganizations();
+  }
+
+  async function updateOrganizationRuntime(payload: {
+    active?: boolean;
+    id: string;
+    mode?: OrganizationRuntimeMode;
+    open?: boolean;
+  }) {
+    const organization = await readOrganizationAbout(payload.id);
+    if (!organization) {
+      return null;
+    }
+
+    const index = await readOrganizationsIndex();
+    if (typeof payload.open === "boolean") {
+      if (payload.open) {
+        index.openOrganizationIds = [...new Set([payload.id, ...index.openOrganizationIds])];
+      } else {
+        index.openOrganizationIds = index.openOrganizationIds.filter((value) => value !== payload.id);
+        if (index.activeOrganizationId === payload.id) {
+          index.activeOrganizationId = null;
+        }
+      }
+    }
+    if (payload.active) {
+      organization.lastActiveAt = new Date().toISOString();
+      await writeOrganizationAbout(organization);
+      index.activeOrganizationId = payload.id;
+      index.openOrganizationIds = [...new Set([payload.id, ...index.openOrganizationIds])];
+    }
+    if (payload.mode) {
+      const previousMode = index.organizationModes[payload.id] ?? "idle";
+      index.organizationModes[payload.id] = payload.mode;
+      if (previousMode === "auto" && payload.mode === "idle") {
+        await writeFlowTask(payload.id, {
+          assigneeType: "role_assignment",
+          assigneeValue: "Orgos",
+          cadence: "handoff",
+          enabled: true,
+          name: "Idle handoff",
+          notes: "Finish active work, write handoff notes, and settle the organization into idle.",
+          objective: "Checkpoint active work before going idle.",
+          trigger: "consolidation",
+        });
+        await createMailMessage(payload.id, {
+          body: "Auto mode was turned off. Please complete in-flight work, capture handoff notes, and settle into idle.",
+          folder: "outbox",
+          from: "orgos",
+          subject: "Idle transition handoff",
+          to: "board",
+        });
+      }
+    } else if (!index.organizationModes[payload.id]) {
+      index.organizationModes[payload.id] = "idle";
+    }
+
+    await writeJsonFile(organizationsIndexPath, index);
+    return readOrganizations();
+  }
+
+  async function updateOrganizationAppearanceOverride(
+    id: string,
+    payload: Partial<OrganizationAppearanceOverride>,
+  ) {
+    const organization = await readOrganizationAbout(id);
+    if (!organization) {
+      return null;
+    }
+    const index = await readOrganizationsIndex();
+    index.organizationAppearanceOverrides[id] = {
+      accent: normalizeAppearanceAccent(payload.accent),
+      theme: normalizeAppearanceTheme(payload.theme),
+    };
     await writeJsonFile(organizationsIndexPath, index);
     return readOrganizations();
   }
@@ -2121,20 +3041,25 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     const index = await readOrganizationsIndex();
     if (index.activeOrganizationId === id) {
       index.activeOrganizationId = null;
-      await writeJsonFile(organizationsIndexPath, index);
     }
+    index.openOrganizationIds = index.openOrganizationIds.filter((value) => value !== id);
+    delete index.organizationModes[id];
+    delete index.organizationAppearanceOverrides[id];
+    await writeJsonFile(organizationsIndexPath, index);
 
     return readOrganizations();
   }
 
   async function readWorkspaceBootstrap() {
-    const [sourcesConfig, organizationsState, appearance, agents, skills] =
+    const [sourcesConfig, organizationsState, appearance, agents, skills, notifications, templates] =
       await Promise.all([
         readSourcesConfig(),
         readOrganizations(),
         readAppearanceConfig(),
         listAgentFiles(),
         listSkillFiles(),
+        readNotificationsConfig(),
+        readTemplateCatalog(),
       ]);
     const activeOrganization = organizationsState.activeOrganizationId
       ? organizationsState.organizations.find(
@@ -2142,7 +3067,20 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       ) ?? null
       : null;
     const orgId = organizationsState.activeOrganizationId;
-    const [flow, meetings, mailInbox, staff, projects, evals] = orgId
+    const orgIndexSnapshot: OrganizationsIndex = {
+      activeOrganizationId: organizationsState.activeOrganizationId,
+      openOrganizationIds: organizationsState.openOrganizationIds,
+      organizationAppearanceOverrides: organizationsState.organizationAppearanceOverrides,
+      organizationModes: organizationsState.organizationModes,
+      version: 2,
+    };
+    const organizationRuntime = await Promise.all(
+      organizationsState.organizations.map((organization) =>
+        buildOrganizationRuntimeSummary(organization, orgIndexSnapshot, notifications.notifications),
+      ),
+    );
+    const telemetry = await readTelemetryConfig();
+    const [flow, meetings, mailInbox, staff, projects, evals, datamap, web] = orgId
       ? await Promise.all([
         readFlow(orgId),
         listMeetings(orgId),
@@ -2150,12 +3088,31 @@ export function createOrgosApp(rootDir: string): OrgosApp {
         readStaffState(orgId),
         readProjects(orgId),
         readEvals(orgId),
+        readOrganizationDatamap(orgId),
+        (async () => {
+          const fragments = await listWebFragments(orgId);
+          return {
+            fragments,
+            preview: await renderWebPreview(orgId, fragments[0]?.path),
+            tools: [{ file: path.join("tools", "README.txt"), name: "custom js tools" }],
+          };
+        })(),
       ])
-      : [[], [], [], null, [], []];
+      : [
+        [],
+        [],
+        [],
+        null,
+        [],
+        [],
+        { entries: [], generatedAt: new Date().toISOString(), organizationId: "", version: 1 },
+        { fragments: [], preview: "", tools: [] },
+      ];
 
     return {
       agents,
       appearance,
+      datamap,
       evals,
       filesystem: {
         roots: buildFilesystemRoots(activeOrganization),
@@ -2166,11 +3123,22 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       meetings,
       organizations: organizationsState.organizations,
       activeOrganizationId: organizationsState.activeOrganizationId,
+      openOrganizationIds: organizationsState.openOrganizationIds,
+      organizationAppearanceOverrides: organizationsState.organizationAppearanceOverrides,
+      organizationModes: organizationsState.organizationModes,
+      organizationRuntime,
+      notifications: notifications.notifications,
+      orgosAgent: agents.some((agent) => agent.name === "orgos.md" || agent.name === "orgos")
+        ? { id: "orgos", name: "orgos", scope: "system" }
+        : null,
       projects,
       queue: getQueueSnapshot(),
       staff,
       skills,
       sources: sourcesConfig.sources,
+      telemetry,
+      templates,
+      web,
     };
   }
 
@@ -2266,11 +3234,15 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     if (url.pathname === "/api/inference/probe" && request.method === "POST") {
       const payload = (await request.json()) as { address?: string };
       const status = await probeInferenceSource(payload.address ?? "");
+      await recordInferenceTelemetry("probe", status);
       return Response.json(status);
     }
 
     if (url.pathname === "/api/inference/discover") {
       const sources = await discoverInferenceSources();
+      for (const source of sources) {
+        await recordInferenceTelemetry("discover", source);
+      }
       return Response.json({ sources });
     }
 
@@ -2291,6 +3263,7 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       if (!payload.orgId) return new Response("Bad Request", { status: 400 });
       const result = await ensureAutoBootstrap(payload.orgId);
       if (!result) return new Response("Not Found", { status: 404 });
+      // Auto-bootstrap events are surfaced via board notifications, not inference telemetry.
       return Response.json(result);
     }
 
@@ -2421,6 +3394,53 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       return Response.json(result.file);
     }
 
+    if (url.pathname === "/api/web/list") {
+      const orgId = url.searchParams.get("orgId") ?? "";
+      if (!orgId) {
+        return new Response("Bad Request", { status: 400 });
+      }
+      const fragments = await listWebFragments(orgId);
+      return Response.json({
+        fragments,
+        preview: await renderWebPreview(orgId, fragments[0]?.path),
+        tools: [{ file: path.join("tools", "README.txt"), name: "custom js tools" }],
+      });
+    }
+
+    if (url.pathname === "/api/web/write" && request.method === "POST") {
+      const payload = (await request.json()) as { content?: string; file?: string; orgId?: string };
+      if (!payload.orgId || typeof payload.file !== "string" || typeof payload.content !== "string") {
+        return new Response("Bad Request", { status: 400 });
+      }
+      const result = await writeWebFragment(payload.orgId, payload.file, payload.content);
+      if (!result) {
+        return new Response("Bad Request", { status: 400 });
+      }
+      await rebuildOrganizationDatamap(payload.orgId);
+      return Response.json(result);
+    }
+
+    if (url.pathname === "/api/datamap/read") {
+      const orgId = url.searchParams.get("orgId") ?? "";
+      if (!orgId) {
+        return new Response("Bad Request", { status: 400 });
+      }
+      const datamap = await readOrganizationDatamap(orgId);
+      return Response.json(datamap);
+    }
+
+    if (url.pathname === "/api/datamap/rebuild" && request.method === "POST") {
+      const payload = (await request.json()) as { orgId?: string };
+      if (!payload.orgId) {
+        return new Response("Bad Request", { status: 400 });
+      }
+      const datamap = await rebuildOrganizationDatamap(payload.orgId);
+      if (!datamap) {
+        return new Response("Not Found", { status: 404 });
+      }
+      return Response.json(datamap);
+    }
+
     if (url.pathname === "/api/organizations/save" && request.method === "POST") {
       const payload = (await request.json()) as {
         activate?: boolean;
@@ -2441,9 +3461,12 @@ export function createOrgosApp(rootDir: string): OrgosApp {
 
     if (url.pathname === "/api/organizations/activate" && request.method === "POST") {
       const payload = (await request.json()) as { id?: string };
-      const organizations = payload.id
-        ? await activateOrganization(payload.id)
-        : null;
+      const rawId = payload.id ?? "";
+      const safeId = slugifyOrganizationName(rawId);
+      if (!safeId || safeId !== rawId) {
+        return new Response("Bad Request", { status: 400 });
+      }
+      const organizations = await activateOrganization(safeId);
 
       if (!organizations) {
         return new Response("Not Found", { status: 404 });
@@ -2452,17 +3475,95 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       return Response.json(organizations);
     }
 
+    if (url.pathname === "/api/organizations/runtime" && request.method === "POST") {
+      const payload = (await request.json()) as {
+        active?: boolean;
+        id?: string;
+        mode?: OrganizationRuntimeMode;
+        open?: boolean;
+      };
+      const rawId = payload.id ?? "";
+      const safeId = slugifyOrganizationName(rawId);
+      if (!safeId || safeId !== rawId) {
+        return new Response("Bad Request", { status: 400 });
+      }
+      const organizations = await updateOrganizationRuntime({
+        active: payload.active,
+        id: safeId,
+        mode: payload.mode === "auto" ? "auto" : payload.mode === "idle" ? "idle" : undefined,
+        open: typeof payload.open === "boolean" ? payload.open : undefined,
+      });
+      if (!organizations) {
+        return new Response("Not Found", { status: 404 });
+      }
+      return Response.json(organizations);
+    }
+
+    if (url.pathname === "/api/organizations/appearance" && request.method === "POST") {
+      const payload = (await request.json()) as {
+        accent?: AppearanceAccent;
+        id?: string;
+        theme?: AppearanceTheme;
+      };
+      if (!payload.id) {
+        return new Response("Bad Request", { status: 400 });
+      }
+      const organizations = await updateOrganizationAppearanceOverride(payload.id, payload);
+      if (!organizations) {
+        return new Response("Not Found", { status: 404 });
+      }
+      return Response.json(organizations);
+    }
+
     if (url.pathname === "/api/organizations/delete" && request.method === "POST") {
       const payload = (await request.json()) as { id?: string };
-      const organizations = payload.id
-        ? await deleteOrganization(payload.id)
-        : null;
+      const rawId = payload.id ?? "";
+      const safeId = slugifyOrganizationName(rawId);
+      if (!safeId || safeId !== rawId) {
+        return new Response("Bad Request", { status: 400 });
+      }
+      const organizations = await deleteOrganization(safeId);
 
       if (!organizations) {
         return new Response("Not Found", { status: 404 });
       }
 
       return Response.json(organizations);
+    }
+
+    if (url.pathname === "/api/notifications/list") {
+      const config = await readNotificationsConfig();
+      return Response.json(config);
+    }
+
+    if (url.pathname === "/api/notifications/read" && request.method === "POST") {
+      const payload = (await request.json()) as { id?: string; unread?: boolean };
+      if (!payload.id) {
+        return new Response("Bad Request", { status: 400 });
+      }
+      const notification = await markBoardNotificationRead(payload.id, Boolean(payload.unread));
+      if (!notification) {
+        return new Response("Not Found", { status: 404 });
+      }
+      return Response.json(notification);
+    }
+
+    if (url.pathname === "/api/notifications/create" && request.method === "POST") {
+      const payload = (await request.json()) as Partial<BoardNotification>;
+      if (!payload.title || !payload.summary || !payload.sourceApp) {
+        return new Response("Bad Request", { status: 400 });
+      }
+      const notification = await createBoardNotification({
+        level: payload.level === "silent" ? "silent" : "unread",
+        organizationId: payload.organizationId ?? null,
+        sourceApp: payload.sourceApp,
+        summary: payload.summary,
+        targetId: payload.targetId ?? "",
+        targetPanel: payload.targetPanel ?? null,
+        title: payload.title,
+        unread: payload.unread,
+      });
+      return Response.json(notification);
     }
 
     // ── Queue SSE stream ─────────────────────────────────────────────────────
@@ -2587,6 +3688,11 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       return Response.json({ content, name });
     }
 
+    if (url.pathname === "/api/templates/list") {
+      const templates = await readTemplateCatalog();
+      return Response.json({ templates });
+    }
+
     // ── Tools API ────────────────────────────────────────────────────────────
 
     if (url.pathname === "/api/tools/list") {
@@ -2594,8 +3700,18 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       const tools = [
         { name: "sources.inspect", file: "/api/inference/discover", scope: "system" },
         { name: "sources.save", file: "/api/system/sources", scope: "system" },
+        { name: "organizations.runtime", file: "/api/organizations/runtime", scope: "system" },
+        { name: "organizations.appearance", file: "/api/organizations/appearance", scope: "system" },
+        { name: "notifications.list", file: "/api/notifications/list", scope: "system" },
+        { name: "notifications.write", file: "/api/notifications/create", scope: "system" },
+        { name: "templates.list", file: "/api/templates/list", scope: "system" },
         { name: "files.list", file: "/api/files/list", scope: "system|organization" },
         { name: "files.write", file: "/api/text/write", scope: "system|organization" },
+        { name: "web.list", file: "/api/web/list", scope: "organization" },
+        { name: "web.write", file: "/api/web/write", scope: "organization" },
+        { name: "datamap.read", file: "/api/datamap/read", scope: "organization" },
+        { name: "datamap.rebuild", file: "/api/datamap/rebuild", scope: "organization" },
+        { name: "telemetry.read", file: ".data/system/telemetry.json", scope: "system" },
         { name: "memory.bootstrap", file: "/api/system/auto-bootstrap", scope: "organization" },
         { name: "staff.write", file: "/api/staff/write", scope: "organization" },
         { name: "flow.write", file: "/api/flow/create", scope: "organization" },
@@ -2617,14 +3733,14 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       return Response.json({ tasks });
     }
 
-    if ((url.pathname === "/api/flow/create" || url.pathname === "/api/schedule/create") && request.method === "POST") {
+    if (url.pathname === "/api/flow/create" && request.method === "POST") {
       const payload = (await request.json()) as { orgId?: string } & Partial<ScheduledTask>;
       if (!payload.orgId) return new Response("Bad Request", { status: 400 });
       const task = await writeFlowTask(payload.orgId, payload);
       return Response.json(task);
     }
 
-    if ((url.pathname === "/api/flow/delete" || url.pathname === "/api/schedule/delete") && request.method === "POST") {
+    if (url.pathname === "/api/flow/delete" && request.method === "POST") {
       const payload = (await request.json()) as { id?: string; orgId?: string };
       if (!payload.id || !payload.orgId) return new Response("Bad Request", { status: 400 });
       const ok = await deleteFlowTask(payload.orgId, payload.id);
@@ -2700,14 +3816,14 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       return Response.json(updated);
     }
 
-    if (url.pathname === "/api/staff/read" || url.pathname === "/api/hire/read") {
+    if (url.pathname === "/api/staff/read") {
       const orgId = url.searchParams.get("orgId");
       if (!orgId) return new Response("Bad Request", { status: 400 });
       const staff = await readStaffState(orgId);
       return Response.json(staff);
     }
 
-    if ((url.pathname === "/api/staff/write" || url.pathname === "/api/hire/write") && request.method === "POST") {
+    if (url.pathname === "/api/staff/write" && request.method === "POST") {
       const payload = (await request.json()) as { orgId?: string } & Partial<HireState>;
       if (!payload.orgId) return new Response("Bad Request", { status: 400 });
       const staff = await writeStaffState(payload.orgId, payload);

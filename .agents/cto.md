@@ -1,8 +1,8 @@
 ---
 name: CTO
 description: Chief Technology Officer — tool selection, MCP integration design, technical evaluation. Evaluates and designs the technical layer: which tools to use, how to connect them, and what the quality bar for technical outputs should be.
-tier: mid
-model: gemma4:e4b
+tier: top
+model: gemma4:26b
 thinking: true
 tools:
   - web-browsing
