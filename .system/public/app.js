@@ -127,11 +127,10 @@ const addHireRoleButton = document.querySelector("#add-hire-role");
 const addProjectButton = document.querySelector("#add-project");
 const addEvalButton = document.querySelector("#add-eval");
 const rescanSourcesButton = document.querySelector("#rescan-sources");
-const scanState = document.querySelector("#scan-state");
-const colorState = document.querySelector("#color-state");
+// sources scan state is now managed via setPanelScanState("sources", ...)
+// color/about/files/text/web state managed via setPanelScanState
 const scanCountNumber = document.querySelector("#scan-count-number");
 const scanCountLabel = document.querySelector("#scan-count-label");
-const aboutState = document.querySelector("#about-state");
 const addSourceButton = document.querySelector("#add-source");
 const addOrganizationButton = document.querySelector("#add-organization");
 const sourceMenu = document.querySelector("#source-menu");
@@ -166,19 +165,16 @@ const accentRail = document.querySelector("#accent-rail");
 const refreshFilesButton = document.querySelector("#refresh-files");
 const addFolderButton = document.querySelector("#add-folder-button");
 const addFileButton = document.querySelector("#add-file-button");
-const filesStateLabel = document.querySelector("#files-state");
 const filesRootMenu = document.querySelector("#files-root-menu");
 const filesFolderMenu = document.querySelector("#files-folder-menu");
 const filesDetail = document.querySelector("#files-detail");
 const filesImportInput = document.querySelector("#files-import-input");
-const textState = document.querySelector("#text-state");
 const textDocumentMenu = document.querySelector("#text-document-menu");
 const textDetail = document.querySelector("#text-detail");
 const addTextDocumentButton = document.querySelector("#add-text-document");
 const openTextDocumentButton = document.querySelector("#open-text-document");
 const refreshWebButton = document.querySelector("#refresh-web");
 const addWebFragmentButton = document.querySelector("#add-web-fragment");
-const webStateLabel = document.querySelector("#web-state");
 const webMenu = document.querySelector("#web-menu");
 const webDetail = document.querySelector("#web-detail");
 const textFilePicker = document.querySelector("#text-file-picker");
@@ -1038,9 +1034,6 @@ function normalizeSavedSource(value) {
   });
 }
 
-function setScanState(message) {
-  scanState.textContent = message;
-}
 
 function setDetectedCount(count) {
   if (!scanCountNumber || !scanCountLabel) {
@@ -1050,9 +1043,6 @@ function setDetectedCount(count) {
   scanCountLabel.textContent = "detected";
 }
 
-function setAboutState(message) {
-  aboutState.textContent = message;
-}
 
 function unreadNotificationsForOrganization(organizationId) {
   return boardNotifications.filter((notification) =>
@@ -1186,22 +1176,13 @@ async function bootstrapAutoMode(orgId = activeOrganizationId) {
       loadMailPanelData(),
       loadMeetPanelData(),
     ]);
-    setAboutState("Auto bootstrap ready");
+    setPanelScanState("about","Auto bootstrap ready");
   } catch (error) {
     console.error(error);
-    setAboutState("Auto bootstrap failed");
+    setPanelScanState("about","Auto bootstrap failed");
   }
 }
 
-function setColorState(message, busy = false) {
-  if (!colorState) {
-    return;
-  }
-
-  colorState.textContent = message;
-  colorState.hidden = !message;
-  colorState.classList.toggle("is-busy", busy);
-}
 
 function normalizeAppearanceTheme(value) {
   return APPEARANCE_THEMES.includes(value) ? value : "gray";
@@ -1376,7 +1357,7 @@ async function persistAppearance() {
   try {
     do {
       appearanceSaveQueued = false;
-      setColorState("Saving...", true);
+      setPanelScanState("color","Saving...", true);
       try {
         const payload = await fetchJson("/api/system/appearance", {
           method: "POST",
@@ -1391,17 +1372,17 @@ async function persistAppearance() {
         };
         applyAppearance();
         renderAppearanceControls();
-        setColorState("Saved");
+        setPanelScanState("color","Saved");
       } catch (error) {
         console.error(error);
-        setColorState("Save failed");
+        setPanelScanState("color","Save failed");
       }
     } while (appearanceSaveQueued);
   } finally {
     savingAppearance = false;
     window.setTimeout(() => {
       if (!savingAppearance) {
-        setColorState("");
+        setPanelScanState("color","");
       }
     }, 900);
   }
@@ -2604,10 +2585,10 @@ async function loadWorkspaceBootstrap() {
   if (organizations.length === 0) {
     organizations = [createDraftOrganization()];
     activeOrganizationId = null;
-    setAboutState("Create your first organization");
+    setPanelScanState("about","Create your first organization");
   } else {
     activeOrganizationId = payload.activeOrganizationId ?? organizations[0].id;
-    setAboutState(activeOrganizationId ? "Organization active" : "Ready");
+    setPanelScanState("about",activeOrganizationId ? "Organization active" : "Ready");
   }
   applyAppearance();
   renderAppearanceControls();
@@ -2745,24 +2726,22 @@ async function discoverSources() {
   rescanSourcesButton.classList.add("is-busy");
   rescanSourcesButton.disabled = true;
   rescanSourcesButton.textContent = "rescanning...";
-  setScanState("Scanning...");
-  scanState.classList.add("is-busy");
+  setPanelScanState("sources", "Scanning...", true);
   logEvent("discover-sources");
 
   try {
     const payload = await fetchJson("/api/inference/discover");
     mergeDetectedSources(payload.sources ?? []);
     setDetectedCount(payload.sources?.length ?? 0);
-    setScanState("Ready");
+    setPanelScanState("sources", "Ready");
   } catch (error) {
     console.error(error);
-    setScanState("Scan failed");
+    setPanelScanState("sources", "Scan failed");
   } finally {
     discoveryInFlight = false;
     rescanSourcesButton.classList.remove("is-busy");
     rescanSourcesButton.disabled = false;
     rescanSourcesButton.textContent = "rescan";
-    scanState.classList.remove("is-busy");
   }
 }
 
@@ -3246,23 +3225,6 @@ function renderOrganizations() {
   renderStatusPanel();
 }
 
-function setFilesState(message, busy = false) {
-  if (!filesStateLabel) {
-    return;
-  }
-  filesStateLabel.textContent = message;
-  filesStateLabel.hidden = !message;
-  filesStateLabel.classList.toggle("is-busy", busy);
-}
-
-function setTextState(message, busy = false) {
-  if (!textState) {
-    return;
-  }
-  textState.textContent = message;
-  textState.hidden = !message;
-  textState.classList.toggle("is-busy", busy);
-}
 
 function setPanelState(target, message, busy = false) {
   if (!target) {
@@ -3278,20 +3240,10 @@ function setPanelScanState(panelId, message, busy = false) {
   setPanelState(el, message, busy);
 }
 
-function renderEmptyDetail(target, message) {
+function renderEmptyDetail(target, message = "Activate an organization to use this application.") {
   target?.replaceChildren(emptyDetailCard(message));
 }
 
-function requireActiveOrganization(target, message = "Activate an organization to use this application.") {
-  target?.replaceChildren();
-  const empty = document.createElement("div");
-  empty.className = "text-empty-state";
-  const note = document.createElement("p");
-  note.className = "panel-copy";
-  note.textContent = message;
-  empty.append(note);
-  target?.append(empty);
-}
 
 function createMenuCard({
   id,
@@ -3437,7 +3389,7 @@ function createFileEntry(entry, mode = "files") {
 
 async function loadFilesDirectory(rootId = filesView.root, relativePath = filesView.path) {
   filesView.loading = true;
-  setFilesState("Loading...", true);
+  setPanelScanState("files","Loading...", true);
   renderFilesPanel();
   try {
     const params = new URLSearchParams({
@@ -3451,11 +3403,11 @@ async function loadFilesDirectory(rootId = filesView.root, relativePath = filesV
       path: payload.path ?? "",
       root: payload.root ?? rootId,
     };
-    setFilesState("");
+    setPanelScanState("files","");
   } catch (error) {
     console.error(error);
     filesView.loading = false;
-    setFilesState("Load failed");
+    setPanelScanState("files","Load failed");
   }
   renderFilesPanel();
 }
@@ -3753,14 +3705,6 @@ function renderTextPanel() {
   }
 }
 
-function setWebState(message, busy = false) {
-  if (!webStateLabel) {
-    return;
-  }
-  webStateLabel.textContent = message;
-  webStateLabel.hidden = !message;
-  webStateLabel.classList.toggle("is-busy", busy);
-}
 
 async function loadWebPanelData() {
   if (!activeOrganizationId) {
@@ -3774,7 +3718,7 @@ async function loadWebPanelData() {
     renderWebPanel();
     return;
   }
-  setWebState("Loading...", true);
+  setPanelScanState("web","Loading...", true);
   try {
     const payload = await fetchJson(`/api/web/list?orgId=${encodeURIComponent(activeOrganizationId)}`);
     webState = {
@@ -3786,10 +3730,10 @@ async function loadWebPanelData() {
         ?? null,
       tools: payload.tools ?? [],
     };
-    setWebState("");
+    setPanelScanState("web","");
   } catch (error) {
     console.error(error);
-    setWebState("Load failed");
+    setPanelScanState("web","Load failed");
   }
   renderWebPanel();
 }
@@ -3800,7 +3744,7 @@ function renderWebPanel() {
   }
   if (!activeOrganizationId) {
     webMenu.replaceChildren();
-    requireActiveOrganization(webDetail, "Activate an organization to shape its intranet.");
+    renderEmptyDetail(webDetail, "Activate an organization to shape its intranet.");
     return;
   }
 
@@ -3882,7 +3826,7 @@ async function openTextDocument(rootId, relativePath) {
   }
 
   openingTextDocument = true;
-  setTextState("Opening...", true);
+  setPanelScanState("text","Opening...", true);
   try {
     const params = new URLSearchParams({ path: relativePath, root: rootId });
     const payload = await fetchJson(`/api/text/read?${params.toString()}`);
@@ -3900,10 +3844,10 @@ async function openTextDocument(rootId, relativePath) {
     textDocuments = [documentRecord, ...textDocuments];
     selectedTextDocumentId = documentRecord.id;
     openPanel(PANEL_TEXT);
-    setTextState("");
+    setPanelScanState("text","");
   } catch (error) {
     console.error(error);
-    setTextState("Open failed");
+    setPanelScanState("text","Open failed");
   } finally {
     openingTextDocument = false;
     renderTextPanel();
@@ -3967,7 +3911,7 @@ async function saveTextDocument(documentId) {
   }
 
   savingTextDocumentIds.add(documentId);
-  setTextState("Saving...", true);
+  setPanelScanState("text","Saving...", true);
   renderTextPanel();
   try {
     await fetchJson("/api/text/write", {
@@ -3984,10 +3928,10 @@ async function saveTextDocument(documentId) {
     });
     documentRecord.savedContent = documentRecord.content;
     documentRecord.persisted = true;
-    setTextState("Saved");
+    setPanelScanState("text","Saved");
   } catch (error) {
     console.error(error);
-    setTextState("Save failed");
+    setPanelScanState("text","Save failed");
   } finally {
     savingTextDocumentIds.delete(documentId);
     renderTextPanel();
@@ -4584,7 +4528,7 @@ function renderFlowPanel() {
   if (!flowList || !flowDetail) return;
   if (!activeOrganizationId) {
     flowList.replaceChildren();
-    requireActiveOrganization(flowDetail, "Activate an organization to sequence flow objectives.");
+    renderEmptyDetail(flowDetail, "Activate an organization to sequence flow objectives.");
     return;
   }
   ensureScheduleSelection();
@@ -4720,7 +4664,7 @@ function renderMeetPanel() {
   if (!meetingMenu || !meetDetail) return;
   if (!activeOrganizationId) {
     meetingMenu.replaceChildren();
-    requireActiveOrganization(meetDetail, "Activate an organization to run structured meetings.");
+    renderEmptyDetail(meetDetail, "Activate an organization to run structured meetings.");
     return;
   }
   ensureMeetingSelection();
@@ -4822,7 +4766,7 @@ function renderMailPanel() {
     button.classList.toggle("source-item--active", button.dataset.mailFolder === mailFolder);
   });
   if (!activeOrganizationId) {
-    requireActiveOrganization(mailDetail, "Activate an organization to send and review mail.");
+    renderEmptyDetail(mailDetail, "Activate an organization to send and review mail.");
     return;
   }
   ensureMailSelection();
@@ -4891,7 +4835,7 @@ function renderHirePanel() {
   if (!hireMenu || !hireDetail) return;
   if (!activeOrganizationId) {
     hireMenu.replaceChildren();
-    requireActiveOrganization(hireDetail, "Activate an organization to staff departments, teams, roles, and identities.");
+    renderEmptyDetail(hireDetail, "Activate an organization to staff departments, teams, roles, and identities.");
     return;
   }
   ensureHireSelection();
@@ -5077,7 +5021,7 @@ function renderProjectsPanel() {
   if (!projectsMenu || !projectsDetail) return;
   if (!activeOrganizationId) {
     projectsMenu.replaceChildren();
-    requireActiveOrganization(projectsDetail, "Activate an organization to define projects and participants.");
+    renderEmptyDetail(projectsDetail, "Activate an organization to define projects and participants.");
     return;
   }
   ensureProjectSelection();
@@ -5152,7 +5096,7 @@ function renderEvalsPanel() {
   if (!evalsMenu || !evalsDetail) return;
   if (!activeOrganizationId) {
     evalsMenu.replaceChildren();
-    requireActiveOrganization(evalsDetail, "Activate an organization to define evaluations.");
+    renderEmptyDetail(evalsDetail, "Activate an organization to define evaluations.");
     return;
   }
   ensureEvalSelection();
@@ -5782,7 +5726,7 @@ async function confirmFilePicker() {
     documentRecord.root = payload.root;
     documentRecord.savedContent = documentRecord.content;
     closeFilePicker();
-    setTextState("Saved");
+    setPanelScanState("text","Saved");
   } catch (error) {
     console.error(error);
     filePickerState.textContent = String(error).includes("409")
@@ -5801,15 +5745,14 @@ async function saveOrganization(organizationId) {
     return;
   }
   if (hasDuplicateOrganizationName(organization.name, organization.id)) {
-    setAboutState("Organization name already in use");
+    setPanelScanState("about","Organization name already in use");
     renderOrganizations();
     return;
   }
   const wasPersisted = organization.persisted;
 
   savingOrganizationId = organizationId;
-  setAboutState("Saving organization...");
-  aboutState.classList.add("is-busy");
+  setPanelScanState("about", "Saving organization...", true);
   renderOrganizations();
 
   try {
@@ -5840,28 +5783,26 @@ async function saveOrganization(organizationId) {
       touchOrganizationRecent(match.id);
     }
     openPanel(PANEL_ABOUT);
-    setAboutState("Organization saved");
+    setPanelScanState("about","Organization saved");
     if (systemMode === "auto" && activeOrganizationId) {
       await bootstrapAutoMode();
     }
   } catch (error) {
     console.error(error);
     if (String(error).includes("409")) {
-      setAboutState("Organization name already in use");
+      setPanelScanState("about","Organization name already in use");
     } else {
-      setAboutState("Organization save failed");
+      setPanelScanState("about","Organization save failed");
     }
   } finally {
     savingOrganizationId = null;
-    aboutState.classList.remove("is-busy");
     renderOrganizations();
   }
 }
 
 async function loadOrganization(organizationId) {
   loadingOrganizationId = organizationId;
-  setAboutState("Loading organization...");
-  aboutState.classList.add("is-busy");
+  setPanelScanState("about", "Loading organization...", true);
   renderOrganizations();
 
   try {
@@ -5877,13 +5818,12 @@ async function loadOrganization(organizationId) {
     touchOrganizationRecent(organizationId);
     selectedOrganizationId = organizationId;
     openPanel(PANEL_ABOUT);
-    setAboutState("Organization active");
+    setPanelScanState("about","Organization active");
     if (systemMode === "auto" && activeOrganizationId) {
       await bootstrapAutoMode();
     }
   } finally {
     loadingOrganizationId = null;
-    aboutState.classList.remove("is-busy");
     renderOrganizations();
   }
 }
@@ -5905,11 +5845,11 @@ async function deleteOrganization(organizationId) {
     touchOrganizationRecent(activeOrganizationId);
     const selectedExists = organizations.some((organization) => organization.id === selectedOrganizationId);
     selectedOrganizationId = selectedExists ? selectedOrganizationId : activeOrganizationId;
-    setAboutState("Organization deleted");
+    setPanelScanState("about","Organization deleted");
     openPanel(PANEL_ABOUT);
   } else if (organizations.length > 0) {
     selectedOrganizationId = organizations[0].id;
-    setAboutState("Welcome to orgos");
+    setPanelScanState("about","Welcome to orgos");
     if (deletedWasActive) {
       openPanel(PANEL_ABOUT);
       showingDesktop = false;
@@ -5920,7 +5860,7 @@ async function deleteOrganization(organizationId) {
     selectedOrganizationId = draft.id;
     activeOrganizationId = null;
     organizationRecentIds = [draft.id];
-    setAboutState("Create your first organization");
+    setPanelScanState("about","Create your first organization");
     if (deletedWasActive) {
       openPanel(PANEL_ABOUT);
       showingDesktop = false;
@@ -5942,12 +5882,12 @@ function cancelDraftOrganization(organizationId) {
     selectedOrganizationId = draft.id;
     activeOrganizationId = null;
     organizationRecentIds = [draft.id];
-    setAboutState("Create your first organization");
+    setPanelScanState("about","Create your first organization");
   } else {
     const nextSelection = organizations.find((organization) => organization.id === activeOrganizationId)
       ?? organizations[0];
     selectedOrganizationId = nextSelection?.id ?? null;
-    setAboutState(activeOrganizationId ? "Organization active" : "Ready");
+    setPanelScanState("about",activeOrganizationId ? "Organization active" : "Ready");
   }
 
   renderOrganizations();
@@ -6630,7 +6570,7 @@ addOrganizationButton.addEventListener("click", () => {
   selectedOrganizationId = organization.id;
   touchOrganizationRecent(organization.id);
   renderOrganizations();
-  setAboutState("Draft organization");
+  setPanelScanState("about","Draft organization");
 });
 
 desktopOrgList?.addEventListener("click", async (event) => {
@@ -7429,7 +7369,7 @@ filesDetail?.addEventListener("click", async (event) => {
           await loadFilesDirectory(filesView.root, filesView.path);
         } catch (error) {
           console.error(error);
-          setFilesState("Delete failed");
+          setPanelScanState("files","Delete failed");
         }
       },
       title: "Delete file?",
@@ -7469,17 +7409,17 @@ filesImportInput?.addEventListener("change", async () => {
   form.set("path", filesView.path);
   form.set("file", file);
 
-  setFilesState("Importing...", true);
+  setPanelScanState("files","Importing...", true);
   try {
     await fetchJson("/api/files/import", {
       body: form,
       method: "POST",
     });
     await loadFilesDirectory(filesView.root, filesView.path);
-    setFilesState("Imported");
+    setPanelScanState("files","Imported");
   } catch (error) {
     console.error(error);
-    setFilesState("Import failed");
+    setPanelScanState("files","Import failed");
   }
 });
 
@@ -7500,7 +7440,7 @@ addWebFragmentButton?.addEventListener("click", async () => {
     return;
   }
   const index = webState.fragments.length + 1;
-  setWebState("Creating...", true);
+  setPanelScanState("web","Creating...", true);
   try {
     await fetchJson("/api/web/write", {
       method: "POST",
@@ -7512,10 +7452,10 @@ addWebFragmentButton?.addEventListener("click", async () => {
       }),
     });
     await loadWebPanelData();
-    setWebState("Created");
+    setPanelScanState("web","Created");
   } catch (error) {
     console.error(error);
-    setWebState("Create failed");
+    setPanelScanState("web","Create failed");
   }
 });
 

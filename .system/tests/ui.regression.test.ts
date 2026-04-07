@@ -125,7 +125,7 @@ describe("ui regression baseline", () => {
     expect(html).toContain('id="add-source"');
     expect(html).toContain('id="rescan-sources"');
     expect(html).toContain('id="about-state"');
-    expect(html).toContain('id="scan-state"');
+    expect(html).toContain('id="sources-state"');
     expect(html).toContain('id="source-indicator"');
     expect(html).toContain('id="source-indicator-count"');
     expect(html).toContain('id="source-tooltip"');
@@ -488,7 +488,7 @@ describe("ui regression baseline", () => {
     expect(script).toContain('rescanSourcesButton.textContent = "rescanning...";');
     expect(script).toContain('button.textContent = isBusy ? "saving..." : "save";');
     expect(script).toContain('button.textContent = isBusy ? "loading..." : "load";');
-    expect(script).toContain('setAboutState("Organization name already in use");');
+    expect(script).toContain('setPanelScanState("about"');
     expect(script).toContain("if (count > 0) {");
     expect(script).toContain("source.active && source.persisted");
     expect(script).toContain('if (action === "delete-organization") {');
@@ -518,6 +518,13 @@ describe("ui regression baseline", () => {
     expect(script).toContain("groupKey");
     expect(script).toContain("setPanelScanState");
     expect(script).toContain("renderEmptyDetail");
+    // Phase 5: no bespoke state setters, no requireActiveOrganization
+    expect(script).not.toContain("setColorState(");
+    expect(script).not.toContain("setFilesState(");
+    expect(script).not.toContain("setTextState(");
+    expect(script).not.toContain("setWebState(");
+    expect(script).not.toContain("setAboutState(");
+    expect(script).not.toContain("requireActiveOrganization(");
     expect(script).toContain('fetchJson("/api/system/auto-bootstrap"');
     expect(script).toContain("/api/staff/read?orgId=${encodeURIComponent(activeOrganizationId)}");
     expect(script).toContain("/api/flow/list?orgId=${encodeURIComponent(activeOrganizationId)}");
