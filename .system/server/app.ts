@@ -211,6 +211,8 @@ type QueueItem = {
   priority: QueuePriority;
   tier: TierLevel;
   model: string;
+  temperature: number;
+  maxTokens: number;
   status: QueueItemStatus;
   nodeAddress: string | null;
   enqueuedAt: number;
@@ -393,11 +395,14 @@ type AgentTemplateSummary = {
   effectiveSkills?: string[];
   effectiveTools?: string[];
   file: string;
+  maxTokens: number;
   model: string;
   name: string;
   promptFile: string;
   role: string;
   skills: string[];
+  temperature: number;
+  thinking: boolean;
   tier: TierLevel;
   tools: string[];
 };
@@ -1558,11 +1563,14 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     return {
       description: fields.get("description") || "",
       file,
+      maxTokens: parseInt(fields.get("max_tokens") || "8192", 10) || 8192,
       model: fields.get("model") || "",
       name,
       promptFile: fields.get("prompt_file") || "",
       role: fields.get("role") || "",
       skills: parseBulletList(fields.get("skills") || ""),
+      temperature: parseFloat(fields.get("temperature") || "0.7") || 0.7,
+      thinking: fields.get("thinking") === "true",
       tier: normalizedTier,
       tools: parseBulletList(fields.get("tools") || ""),
     };
@@ -2570,7 +2578,11 @@ export function createOrgosApp(rootDir: string): OrgosApp {
         body: JSON.stringify({
           messages: item.promptMessages,
           model: item.model,
-          options: { num_ctx: 8192 },
+          options: {
+            num_ctx: 8192,
+            num_predict: item.maxTokens,
+            temperature: item.temperature,
+          },
           stream: false,
         }),
         headers: { "content-type": "application/json" },
@@ -3757,6 +3769,8 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       let promptMessages: { role: string; content: string }[];
       let tier: TierLevel = "mid";
       let model = payload.model ?? "";
+      let temperature = 0.7;
+      let maxTokens = 8192;
 
       if (payload.promptMessages) {
         // Legacy form: caller supplies raw messages
@@ -3776,6 +3790,8 @@ export function createOrgosApp(rootDir: string): OrgosApp {
         }
         tier = agent.tier;
         model = agent.model || model;
+        temperature = agent.temperature;
+        maxTokens = agent.maxTokens;
         const variables: Record<string, string> = {
           TASK: payload.taskDescription,
           ...payload.variables,
@@ -3799,6 +3815,7 @@ export function createOrgosApp(rootDir: string): OrgosApp {
         estimatedDurationMs: 30000,
         id: crypto.randomUUID(),
         maxRetries: 2,
+        maxTokens,
         model,
         nodeAddress: null,
         priority: payload.priority ?? "normal",
@@ -3807,6 +3824,7 @@ export function createOrgosApp(rootDir: string): OrgosApp {
         retryCount: 0,
         status: "pending",
         taskId: crypto.randomUUID(),
+        temperature,
         tier,
         workflowId: payload.workflowId ?? "",
       };

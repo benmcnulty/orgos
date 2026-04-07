@@ -10,8 +10,6 @@ and text assets all live on disk in readable JSON, Markdown, and plaintext.
 The repository now includes a working desktop-style shell plus the first
 organization and orchestration applications:
 
-- `About`
-  organization records, activation, and siloed org metadata
 - `Sources`
   shared inference source discovery, verification, tiering, and context windows
 - `Color`
@@ -20,6 +18,8 @@ organization and orchestration applications:
   orgos filesystem browser rooted in system, organization, and deleted areas
 - `Text`
   raw and parsed editing for supported text assets
+- `Web`
+  organization intranet fragments, preview, and custom-tool test surface
 - `Agents`
   shared role-template definitions
 - `Skills`
@@ -34,6 +34,10 @@ organization and orchestration applications:
   human/agent and agent/agent messaging
 - `Queue`
   inference dispatch and node telemetry observability
+- `Status`
+  deeper monitoring for system and organization runtime state
+- `About`
+  organization records, metadata, archetypes, overrides, and lifecycle editing
 - `Staff`
   departments, teams, roles, staffed identities, and executive bootstrap
 - `Projects`
@@ -63,7 +67,11 @@ Owns instance-specific system and organization state:
 - `.data/system/sources.json`
   shared inference sources, tiers, and context windows
 - `.data/system/organizations.json`
-  organization index and active-org state
+  organization index, open-org runtime state, active org, and appearance overrides
+- `.data/system/notifications.json`
+  Board notification inbox and unread state
+- `.data/system/telemetry.json`
+  deterministic inference and queue telemetry rollups
 - `.data/system/deleted/<org-id>/`
   per-organization deleted-file area
 - `.data/organizations/<org-id>/about.json`
@@ -82,19 +90,31 @@ Owns instance-specific system and organization state:
   evaluation records
 - `.data/organizations/<org-id>/memory/`
   per-identity memory silos with JSON maps and markdown/text artifacts
+- `.data/organizations/<org-id>/memory/datamap.json`
+  deterministic full-memory datamap with citations back to source files
+- `.data/organizations/<org-id>/orgos-runtime.json`
+  org bootstrap/runtime summary for the organization-scoped orgos instance
+- `.data/organizations/<org-id>/web/`
+  intranet fragments and preview source files
 
 ### `.agents/` and `.skills/`
 
 Shared reusable assets available to the system and its agents:
 
 - `.agents/`
-  role templates and prompt-oriented agent definitions
+  role templates, including the shared system-level `orgos` agent
 - `.skills/`
   shared skill definitions that expose orgos capabilities to internal agents
 
 ## Current operating model
 
 - System-level infrastructure lives above organization silos.
+- Multiple organizations can remain open simultaneously while one is visually active.
+- The desktop runtime sidebar is the primary monitor/switcher for open organizations,
+  their auto or idle state, Board notification status, and create-new flow.
+- Organization apps are the primary visible desktop tools.
+- System apps live in the slide-out system tray.
+- `Status` is the deep monitoring panel for runtime observability.
 - Organization-facing applications persist their data inside the active
   organization folder.
 - `Sources` tracks inference tiers and context windows:
@@ -102,13 +122,17 @@ Shared reusable assets available to the system and its agents:
   - top-tier `gemma4:26b` defaults to `256k`
 - `Staff` is the organization-structure source of truth.
 - `Flow` is objective-driven and queue-aware, not time-of-day based.
+- `Web` is fragment-based and stored inside each organization silo.
 - `Auto` mode can bootstrap initial executive staffing and memory for:
   - `CEO`
   - `COO`
   - `CTO`
+  - `Orgos`
   - `Facilitator`
 - Identity memory is observable on disk and structured for later consolidation,
-  reflection, and compaction.
+  reflection, compaction, and deterministic datamap generation.
+- The shared system-level `orgos` agent coordinates infrastructure, notifications,
+  facilitation, and cross-app workflows above individual organizations.
 
 ## Development
 

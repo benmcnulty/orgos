@@ -430,6 +430,68 @@ describe("orgos app integration", () => {
     expect(stateResponse.status).toBe(200);
     expect(Array.isArray(state.items)).toBe(true);
     expect(state.items.some((i: { id: string }) => i.id === enqueued.id)).toBe(true);
+    // nodeTelemetry exposed on state endpoint
+    expect(Array.isArray(state.nodes)).toBe(true);
+  });
+
+  test("enqueues via agent template with server-side prompt assembly", async () => {
+    // This exercises the preferred enqueue form: agentId + taskDescription
+    const enqueueResponse = await app.fetch(
+      new Request("http://orgos.local/api/queue/enqueue", {
+        body: JSON.stringify({
+          agentId: "CEO",
+          taskDescription: "Summarize the strategic outlook for Q2.",
+          priority: "high",
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+    expect(enqueueResponse.status).toBe(200);
+    const enqueued = await enqueueResponse.json();
+    expect(enqueued.status).toBe("pending");
+    expect(enqueued.tier).toBe("top");
+    expect(enqueued.model).toBe("gemma4:26b");
+    expect(enqueued.temperature).toBeTypeOf("number");
+    expect(enqueued.maxTokens).toBeTypeOf("number");
+    expect(Array.isArray(enqueued.promptMessages)).toBe(true);
+    expect(enqueued.promptMessages.length).toBeGreaterThan(0);
+    expect(enqueued.promptMessages[0].role).toBe("system");
+  });
+
+  test("rejects enqueue with unknown agent", async () => {
+    const res = await app.fetch(
+      new Request("http://orgos.local/api/queue/enqueue", {
+        body: JSON.stringify({
+          agentId: "nonexistent-agent",
+          taskDescription: "Do something.",
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+    expect(res.status).toBe(404);
+  });
+
+  test("preview prompt renders variable substitution", async () => {
+    const res = await app.fetch(
+      new Request("http://orgos.local/api/prompts/preview", {
+        body: JSON.stringify({
+          agentId: "CEO",
+          variables: { ORGANIZATION_NAME: "TestOrg", TASK: "Evaluate performance." },
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(typeof data.systemPrompt).toBe("string");
+    expect(Array.isArray(data.warnings)).toBe(true);
+    // ORGANIZATION_NAME substituted → not present in output as placeholder
+    expect(data.systemPrompt).not.toContain("{{ORGANIZATION_NAME}}");
+    // TASK substituted
+    expect(data.systemPrompt).not.toContain("{{TASK}}");
   });
 
   test("lists filesystem roots and reads and writes supported text files", async () => {
@@ -1017,5 +1079,40 @@ describe("orgos app integration", () => {
 
     expect(escapedData.status).toBe(404);
     expect(unknown.status).toBe(404);
+  });
+
+  test("rejects org id with path traversal characters", async () => {
+    const deleteRes = await app.fetch(
+      new Request("http://orgos.local/api/organizations/delete", {
+        body: JSON.stringify({ id: "../system" }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+    expect(deleteRes.status).toBe(400);
+
+    const activateRes = await app.fetch(
+      new Request("http://orgos.local/api/organizations/activate", {
+        body: JSON.stringify({ id: "../system" }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+    expect(activateRes.status).toBe(400);
+
+    const runtimeRes = await app.fetch(
+      new Request("http://orgos.local/api/organizations/runtime", {
+        body: JSON.stringify({ id: "../system", open: true }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+    expect(runtimeRes.status).toBe(400);
+  });
+
+  test("bootstrap includes nodeTelemetry in payload", async () => {
+    const res = await app.fetch(new Request("http://orgos.local/api/workspace/bootstrap"));
+    const payload = await res.json();
+    expect(Array.isArray(payload.nodeTelemetry)).toBe(true);
   });
 });
