@@ -564,11 +564,12 @@ textarea {
   stroke: color-mix(in srgb, var(--accent) 40%, var(--line));
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 3.2;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
 }
 
 .source-indicator.is-active .source-indicator__bulb {
-  stroke-width: 3.8;
+  stroke-width: 2;
 }
 
 .source-indicator__count {
@@ -1368,7 +1369,7 @@ textarea {
   stroke: var(--line);
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 3.2;
+  stroke-width: 1.6;
 }
 
 

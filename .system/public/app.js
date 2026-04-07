@@ -333,146 +333,135 @@ let textViewSettings = {
 };
 
 const ABOUT_ICON_MARKUP = `
-  <svg viewBox="0 0 64 64" focusable="false">
-    <circle class="desktop-icon__stroke" cx="32" cy="32" r="19" />
-    <path class="desktop-icon__stroke" d="M32 27v13M32 22.5h.01" />
+  <svg viewBox="0 0 24 24" focusable="false">
+    <rect class="desktop-icon__stroke" x="5" y="4" width="14" height="16" rx="1.5" />
+    <path class="desktop-icon__stroke" d="M8 9h8M8 12h8M8 15h5" />
+    <circle class="desktop-icon__stroke" cx="17" cy="17" r="2.5" fill="none" />
   </svg>
 `;
 
 const STATUS_ICON_MARKUP = `
-  <svg viewBox="0 0 64 64" focusable="false">
-    <path class="desktop-icon__stroke" d="M14 46V18h36v28" />
-    <path class="desktop-icon__stroke" d="M22 38l8-10 7 6 9-12" />
-    <path class="desktop-icon__stroke" d="M14 46h36" />
+  <svg viewBox="0 0 24 24" focusable="false">
+    <polyline class="desktop-icon__stroke" points="4,12 7,12 9,7 11,17 13,12 16,12 18,9 20,12 20,12" />
   </svg>
 `;
 
 const SOURCES_ICON_MARKUP = `
-  <svg viewBox="0 0 64 64" focusable="false">
-    <path
-      class="desktop-icon__stroke"
-      d="M32 12c-8.8 0-16 7.2-16 16 0 5.9 3.2 11.1 8 13.9v4.6c0 .8.7 1.5 1.5 1.5h13c.8 0 1.5-.7 1.5-1.5v-4.6c4.8-2.8 8-8 8-13.9 0-8.8-7.2-16-16-16z"
-    />
-    <line class="desktop-icon__stroke" x1="25.5" y1="51" x2="38.5" y2="51" />
-    <line class="desktop-icon__stroke" x1="28" y1="55" x2="36" y2="55" />
+  <svg viewBox="0 0 24 24" focusable="false">
+    <rect class="desktop-icon__stroke" x="9" y="9" width="6" height="6" rx="1" />
+    <path class="desktop-icon__stroke" d="M6.5 6.5a7.5 7.5 0 0 1 11 0" />
+    <path class="desktop-icon__stroke" d="M4 4a11 11 0 0 1 16 0" />
+    <path class="desktop-icon__stroke" d="M6.5 17.5a7.5 7.5 0 0 0 11 0" />
   </svg>
 `;
 
 const COLOR_ICON_MARKUP = `
-  <svg viewBox="0 0 64 64" focusable="false">
-    <path
-      class="desktop-icon__stroke"
-      d="M32 10c-12.2 0-22 9.1-22 20.4 0 10.3 7.7 18.6 17.4 20.1 1.7.3 3-1.1 2.8-2.8-.2-1.7.9-3.1 2.6-3.3h4.7c8.9 0 16.1-6.3 16.1-15C53.6 18.7 44 10 32 10z"
-    />
-    <circle class="desktop-icon__stroke" cx="23" cy="24" r="1.8" />
-    <circle class="desktop-icon__stroke" cx="33" cy="19.5" r="1.8" />
-    <circle class="desktop-icon__stroke" cx="42" cy="25" r="1.8" />
-    <circle class="desktop-icon__stroke" cx="38" cy="35" r="1.8" />
+  <svg viewBox="0 0 24 24" focusable="false">
+    <path class="desktop-icon__stroke" d="M12 4a8 8 0 1 1 0 16" />
+    <path class="desktop-icon__stroke" d="M12 4a8 8 0 0 1 6.93 4" />
+    <path class="desktop-icon__stroke" d="M12 20a8 8 0 0 1-6.93-4" />
+    <circle class="desktop-icon__stroke" cx="12" cy="12" r="2" />
   </svg>
 `;
 
 const FILES_ICON_MARKUP = `
-  <svg viewBox="0 0 64 64" focusable="false">
-    <path class="desktop-icon__stroke" d="M11 20.5h18l4.5 5H53c2.8 0 5 2.2 5 5v18c0 2.8-2.2 5-5 5H11c-2.8 0-5-2.2-5-5v-23c0-2.8 2.2-5 5-5z" />
-    <path class="desktop-icon__stroke" d="M6 30.5h52" />
+  <svg viewBox="0 0 24 24" focusable="false">
+    <path class="desktop-icon__stroke" d="M4 8h7l2 2h7a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z" />
   </svg>
 `;
 
 const TEXT_ICON_MARKUP = `
-  <svg viewBox="0 0 64 64" focusable="false">
-    <path class="desktop-icon__stroke" d="M18 8h21l11 11v33c0 2.2-1.8 4-4 4H18c-2.2 0-4-1.8-4-4V12c0-2.2 1.8-4 4-4z" />
-    <path class="desktop-icon__stroke" d="M39 8v11h11" />
-    <path class="desktop-icon__stroke" d="M22 28h20M22 36h20M22 44h14" />
+  <svg viewBox="0 0 24 24" focusable="false">
+    <path class="desktop-icon__stroke" d="M6 4h9l4 4v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
+    <path class="desktop-icon__stroke" d="M15 4v4h4" />
+    <path class="desktop-icon__stroke" d="M8 11h8M8 14h8M8 17h5" />
   </svg>
 `;
 
 const WEB_ICON_MARKUP = `
-  <svg viewBox="0 0 64 64" focusable="false">
-    <rect class="desktop-icon__stroke" x="8" y="10" width="48" height="44" rx="5" />
-    <path class="desktop-icon__stroke" d="M8 22h48" />
-    <path class="desktop-icon__stroke" d="M23 34h18M23 42h12" />
-    <circle class="desktop-icon__stroke" cx="18" cy="17" r="1.5" />
-    <circle class="desktop-icon__stroke" cx="24" cy="17" r="1.5" />
-    <circle class="desktop-icon__stroke" cx="30" cy="17" r="1.5" />
+  <svg viewBox="0 0 24 24" focusable="false">
+    <circle class="desktop-icon__stroke" cx="12" cy="12" r="8" />
+    <path class="desktop-icon__stroke" d="M12 4c-2.8 3-4 5.5-4 8s1.2 5 4 8" />
+    <path class="desktop-icon__stroke" d="M12 4c2.8 3 4 5.5 4 8s-1.2 5-4 8" />
+    <path class="desktop-icon__stroke" d="M4 12h16" />
   </svg>
 `;
 
 const AGENTS_ICON_MARKUP = `
-  <svg viewBox="0 0 64 64" focusable="false">
-    <circle class="desktop-icon__stroke" cx="32" cy="21" r="10" />
-    <path class="desktop-icon__stroke" d="M10 54c0-12.2 9.8-22 22-22s22 9.8 22 22" />
+  <svg viewBox="0 0 24 24" focusable="false">
+    <rect class="desktop-icon__stroke" x="4" y="6" width="16" height="12" rx="1.5" />
+    <circle class="desktop-icon__stroke" cx="9" cy="12" r="2.5" />
+    <path class="desktop-icon__stroke" d="M14 10h3M14 13h2" />
   </svg>
 `;
 
 const SKILLS_ICON_MARKUP = `
-  <svg viewBox="0 0 64 64" focusable="false">
-    <circle class="desktop-icon__stroke" cx="32" cy="32" r="8" />
-    <path class="desktop-icon__stroke" d="M32 9v8M32 47v8M9 32h8M47 32h8M16.5 16.5l5.7 5.7M41.8 41.8l5.7 5.7M47.5 16.5l-5.7 5.7M22.2 41.8l-5.7 5.7" />
+  <svg viewBox="0 0 24 24" focusable="false">
+    <path class="desktop-icon__stroke" d="M6 7l6 5 6-5" />
+    <path class="desktop-icon__stroke" d="M6 12l6 5 6-5" />
   </svg>
 `;
 
 const TOOLS_ICON_MARKUP = `
-  <svg viewBox="0 0 64 64" focusable="false">
-    <path class="desktop-icon__stroke" d="M40.5 12.5c-5.8-5.8-15.2-5.8-21 0-4.8 4.8-5.6 12.1-2.3 17.7L8.5 38.8c-2.3 2.3-2.3 6 0 8.3l.9.9c2.3 2.3 6 2.3 8.3 0L26.3 39c5.6 3.3 12.9 2.5 17.7-2.3 5.8-5.8 5.8-15.2 0-21z" />
-    <circle class="desktop-icon__stroke" cx="40.5" cy="23.5" r="3.5" />
+  <svg viewBox="0 0 24 24" focusable="false">
+    <path class="desktop-icon__stroke" d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
   </svg>
 `;
 
 const FLOW_ICON_MARKUP = `
-  <svg viewBox="0 0 64 64" focusable="false">
-    <rect class="desktop-icon__stroke" x="9" y="14" width="46" height="40" rx="5" />
-    <path class="desktop-icon__stroke" d="M9 27h46M22 9v10M42 9v10" />
-    <path class="desktop-icon__stroke" d="M21 38h5M31 38h5M41 38h5M21 47h5M31 47h5" />
+  <svg viewBox="0 0 24 24" focusable="false">
+    <circle class="desktop-icon__stroke" cx="5" cy="12" r="2" />
+    <circle class="desktop-icon__stroke" cx="19" cy="7" r="2" />
+    <circle class="desktop-icon__stroke" cx="19" cy="17" r="2" />
+    <path class="desktop-icon__stroke" d="M7 12h5M14.2 8.8L12 12M14.2 15.2L12 12" />
   </svg>
 `;
 
 const MEET_ICON_MARKUP = `
-  <svg viewBox="0 0 64 64" focusable="false">
-    <circle class="desktop-icon__stroke" cx="22" cy="21" r="7.5" />
-    <circle class="desktop-icon__stroke" cx="42" cy="21" r="7.5" />
-    <path class="desktop-icon__stroke" d="M7 52c0-9.9 6.7-18 15-18" />
-    <path class="desktop-icon__stroke" d="M57 52c0-9.9-6.7-18-15-18" />
-    <path class="desktop-icon__stroke" d="M32 34c4.4 0 8 3.6 8 8v10H24V42c0-4.4 3.6-8 8-8z" />
+  <svg viewBox="0 0 24 24" focusable="false">
+    <path class="desktop-icon__stroke" d="M9 5H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h2v2.5L10 15h2" />
+    <path class="desktop-icon__stroke" d="M15 5h4a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-2v2.5L14 15h-3" />
   </svg>
 `;
 
 const MAIL_ICON_MARKUP = `
-  <svg viewBox="0 0 64 64" focusable="false">
-    <rect class="desktop-icon__stroke" x="7" y="15" width="50" height="36" rx="5" />
-    <path class="desktop-icon__stroke" d="M7 20l25 17 25-17" />
+  <svg viewBox="0 0 24 24" focusable="false">
+    <rect class="desktop-icon__stroke" x="4" y="7" width="16" height="11" rx="1.5" />
+    <polyline class="desktop-icon__stroke" points="4,8 12,14 20,8" />
   </svg>
 `;
 
 const QUEUE_ICON_MARKUP = `
-  <svg viewBox="0 0 64 64" focusable="false">
-    <rect class="desktop-icon__stroke" x="11" y="13" width="42" height="9" rx="3" />
-    <rect class="desktop-icon__stroke" x="11" y="27.5" width="42" height="9" rx="3" />
-    <rect class="desktop-icon__stroke" x="11" y="42" width="42" height="9" rx="3" />
+  <svg viewBox="0 0 24 24" focusable="false">
+    <rect class="desktop-icon__stroke" x="4" y="5" width="16" height="4" rx="1.5" />
+    <rect class="desktop-icon__stroke" x="4" y="10" width="16" height="4" rx="1.5" />
+    <rect class="desktop-icon__stroke" x="4" y="15" width="10" height="4" rx="1.5" />
   </svg>
 `;
 
 const HIRE_ICON_MARKUP = `
-  <svg viewBox="0 0 64 64" focusable="false">
-    <circle class="desktop-icon__stroke" cx="24" cy="20" r="7" />
-    <path class="desktop-icon__stroke" d="M12 43c0-8 5.4-14 12-14s12 6 12 14" />
-    <path class="desktop-icon__stroke" d="M43 18h13M49.5 11.5v13" />
+  <svg viewBox="0 0 24 24" focusable="false">
+    <circle class="desktop-icon__stroke" cx="9" cy="8" r="3" />
+    <path class="desktop-icon__stroke" d="M4 18a5 5 0 0 1 10 0" />
+    <circle class="desktop-icon__stroke" cx="16" cy="8" r="3" />
+    <path class="desktop-icon__stroke" d="M14 18a5 5 0 0 1 6 0" />
   </svg>
 `;
 
 const PROJECTS_ICON_MARKUP = `
-  <svg viewBox="0 0 64 64" focusable="false">
-    <rect class="desktop-icon__stroke" x="9" y="13" width="18" height="18" rx="3" />
-    <rect class="desktop-icon__stroke" x="37" y="13" width="18" height="18" rx="3" />
-    <rect class="desktop-icon__stroke" x="23" y="35" width="18" height="18" rx="3" />
-    <path class="desktop-icon__stroke" d="M27 22h10M32 31v4" />
+  <svg viewBox="0 0 24 24" focusable="false">
+    <circle class="desktop-icon__stroke" cx="12" cy="8" r="3" />
+    <circle class="desktop-icon__stroke" cx="6" cy="17" r="3" />
+    <circle class="desktop-icon__stroke" cx="18" cy="17" r="3" />
+    <path class="desktop-icon__stroke" d="M12 11v3M10 13l-2 2M14 13l2 2" />
   </svg>
 `;
 
 const EVALS_ICON_MARKUP = `
-  <svg viewBox="0 0 64 64" focusable="false">
-    <path class="desktop-icon__stroke" d="M14 44l10-10 8 8 18-18" />
-    <path class="desktop-icon__stroke" d="M50 30V20H40" />
-    <path class="desktop-icon__stroke" d="M10 52h44" />
+  <svg viewBox="0 0 24 24" focusable="false">
+    <path class="desktop-icon__stroke" d="M5 16a8 8 0 1 1 14 0" />
+    <path class="desktop-icon__stroke" d="M12 16l3-5" />
+    <circle class="desktop-icon__stroke" cx="12" cy="16" r="1.2" />
   </svg>
 `;
 

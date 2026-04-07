@@ -58,6 +58,9 @@ describe("ui regression baseline", () => {
     expect(html).toContain('data-app-scope="system"');
     expect(html).toContain('data-app-scope="organization"');
     expect(html).toMatch(/id="flow-icon"[\s\S]*?data-app-scope="organization"[\s\S]*?data-panel-id="flow"/);
+    // Phase 3: all desktop icons use 24-unit viewBox
+    expect(html).toContain('class="desktop-icon__graphic" viewBox="0 0 24 24"');
+    expect(html).not.toContain('class="desktop-icon__graphic" viewBox="0 0 64 64"');
     expect(html).toContain('id="header-caption-subtitle"');
     expect(html).toContain('id="about-panel"');
     expect(html).toContain('id="status-panel"');
