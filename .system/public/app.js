@@ -12,7 +12,7 @@ const PANEL_FLOW = "flow";
 const PANEL_MEET = "meet";
 const PANEL_MAIL = "mail";
 const PANEL_QUEUE = "queue";
-const PANEL_HIRE = "hire";
+const PANEL_STAFF = "staff";
 const PANEL_PROJECTS = "projects";
 const PANEL_EVALS = "evals";
 const SOURCE_KIND_LOCAL = "local_default";
@@ -44,7 +44,7 @@ const flowIcon = document.querySelector("#flow-icon");
 const meetIcon = document.querySelector("#meet-icon");
 const mailIcon = document.querySelector("#mail-icon");
 const queueIcon = document.querySelector("#queue-icon");
-const hireIcon = document.querySelector("#hire-icon");
+const staffIcon = document.querySelector("#staff-icon");
 const projectsIcon = document.querySelector("#projects-icon");
 const evalsIcon = document.querySelector("#evals-icon");
 const panelHeaderBar = document.querySelector("#panel-header-bar");
@@ -55,6 +55,7 @@ const tabScrollLeftButton = document.querySelector("#tab-scroll-left");
 const tabScrollRightButton = document.querySelector("#tab-scroll-right");
 const workspaceArea = document.querySelector(".workspace-area");
 const desktopArea = document.querySelector("#desktop-area");
+const desktopMain = document.querySelector(".desktop-main");
 const panelRegion = document.querySelector("#panel-region");
 const aboutPanel = document.querySelector("#about-panel");
 const statusPanel = document.querySelector("#status-panel");
@@ -70,7 +71,7 @@ const flowPanel = document.querySelector("#flow-panel");
 const meetPanel = document.querySelector("#meet-panel");
 const mailPanel = document.querySelector("#mail-panel");
 const queuePanel = document.querySelector("#queue-panel");
-const hirePanel = document.querySelector("#hire-panel");
+const staffPanel = document.querySelector("#staff-panel");
 const projectsPanel = document.querySelector("#projects-panel");
 const evalsPanel = document.querySelector("#evals-panel");
 const agentMenu = document.querySelector("#agent-menu");
@@ -101,8 +102,8 @@ const queueWorkflowSubmit = document.querySelector("#queue-workflow-submit");
 const queueWorkflowCancel = document.querySelector("#queue-workflow-cancel");
 const queueWorkflowsEl = document.querySelector("#queue-workflows");
 const flowDetail = document.querySelector("#flow-detail");
-const hireMenu = document.querySelector("#hire-menu");
-const hireDetail = document.querySelector("#hire-detail");
+const staffMenu = document.querySelector("#staff-menu");
+const staffDetail = document.querySelector("#staff-detail");
 const projectsMenu = document.querySelector("#projects-menu");
 const projectsDetail = document.querySelector("#projects-detail");
 const evalsMenu = document.querySelector("#evals-menu");
@@ -115,15 +116,15 @@ const flowState = document.querySelector("#flow-state");
 const meetState = document.querySelector("#meet-state");
 const mailState = document.querySelector("#mail-state");
 const queueStateLabel = document.querySelector("#queue-state");
-const hireStateLabel = document.querySelector("#hire-state");
+const staffStateLabel = document.querySelector("#staff-state");
 const projectsStateLabel = document.querySelector("#projects-state");
 const evalsStateLabel = document.querySelector("#evals-state");
 const addAgentButton = document.querySelector("#add-agent");
 const addScheduleTaskButton = document.querySelector("#add-schedule-task");
 const createMeetingButton = document.querySelector("#create-meeting");
-const addHireDepartmentButton = document.querySelector("#add-hire-department");
-const addHireTeamButton = document.querySelector("#add-hire-team");
-const addHireRoleButton = document.querySelector("#add-hire-role");
+const addStaffDepartmentButton = document.querySelector("#add-staff-department");
+const addStaffTeamButton = document.querySelector("#add-staff-team");
+const addStaffRoleButton = document.querySelector("#add-staff-role");
 const addProjectButton = document.querySelector("#add-project");
 const addEvalButton = document.querySelector("#add-eval");
 const rescanSourcesButton = document.querySelector("#rescan-sources");
@@ -299,8 +300,8 @@ let selectedMeetingId = null;
 let mailFolder = "inbox";
 let mailMessages = [];
 let selectedMailId = null;
-let hireState = null;
-let selectedHireKey = null;
+let staffState = null;
+let selectedStaffKey = null;
 let projects = [];
 let selectedProjectId = null;
 let evals = [];
@@ -435,7 +436,7 @@ const QUEUE_ICON_MARKUP = `
   </svg>
 `;
 
-const HIRE_ICON_MARKUP = `
+const STAFF_ICON_MARKUP = `
   <svg viewBox="0 0 24 24" focusable="false">
     <circle class="desktop-icon__stroke" cx="9" cy="8" r="3" />
     <path class="desktop-icon__stroke" d="M4 18a5 5 0 0 1 10 0" />
@@ -1170,7 +1171,7 @@ async function bootstrapAutoMode(orgId = activeOrganizationId) {
     });
     await Promise.all([
       loadFlowPanelData(),
-      loadHirePanelData(),
+      loadStaffPanelData(),
       loadProjectsPanelData(),
       loadEvalsPanelData(),
       loadMailPanelData(),
@@ -1478,7 +1479,7 @@ function initializeDesktopGroups() {
   if (!desktopSystemGrid || !desktopOrganizationGrid || !desktopIconReservoir) {
     return;
   }
-  const orgOrder = ["about", "hire", "meet", "mail", "flow", "projects", "evals", "web"];
+  const orgOrder = ["about", "staff", "meet", "mail", "flow", "projects", "evals", "web"];
   const icons = [...desktopIconReservoir.querySelectorAll(".desktop-icon")];
   for (const icon of icons) {
     icon.classList.add("desktop-icon--grouped");
@@ -1498,6 +1499,9 @@ function initializeDesktopGroups() {
 function renderNotifications() {
   if (!notificationIndicatorCount || !notificationPopoverList || !notificationSummary) {
     return;
+  }
+  if (notificationIndicatorWrap) {
+    notificationIndicatorWrap.hidden = true;
   }
   if (notificationPopover) {
     notificationPopover.hidden = !notificationsOpen;
@@ -1576,6 +1580,7 @@ function renderSystemTray() {
   systemTray.hidden = !systemTrayOpen;
   systemTrayToggle.classList.toggle("is-active", systemTrayOpen);
   systemTrayToggle.setAttribute("aria-expanded", String(systemTrayOpen));
+  desktopMain?.classList.toggle("is-system-tray-open", systemTrayOpen);
 }
 
 function summarizeOrganizationActivity(organization) {
@@ -1601,6 +1606,22 @@ function createDesktopOrganizationCard(organization) {
 
   const unread = unreadNotificationsForOrganization(organization.id);
   const runtimeSummary = runtimeOrganizations.find((entry) => entry.id === organization.id);
+  const runtimeHeadline = runtimeSummary?.headline || summarizeOrganizationActivity(organization);
+  const boardLabel = unread > 0 ? `${unread}` : "0";
+
+  const header = document.createElement("div");
+  header.className = "desktop-org-card__header";
+  header.innerHTML = `<span class="desktop-org-card__title">${escapeHtml(organization.name || "new organization")}</span>`;
+  header.append(
+    createDesktopOrgIconAction({
+      action: "toggle-open-desktop-organization",
+      icon: organization.open
+        ? '<path d="M6 6l12 12M18 6L6 18" />'
+        : '<path d="M4 8h7l2 2h7a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z" />',
+      label: organization.open ? `Close ${organization.name || "organization"}` : `Open ${organization.name || "organization"}`,
+      organizationId: organization.id,
+    }),
+  );
 
   const trigger = document.createElement("button");
   trigger.className = "desktop-org-card__trigger";
@@ -1608,52 +1629,43 @@ function createDesktopOrganizationCard(organization) {
   trigger.dataset.organizationId = organization.id;
   trigger.dataset.action = "activate-desktop-organization";
   trigger.innerHTML = `
-    <span class="desktop-org-card__title">${escapeHtml(organization.name || "new organization")}</span>
-    <span class="desktop-org-card__meta">${escapeHtml(runtimeSummary?.status || formatOrganizationRuntimeLabel(organization))}</span>
+    <span class="desktop-org-card__summary">${escapeHtml(runtimeHeadline)}</span>
   `;
 
-  const badges = document.createElement("div");
-  badges.className = "desktop-org-card__badges";
-  if (organization.id === activeOrganizationId) {
-    badges.append(createRuntimeBadge("active", "active"));
-  } else if (organization.open) {
-    badges.append(createRuntimeBadge("open", "open"));
-  }
-  const notificationLabel = unread > 0 ? `${unread} unread` : "board clear";
-  badges.append(createRuntimeBadge(notificationLabel, unread > 0 ? "unread" : ""));
+  const statusLine = document.createElement("div");
+  statusLine.className = "desktop-org-card__status-line";
+  statusLine.append(createDesktopOrgModeToggle(organization));
 
-  const actions = document.createElement("div");
-  actions.className = "desktop-org-card__actions";
-  actions.append(
-    createDesktopOrgAction(organization.id === activeOrganizationId ? "view" : "focus", "activate-desktop-organization", organization.id),
-    createDesktopOrgModeToggle(organization),
-    createDesktopOrgAction(
-      organization.open ? "close" : "open",
-      "toggle-open-desktop-organization",
-      organization.id,
-      false,
-    ),
-  );
+  const notification = document.createElement("button");
+  notification.className = `desktop-org-card__notification${unread > 0 ? " is-unread" : ""}`;
+  notification.type = "button";
+  notification.dataset.action = "activate-desktop-organization";
+  notification.dataset.organizationId = organization.id;
+  notification.setAttribute("aria-label", unread > 0 ? `${unread} unread Board notifications for ${organization.name || "organization"}` : `No unread Board notifications for ${organization.name || "organization"}`);
+  notification.title = unread > 0 ? `${unread} unread Board notifications` : "No unread Board notifications";
+  notification.innerHTML = `
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M6 10a6 6 0 0 1 12 0v3l2 3H4l2-3z" />
+      <path d="M10 19a2 2 0 0 0 4 0" />
+    </svg>
+    <span>${escapeHtml(boardLabel)}</span>
+  `;
+  statusLine.append(notification);
 
-  card.append(trigger, badges, actions);
+  card.append(header, trigger, statusLine);
   return card;
 }
 
-function createRuntimeBadge(label, modifier = "") {
-  const badge = document.createElement("span");
-  badge.className = `organization-runtime-badge${modifier ? ` organization-runtime-badge--${modifier}` : ""}`;
-  badge.textContent = label;
-  return badge;
-}
-
-function createDesktopOrgAction(label, action, organizationId, disabled = false) {
+function createDesktopOrgIconAction({ action, icon, label, organizationId, disabled = false }) {
   const button = document.createElement("button");
-  button.className = "chrome-button";
+  button.className = "icon-button desktop-org-card__icon-action";
   button.type = "button";
   button.dataset.action = action;
   button.dataset.organizationId = organizationId;
-  button.textContent = label;
   button.disabled = disabled;
+  button.setAttribute("aria-label", label);
+  button.title = label;
+  button.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">${icon}</svg>`;
   return button;
 }
 
@@ -1684,7 +1696,7 @@ function renderDesktopSidebar() {
   if (list.length === 0) {
     const empty = document.createElement("p");
     empty.className = "panel-copy";
-    empty.textContent = "Create an organization in About to begin.";
+    empty.textContent = "Use the plus button to add an organization.";
     desktopOrgList.append(empty);
   } else {
     for (const organization of list) {
@@ -1714,14 +1726,14 @@ function renderDesktopDashboard() {
       ? `${running} running · ${pending} pending`
       : "No queued work.";
   }
-  const unread = boardNotifications.filter((notification) => notification.unread).length;
+  const unreadCount = boardNotifications.filter((notification) => notification.unread).length;
   if (dashboardNotificationMetric) {
-    dashboardNotificationMetric.textContent = String(unread);
+    dashboardNotificationMetric.textContent = String(unreadCount);
   }
   if (dashboardNotificationSummary) {
-    dashboardNotificationSummary.textContent = unread > 0
-      ? `${unread} unread`
-      : "No unread notifications.";
+    dashboardNotificationSummary.textContent = unreadCount > 0
+      ? `${unreadCount} unread`
+      : "No unread updates.";
   }
   const activeAgentIds = new Set(
     queueState
@@ -1750,19 +1762,19 @@ function renderDesktopDashboard() {
       status: organization.mode,
       summary: formatOrganizationRuntimeLabel(organization),
     }))).slice(0, 6);
-  if (feedItems.length === 0) {
-    const empty = document.createElement("p");
-    empty.className = "panel-copy";
-    empty.textContent = "Open organizations will report their current activity here.";
-    desktopDashboardFeed.append(empty);
+  const distinctFeedItems = feedItems.filter((item) => item.id !== activeOrganizationId);
+  if (dashboardActivitySection) {
+    dashboardActivitySection.hidden = distinctFeedItems.length === 0;
+  }
+  if (distinctFeedItems.length === 0) {
     return;
   }
-  for (const item of feedItems) {
+  for (const item of distinctFeedItems) {
     const node = document.createElement("article");
     node.className = "desktop-feed-item";
     node.innerHTML = `
       <span class="desktop-feed-item__title">${escapeHtml(item.name)}</span>
-      <span class="desktop-feed-item__meta">${escapeHtml(item.status || "idle")}</span>
+      <span class="desktop-feed-item__meta">${escapeHtml(item.status || "")}</span>
       <span class="desktop-dashboard__summary">${escapeHtml(item.headline || item.summary || "No recent activity.")}</span>
     `;
     desktopDashboardFeed.append(node);
@@ -2076,7 +2088,7 @@ function panelLabel(panelId) {
     [PANEL_MEET]: "Meet",
     [PANEL_MAIL]: "Mail",
     [PANEL_QUEUE]: "Queue",
-    [PANEL_HIRE]: "Staff",
+    [PANEL_STAFF]: "Staff",
     [PANEL_PROJECTS]: "Projects",
     [PANEL_EVALS]: "Evals",
   };
@@ -2113,7 +2125,7 @@ function panelIconMarkup(panelId) {
     [PANEL_MEET]: MEET_ICON_MARKUP,
     [PANEL_MAIL]: MAIL_ICON_MARKUP,
     [PANEL_QUEUE]: QUEUE_ICON_MARKUP,
-    [PANEL_HIRE]: HIRE_ICON_MARKUP,
+    [PANEL_STAFF]: STAFF_ICON_MARKUP,
     [PANEL_PROJECTS]: PROJECTS_ICON_MARKUP,
     [PANEL_EVALS]: EVALS_ICON_MARKUP,
   };
@@ -2625,13 +2637,13 @@ async function loadWorkspaceBootstrap() {
   scheduleTasks = payload.flow ?? payload.schedule ?? [];
   meetings = payload.meetings ?? [];
   mailMessages = (payload.mailInbox ?? []).map((message) => ({ ...message, persisted: true }));
-  hireState = payload.staff ?? payload.hire ?? createEmptyHireState();
+  staffState = payload.staff ?? payload.hire ?? createEmptyStaffState();
   projects = payload.projects ?? [];
   evals = payload.evals ?? [];
   ensureScheduleSelection();
   ensureMeetingSelection();
   ensureMailSelection();
-  ensureHireSelection();
+  ensureStaffSelection();
   ensureProjectSelection();
   ensureEvalSelection();
   renderSources();
@@ -2645,7 +2657,7 @@ async function loadWorkspaceBootstrap() {
   renderFlowPanel();
   renderMeetPanel();
   renderMailPanel();
-  renderHirePanel();
+  renderStaffPanel();
   renderProjectsPanel();
   renderEvalsPanel();
   renderNotifications();
@@ -3266,6 +3278,32 @@ function createMenuCard({
   return fragment;
 }
 
+function createMenuSection(title, items, emptyMessage = "") {
+  const section = document.createElement("section");
+  section.className = "menu-section";
+
+  const header = document.createElement("div");
+  header.className = "menu-section__header";
+  header.innerHTML = `
+    <p class="menu-section__title">${escapeHtml(title)}</p>
+    <span class="menu-section__count">${items.length}</span>
+  `;
+  section.append(header);
+
+  const body = document.createElement("div");
+  body.className = "menu-section__body";
+  if (items.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "menu-section__empty";
+    empty.textContent = emptyMessage;
+    body.append(empty);
+  } else {
+    body.append(...items);
+  }
+  section.append(body);
+  return section;
+}
+
 function setSelectedIdIfMissing(list, currentId, fallbackKey = "id") {
   if (currentId && list.some((item) => item?.[fallbackKey] === currentId)) {
     return currentId;
@@ -3526,7 +3564,7 @@ function textDocumentStatusLabel(documentRecord) {
 }
 
 function findIdentityForRole(roleId) {
-  return hireState?.identities?.find((identity) => identity.roleId === roleId) ?? null;
+  return staffState?.identities?.find((identity) => identity.roleId === roleId) ?? null;
 }
 
 function describeFlowMeta(task) {
@@ -4464,44 +4502,44 @@ function ensureEvalSelection() {
   selectedEvalId = setSelectedIdIfMissing(evals, selectedEvalId);
 }
 
-function findHireSelection() {
-  if (!hireState || !selectedHireKey) {
+function findStaffSelection() {
+  if (!staffState || !selectedStaffKey) {
     return null;
   }
-  const [type, id] = selectedHireKey.split(":");
+  const [type, id] = selectedStaffKey.split(":");
   if (type === "department") {
-    const item = hireState.departments.find((entry) => entry.id === id);
+    const item = staffState.departments.find((entry) => entry.id === id);
     return item ? { type, item } : null;
   }
   if (type === "team") {
-    const item = hireState.teams.find((entry) => entry.id === id);
+    const item = staffState.teams.find((entry) => entry.id === id);
     return item ? { type, item } : null;
   }
   if (type === "role") {
-    const item = hireState.roles.find((entry) => entry.id === id);
+    const item = staffState.roles.find((entry) => entry.id === id);
     return item ? { type, item } : null;
   }
   return null;
 }
 
-function ensureHireSelection() {
-  if (!hireState) {
-    selectedHireKey = null;
+function ensureStaffSelection() {
+  if (!staffState) {
+    selectedStaffKey = null;
     return;
   }
   const all = [
-    ...hireState.departments.map((item) => ({ key: `department:${item.id}` })),
-    ...hireState.teams.map((item) => ({ key: `team:${item.id}` })),
-    ...hireState.roles.map((item) => ({ key: `role:${item.id}` })),
+    ...staffState.departments.map((item) => ({ key: `department:${item.id}` })),
+    ...staffState.teams.map((item) => ({ key: `team:${item.id}` })),
+    ...staffState.roles.map((item) => ({ key: `role:${item.id}` })),
   ];
-  if (selectedHireKey && all.some((entry) => entry.key === selectedHireKey)) {
+  if (selectedStaffKey && all.some((entry) => entry.key === selectedStaffKey)) {
     return;
   }
-  selectedHireKey = all[0]?.key ?? null;
+  selectedStaffKey = all[0]?.key ?? null;
 }
 
 function roleLabelMap() {
-  return new Map((hireState?.roles ?? []).map((role) => [role.id, role.title]));
+  return new Map((staffState?.roles ?? []).map((role) => [role.id, role.title]));
 }
 
 async function loadFlowPanelData() {
@@ -4812,80 +4850,85 @@ function renderMailPanel() {
   mailDetail.replaceChildren(wrapper);
 }
 
-async function loadHirePanelData() {
+async function loadStaffPanelData() {
   if (!activeOrganizationId) {
-    hireState = null;
-    selectedHireKey = null;
-    renderHirePanel();
+    staffState = null;
+    selectedStaffKey = null;
+    renderStaffPanel();
     return;
   }
-  setPanelState(hireStateLabel, "Loading...", true);
+  setPanelState(staffStateLabel, "Loading...", true);
   try {
-    hireState = await fetchJson(`/api/staff/read?orgId=${encodeURIComponent(activeOrganizationId)}`);
-    ensureHireSelection();
-    setPanelState(hireStateLabel, "");
+    staffState = await fetchJson(`/api/staff/read?orgId=${encodeURIComponent(activeOrganizationId)}`);
+    ensureStaffSelection();
+    setPanelState(staffStateLabel, "");
   } catch (error) {
     console.error(error);
-    setPanelState(hireStateLabel, "Load failed");
+    setPanelState(staffStateLabel, "Load failed");
   }
-  renderHirePanel();
+  renderStaffPanel();
 }
 
-function renderHirePanel() {
-  if (!hireMenu || !hireDetail) return;
+function renderStaffPanel() {
+  if (!staffMenu || !staffDetail) return;
   if (!activeOrganizationId) {
-    hireMenu.replaceChildren();
-    renderEmptyDetail(hireDetail, "Activate an organization to staff departments, teams, roles, and identities.");
+    staffMenu.replaceChildren();
+    renderEmptyDetail(staffDetail, "Activate an organization to staff departments, teams, roles, and identities.");
     return;
   }
-  ensureHireSelection();
-  hireMenu.replaceChildren();
-  (hireState?.departments ?? []).forEach((department) => {
-    hireMenu.append(createMenuCard({
+  ensureStaffSelection();
+  staffMenu.replaceChildren();
+  const departmentItems = (staffState?.departments ?? []).map((department) =>
+    createMenuCard({
       id: department.id,
       meta: summarizeTemplateProvenance(department.templateId, department.templateSource, "department"),
       name: department.name || "new department",
-      selected: selectedHireKey === `department:${department.id}`,
+      selected: selectedStaffKey === `department:${department.id}`,
       type: "department",
-    }));
-  });
-  (hireState?.teams ?? []).forEach((team) => {
-    const department = hireState?.departments.find((entry) => entry.id === team.departmentId);
-    hireMenu.append(createMenuCard({
+    }),
+  );
+  const teamItems = (staffState?.teams ?? []).map((team) => {
+    const department = staffState?.departments.find((entry) => entry.id === team.departmentId);
+    return createMenuCard({
       id: team.id,
       meta: [department?.name, summarizeTemplateProvenance(team.templateId, team.templateSource, "team")]
         .filter(Boolean)
         .join(" · "),
       name: team.name || "new team",
-      selected: selectedHireKey === `team:${team.id}`,
+      selected: selectedStaffKey === `team:${team.id}`,
       type: "team",
-    }));
+    });
   });
-  (hireState?.roles ?? []).forEach((role) => {
+  const roleItems = (staffState?.roles ?? []).map((role) => {
     const identity = findIdentityForRole(role.id);
-    hireMenu.append(createMenuCard({
+    return createMenuCard({
       id: role.id,
       meta: identity
         ? `employee ${identity.employeeNumber} · ${identity.name}`
         : `${role.status} · ${findRoleTemplateSummary(role.templateId)?.name || role.templateName || "no template"}`,
       name: role.title || "new role",
-      selected: selectedHireKey === `role:${role.id}`,
+      selected: selectedStaffKey === `role:${role.id}`,
       type: "role",
-    }));
+    });
   });
+  staffMenu.append(
+    createMenuSection("departments", departmentItems, "No departments yet."),
+    createMenuSection("teams", teamItems, "No teams yet."),
+    createMenuSection("roles", roleItems, "No roles yet."),
+  );
 
-  hireDetail.replaceChildren();
-  const selection = findHireSelection();
+  staffDetail.replaceChildren();
+  const selection = findStaffSelection();
   if (!selection) {
-    hireDetail.append(emptyDetailCard("Add a department, team, or role to begin shaping the organization."));
+    staffDetail.append(emptyDetailCard("Add a department, team, or role to begin shaping the organization."));
     return;
   }
 
   const { type, item } = selection;
   const card = document.createElement("article");
   card.className = "source-card";
-  card.dataset.hireType = type;
-  card.dataset.hireId = item.id;
+  card.dataset.staffType = type;
+  card.dataset.staffId = item.id;
 
   if (type === "department") {
     const departmentTemplateOptions = getDepartmentTemplates().map((template) =>
@@ -4898,8 +4941,8 @@ function renderHirePanel() {
           <p class="source-card__meta-detail">${escapeHtml(summarizeTemplateProvenance(item.templateId, item.templateSource, "department"))}</p>
         </div>
         <div class="source-card__actions">
-          <button class="chrome-button source-card__button" data-action="save-hire" type="button">save</button>
-          <button class="chrome-button source-card__button" data-action="delete-hire" type="button">delete</button>
+          <button class="chrome-button source-card__button" data-action="save-staff" type="button">save</button>
+          <button class="chrome-button source-card__button" data-action="delete-staff" type="button">delete</button>
         </div>
       </div>
       <label class="field"><span class="field__label">template</span><select class="field__control" data-field="templateId"><option value="">custom department</option>${departmentTemplateOptions}</select></label>
@@ -4908,7 +4951,7 @@ function renderHirePanel() {
     `;
     card.querySelector('[data-field="templateId"]').value = item.templateId ?? "";
   } else if (type === "team") {
-    const departmentOptions = (hireState?.departments ?? []).map((department) =>
+    const departmentOptions = (staffState?.departments ?? []).map((department) =>
       `<option value="${department.id}">${escapeHtml(department.name)}</option>`
     ).join("");
     const teamTemplateOptions = getTeamTemplates().map((template) =>
@@ -4921,8 +4964,8 @@ function renderHirePanel() {
           <p class="source-card__meta-detail">${escapeHtml(summarizeTemplateProvenance(item.templateId, item.templateSource, "team"))}</p>
         </div>
         <div class="source-card__actions">
-          <button class="chrome-button source-card__button" data-action="save-hire" type="button">save</button>
-          <button class="chrome-button source-card__button" data-action="delete-hire" type="button">delete</button>
+          <button class="chrome-button source-card__button" data-action="save-staff" type="button">save</button>
+          <button class="chrome-button source-card__button" data-action="delete-staff" type="button">delete</button>
         </div>
       </div>
       <label class="field"><span class="field__label">template</span><select class="field__control" data-field="templateId"><option value="">custom team</option>${teamTemplateOptions}</select></label>
@@ -4936,7 +4979,7 @@ function renderHirePanel() {
     card.querySelector('[data-field="departmentId"]').value = item.departmentId ?? "";
   } else {
     const identity = findIdentityForRole(item.id);
-    const teamOptions = (hireState?.teams ?? []).map((team) =>
+    const teamOptions = (staffState?.teams ?? []).map((team) =>
       `<option value="${team.id}">${escapeHtml(team.name)}</option>`
     ).join("");
     const agentOptions = agentFiles.map((agent) =>
@@ -4952,8 +4995,8 @@ function renderHirePanel() {
           <p class="source-card__meta-detail">${escapeHtml(summarizeTemplateProvenance(item.templateId, item.templateSource, "custom role"))}</p>
         </div>
         <div class="source-card__actions">
-          <button class="chrome-button source-card__button" data-action="save-hire" type="button">save</button>
-          <button class="chrome-button source-card__button" data-action="delete-hire" type="button">delete</button>
+          <button class="chrome-button source-card__button" data-action="save-staff" type="button">save</button>
+          <button class="chrome-button source-card__button" data-action="delete-staff" type="button">delete</button>
         </div>
       </div>
       <label class="field"><span class="field__label">template</span><select class="field__control" data-field="templateId"><option value="">custom role</option>${roleTemplateOptions}</select></label>
@@ -4994,7 +5037,7 @@ function renderHirePanel() {
     card.querySelector('[data-field="tier"]').value = item.tier ?? "mid";
     card.querySelector('[data-field="status"]').value = item.status ?? "open";
   }
-  hireDetail.append(card);
+  staffDetail.append(card);
 }
 
 async function loadProjectsPanelData() {
@@ -5042,7 +5085,7 @@ function renderProjectsPanel() {
     return;
   }
   const roleNames = roleLabelMap();
-  const checklist = (hireState?.roles ?? []).map((role) => `
+  const checklist = (staffState?.roles ?? []).map((role) => `
     <label class="source-card__toggle">
       <input class="source-card__checkbox" data-field="participantRoleIds" data-role-id="${role.id}" type="checkbox" ${selected.participantRoleIds?.includes(role.id) ? "checked" : ""} />
       ${escapeHtml(role.title)}
@@ -5065,7 +5108,7 @@ function renderProjectsPanel() {
     </div>
     <label class="field"><span class="field__label">summary</span><textarea class="field__control field__control--textarea" data-field="summary">${escapeHtml(selected.summary ?? "")}</textarea></label>
     <label class="field"><span class="field__label">outputs</span><textarea class="field__control field__control--textarea" data-field="outputs">${escapeHtml(selected.outputs ?? "")}</textarea></label>
-    <div class="field"><span class="field__label">participants</span><div class="json-node__body">${checklist || '<p class="source-card__note">No hired roles available yet.</p>'}</div></div>
+    <div class="field"><span class="field__label">participants</span><div class="json-node__body">${checklist || '<p class="source-card__note">No staffed roles available yet.</p>'}</div></div>
     <p class="source-card__note">${(selected.participantRoleIds ?? []).map((id) => roleNames.get(id)).filter(Boolean).join(", ") || "No participants selected."}</p>
   `;
   card.querySelector('[data-field="status"]').value = selected.status ?? "draft";
@@ -5326,7 +5369,7 @@ async function saveMailMessageRecord(id) {
   renderMailPanel();
 }
 
-function createEmptyHireState() {
+function createEmptyStaffState() {
   return {
     departments: [],
     identities: [],
@@ -5337,8 +5380,8 @@ function createEmptyHireState() {
   };
 }
 
-function addHireRecord(type) {
-  hireState = hireState ?? createEmptyHireState();
+function addStaffRecord(type) {
+  staffState = staffState ?? createEmptyStaffState();
   if (type === "department") {
     const item = {
       id: crypto.randomUUID(),
@@ -5349,12 +5392,12 @@ function addHireRecord(type) {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    hireState.departments.unshift(item);
-    selectedHireKey = `department:${item.id}`;
+    staffState.departments.unshift(item);
+    selectedStaffKey = `department:${item.id}`;
   } else if (type === "team") {
     const item = {
       id: crypto.randomUUID(),
-      departmentId: hireState.departments[0]?.id ?? "",
+      departmentId: staffState.departments[0]?.id ?? "",
       name: "new team",
       summary: "",
       templateId: "",
@@ -5362,8 +5405,8 @@ function addHireRecord(type) {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    hireState.teams.unshift(item);
-    selectedHireKey = `team:${item.id}`;
+    staffState.teams.unshift(item);
+    selectedStaffKey = `team:${item.id}`;
   } else {
     const item = {
       id: crypto.randomUUID(),
@@ -5375,7 +5418,7 @@ function addHireRecord(type) {
       requiredSkills: [],
       requiredTools: [],
       status: "open",
-      teamId: hireState.teams[0]?.id ?? "",
+      teamId: staffState.teams[0]?.id ?? "",
       templateId: "",
       templateName: agentFiles[0]?.name ?? "",
       templateSource: "system",
@@ -5383,32 +5426,32 @@ function addHireRecord(type) {
       title: "new role",
       updatedAt: new Date().toISOString(),
     };
-    hireState.roles.unshift(item);
-    selectedHireKey = `role:${item.id}`;
+    staffState.roles.unshift(item);
+    selectedStaffKey = `role:${item.id}`;
   }
-  renderHirePanel();
+  renderStaffPanel();
 }
 
-function updateHireField(type, id, field, value) {
-  const list = type === "department" ? hireState?.departments : type === "team" ? hireState?.teams : hireState?.roles;
+function updateStaffField(type, id, field, value) {
+  const list = type === "department" ? staffState?.departments : type === "team" ? staffState?.teams : staffState?.roles;
   const record = list?.find((entry) => entry.id === id);
   if (!record) return;
   if (type === "department" && field === "templateId") {
     applyDepartmentTemplate(record, value);
     record.updatedAt = new Date().toISOString();
-    renderHirePanel();
+    renderStaffPanel();
     return;
   }
   if (type === "team" && field === "templateId") {
     applyTeamTemplate(record, value);
     record.updatedAt = new Date().toISOString();
-    renderHirePanel();
+    renderStaffPanel();
     return;
   }
   if (type === "role" && field === "templateId") {
     applyRoleTemplate(record, value);
     record.updatedAt = new Date().toISOString();
-    renderHirePanel();
+    renderStaffPanel();
     return;
   }
   if (type === "role" && (field === "requiredSkills" || field === "requiredTools")) {
@@ -5420,38 +5463,38 @@ function updateHireField(type, id, field, value) {
   record.updatedAt = new Date().toISOString();
 }
 
-async function saveHireStateRecord() {
-  if (!hireState || !activeOrganizationId) return;
-  setPanelState(hireStateLabel, "Saving...", true);
+async function saveStaffStateRecord() {
+  if (!staffState || !activeOrganizationId) return;
+  setPanelState(staffStateLabel, "Saving...", true);
   try {
-    hireState = await fetchJson("/api/staff/write", {
+    staffState = await fetchJson("/api/staff/write", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ...hireState, orgId: activeOrganizationId }),
+      body: JSON.stringify({ ...staffState, orgId: activeOrganizationId }),
     });
-    setPanelState(hireStateLabel, "Saved");
+    setPanelState(staffStateLabel, "Saved");
   } catch (error) {
     console.error(error);
-    setPanelState(hireStateLabel, "Save failed");
+    setPanelState(staffStateLabel, "Save failed");
   }
-  renderHirePanel();
+  renderStaffPanel();
 }
 
-function deleteHireRecord(type, id) {
-  if (!hireState) return;
+function deleteStaffRecord(type, id) {
+  if (!staffState) return;
   if (type === "department") {
-    const teamIds = hireState.teams.filter((entry) => entry.departmentId === id).map((entry) => entry.id);
-    hireState.departments = hireState.departments.filter((entry) => entry.id !== id);
-    hireState.teams = hireState.teams.filter((entry) => entry.departmentId !== id);
-    hireState.roles = hireState.roles.filter((entry) => !teamIds.includes(entry.teamId));
+    const teamIds = staffState.teams.filter((entry) => entry.departmentId === id).map((entry) => entry.id);
+    staffState.departments = staffState.departments.filter((entry) => entry.id !== id);
+    staffState.teams = staffState.teams.filter((entry) => entry.departmentId !== id);
+    staffState.roles = staffState.roles.filter((entry) => !teamIds.includes(entry.teamId));
   } else if (type === "team") {
-    hireState.teams = hireState.teams.filter((entry) => entry.id !== id);
-    hireState.roles = hireState.roles.filter((entry) => entry.teamId !== id);
+    staffState.teams = staffState.teams.filter((entry) => entry.id !== id);
+    staffState.roles = staffState.roles.filter((entry) => entry.teamId !== id);
   } else {
-    hireState.roles = hireState.roles.filter((entry) => entry.id !== id);
+    staffState.roles = staffState.roles.filter((entry) => entry.id !== id);
   }
-  ensureHireSelection();
-  renderHirePanel();
+  ensureStaffSelection();
+  renderStaffPanel();
 }
 
 function addProjectRecord() {
@@ -5990,8 +6033,8 @@ function openPanel(panelId) {
   if (panelId === PANEL_MAIL) {
     void loadMailPanelData();
   }
-  if (panelId === PANEL_HIRE) {
-    void loadHirePanelData();
+  if (panelId === PANEL_STAFF) {
+    void loadStaffPanelData();
   }
   if (panelId === PANEL_PROJECTS) {
     void loadProjectsPanelData();
@@ -6031,7 +6074,7 @@ function renderPanels() {
   meetPanel.hidden = activePanelId !== PANEL_MEET || showingDesktop;
   mailPanel.hidden = activePanelId !== PANEL_MAIL || showingDesktop;
   queuePanel.hidden = activePanelId !== PANEL_QUEUE || showingDesktop;
-  hirePanel.hidden = activePanelId !== PANEL_HIRE || showingDesktop;
+  staffPanel.hidden = activePanelId !== PANEL_STAFF || showingDesktop;
   projectsPanel.hidden = activePanelId !== PANEL_PROJECTS || showingDesktop;
   evalsPanel.hidden = activePanelId !== PANEL_EVALS || showingDesktop;
   workspaceArea.classList.toggle("has-open-panels", openPanelIds.length > 0);
@@ -6302,8 +6345,8 @@ queueIcon.addEventListener("click", () => {
   openPanel(PANEL_QUEUE);
 });
 
-hireIcon.addEventListener("click", () => {
-  openPanel(PANEL_HIRE);
+staffIcon.addEventListener("click", () => {
+  openPanel(PANEL_STAFF);
 });
 
 projectsIcon.addEventListener("click", () => {
@@ -7074,39 +7117,39 @@ mailDetail?.addEventListener("input", (event) => {
   updateMailField(selectedMailId, field, event.target.value);
 });
 
-addHireDepartmentButton?.addEventListener("click", () => addHireRecord("department"));
-addHireTeamButton?.addEventListener("click", () => addHireRecord("team"));
-addHireRoleButton?.addEventListener("click", () => addHireRecord("role"));
+addStaffDepartmentButton?.addEventListener("click", () => addStaffRecord("department"));
+addStaffTeamButton?.addEventListener("click", () => addStaffRecord("team"));
+addStaffRoleButton?.addEventListener("click", () => addStaffRecord("role"));
 
-hireMenu?.addEventListener("click", (event) => {
+staffMenu?.addEventListener("click", (event) => {
   const button = event.target.closest('[data-action="select-record"]');
   if (!button) return;
-  selectedHireKey = `${button.dataset.recordType}:${button.dataset.recordId}`;
-  renderHirePanel();
+  selectedStaffKey = `${button.dataset.recordType}:${button.dataset.recordId}`;
+  renderStaffPanel();
 });
 
-hireDetail?.addEventListener("input", (event) => {
+staffDetail?.addEventListener("input", (event) => {
   const card = event.target.closest(".source-card");
   if (!card) return;
-  updateHireField(card.dataset.hireType, card.dataset.hireId, event.target.dataset.field, event.target.value);
+  updateStaffField(card.dataset.staffType, card.dataset.staffId, event.target.dataset.field, event.target.value);
 });
 
-hireDetail?.addEventListener("change", (event) => {
+staffDetail?.addEventListener("change", (event) => {
   const card = event.target.closest(".source-card");
   if (!card) return;
-  updateHireField(card.dataset.hireType, card.dataset.hireId, event.target.dataset.field, event.target.value);
+  updateStaffField(card.dataset.staffType, card.dataset.staffId, event.target.dataset.field, event.target.value);
 });
 
-hireDetail?.addEventListener("click", async (event) => {
+staffDetail?.addEventListener("click", async (event) => {
   const button = event.target.closest("button");
   if (!button) return;
   const card = button.closest(".source-card");
   if (!card) return;
-  if (button.dataset.action === "save-hire") {
-    await saveHireStateRecord();
+  if (button.dataset.action === "save-staff") {
+    await saveStaffStateRecord();
   }
-  if (button.dataset.action === "delete-hire") {
-    deleteHireRecord(card.dataset.hireType, card.dataset.hireId);
+  if (button.dataset.action === "delete-staff") {
+    deleteStaffRecord(card.dataset.staffType, card.dataset.staffId);
   }
 });
 

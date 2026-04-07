@@ -285,7 +285,7 @@ type MailMessage = {
   to: string;
 };
 
-type HireDepartment = {
+type StaffDepartment = {
   createdAt: string;
   id: string;
   name: string;
@@ -295,7 +295,7 @@ type HireDepartment = {
   updatedAt: string;
 };
 
-type HireTeam = {
+type StaffTeam = {
   createdAt: string;
   departmentId: string;
   id: string;
@@ -306,7 +306,7 @@ type HireTeam = {
   updatedAt: string;
 };
 
-type HireRole = {
+type StaffRole = {
   assigneeLabel: string;
   bundleIds?: string[];
   createdAt: string;
@@ -326,11 +326,11 @@ type HireRole = {
   updatedAt: string;
 };
 
-type HireState = {
-  departments: HireDepartment[];
+type StaffState = {
+  departments: StaffDepartment[];
   identities: IdentityRecord[];
-  roles: HireRole[];
-  teams: HireTeam[];
+  roles: StaffRole[];
+  teams: StaffTeam[];
   updatedAt: string;
   version: number;
 };
@@ -1866,10 +1866,10 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     return message;
   }
 
-  // ── Hire / Projects / Evals CRUD ────────────────────────────────────────
+  // ── Staff / Projects / Evals CRUD ────────────────────────────────────────
 
-  async function readStaffState(orgId: string): Promise<HireState> {
-    const state = await readOrganizationScopedJsonWithFallbacks<HireState>(orgId, ["staff.json", "hire.json"], {
+  async function readStaffState(orgId: string): Promise<StaffState> {
+    const state = await readOrganizationScopedJsonWithFallbacks<StaffState>(orgId, ["staff.json", "hire.json"], {
       departments: [],
       identities: [],
       roles: [],
@@ -1928,9 +1928,9 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     };
   }
 
-  async function writeStaffState(orgId: string, nextState: Partial<HireState>) {
+  async function writeStaffState(orgId: string, nextState: Partial<StaffState>) {
     const current = await readStaffState(orgId);
-    const merged: HireState = {
+    const merged: StaffState = {
       departments: Array.isArray(nextState.departments) ? nextState.departments : current.departments,
       identities: Array.isArray(nextState.identities) ? nextState.identities : current.identities,
       roles: Array.isArray(nextState.roles) ? nextState.roles : current.roles,
@@ -4133,7 +4133,7 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     }
 
     if (url.pathname === "/api/staff/write" && request.method === "POST") {
-      const payload = (await request.json()) as { orgId?: string } & Partial<HireState>;
+      const payload = (await request.json()) as { orgId?: string } & Partial<StaffState>;
       if (!payload.orgId) return new Response("Bad Request", { status: 400 });
       const staff = await writeStaffState(payload.orgId, payload);
       return Response.json(staff);

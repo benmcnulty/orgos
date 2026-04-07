@@ -52,7 +52,7 @@
             </button>
             <div class="source-tooltip" id="source-tooltip" role="tooltip" hidden></div>
           </div>
-          <div class="notification-indicator-wrap" id="notification-indicator-wrap">
+          <div class="notification-indicator-wrap" id="notification-indicator-wrap" hidden>
             <button
               class="notification-indicator"
               id="notification-indicator"
@@ -169,7 +169,18 @@
             </div>
             <div class="desktop-sidebar__list" id="desktop-org-list"></div>
             <div class="desktop-sidebar__footer">
-              <button class="chrome-button desktop-sidebar__footer-button" id="desktop-add-organization" type="button">new organization</button>
+              <button
+                class="icon-button desktop-sidebar__add-button"
+                id="desktop-add-organization"
+                type="button"
+                aria-label="New organization"
+                title="New organization"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                <span class="sr-only">New organization</span>
+              </button>
             </div>
           </aside>
 
@@ -188,7 +199,7 @@
               <article class="desktop-dashboard__card" id="dashboard-board-card">
                 <p class="desktop-dashboard__eyebrow">board</p>
                 <p class="desktop-dashboard__metric" id="dashboard-notification-metric">0</p>
-                <p class="desktop-dashboard__summary" id="dashboard-notification-summary">No unread notifications.</p>
+                <p class="desktop-dashboard__summary" id="dashboard-notification-summary">No unread updates.</p>
               </article>
               <article class="desktop-dashboard__card" id="dashboard-presence-card">
                 <p class="desktop-dashboard__eyebrow">agents</p>
@@ -448,10 +459,10 @@
 
           <button
             class="desktop-icon"
-            id="hire-icon"
+            id="staff-icon"
             type="button"
             data-app-scope="organization"
-            data-panel-id="hire"
+            data-panel-id="staff"
             aria-label="Open Staff"
             title="Open Staff"
           >
@@ -557,7 +568,7 @@
                   <p class="panel-scan-state panel-scan-state--hidden" id="sources-state" aria-live="polite">Ready</p>
                 </div>
 
-                <div class="panel-layout">
+                <div class="panel-layout panel-layout--narrow-sidebar">
                   <aside class="panel-sidebar" aria-label="Sources">
                     <div class="panel-section-header panel-section-header--inline">
                       <p class="panel-section-header__eyebrow">sources</p>
@@ -981,32 +992,32 @@
             </div>
           </section>
 
-          <section class="app-panel" id="hire-panel" hidden>
+          <section class="app-panel" id="staff-panel" hidden>
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Define departments, teams, roles, and agent identities.</p>
-                  <p class="panel-scan-state panel-scan-state--hidden" id="hire-state" aria-live="polite">Ready</p>
+                  <p class="panel-copy">Shape the org structure by adding departments, then teams, then staffed roles.</p>
+                  <p class="panel-scan-state panel-scan-state--hidden" id="staff-state" aria-live="polite">Ready</p>
                 </div>
-                <div class="panel-layout panel-layout--hire">
+                <div class="panel-layout panel-layout--staff">
                   <aside class="panel-sidebar" aria-label="Staff structure">
                     <div class="panel-section-header">
-                      <p class="panel-section-header__eyebrow">departments</p>
+                      <p class="panel-section-header__eyebrow">staff structure</p>
                     </div>
-                    <div class="source-menu" id="hire-menu"></div>
+                    <div class="source-menu" id="staff-menu"></div>
                     <div class="panel-footer panel-footer--triple">
-                      <button class="icon-button panel-footer__button" id="add-hire-department" type="button" aria-label="Add department" title="Add department">
+                      <button class="icon-button panel-footer__button" id="add-staff-department" type="button" aria-label="Add department" title="Add department">
                         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" /><path d="M6 6h5M6 9h3" /></svg>
                       </button>
-                      <button class="icon-button panel-footer__button" id="add-hire-team" type="button" aria-label="Add team" title="Add team">
+                      <button class="icon-button panel-footer__button" id="add-staff-team" type="button" aria-label="Add team" title="Add team">
                         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" /><path d="M7 7h10M7 17h10" /></svg>
                       </button>
-                      <button class="icon-button panel-footer__button" id="add-hire-role" type="button" aria-label="Add role" title="Add role">
+                      <button class="icon-button panel-footer__button" id="add-staff-role" type="button" aria-label="Add role" title="Add role">
                         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14" /><circle cx="8" cy="8" r="1.5" /><circle cx="16" cy="8" r="1.5" /></svg>
                       </button>
                     </div>
                   </aside>
-                  <section class="panel-detail panel-detail--hire" id="hire-detail"></section>
+                  <section class="panel-detail panel-detail--staff" id="staff-detail"></section>
                 </div>
               </div>
             </div>
