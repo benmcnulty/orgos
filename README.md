@@ -134,6 +134,13 @@ Shared reusable assets available to the system and its agents:
 - The shared system-level `orgos` agent coordinates infrastructure, notifications,
   facilitation, and cross-app workflows above individual organizations.
 
+Design handoff notes:
+
+- `docs/workspace-paradigm.md`
+  product-level information architecture and runtime responsibilities
+- `docs/design-system.md`
+  shell, component, and responsive UI primitives for future teams
+
 ## Development
 
 Run the local development server with:

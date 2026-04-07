@@ -48,4 +48,7 @@ The shell should optimize for:
 - a clear distinction between shared system infrastructure and organization-scoped work
 - a stable substrate for autonomous agent workflows and future UI refinement
 
+UI extension should follow the shared component rules documented in
+`docs/design-system.md`.
+
 This file is a handoff note for future teams. The exact visuals may evolve, but the runtime information architecture above is the intended product contract.
