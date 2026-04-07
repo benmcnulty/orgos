@@ -42,10 +42,35 @@
   --scrim: rgba(191, 191, 191, 0.52);
   --curve-smooth: cubic-bezier(0.22, 1, 0.36, 1);
   --duration-fast: 180ms;
+  /* Radius scale — 4 stops mapped to surface depth */
+  --radius-1: 0.55rem;   /* chips, badges */
+  --radius-2: 0.85rem;   /* buttons, inputs, source-card */
+  --radius-3: 1.25rem;   /* dashboard cards, app panels */
+  --radius-4: 1.6rem;    /* desktop sidebar, full-screen surfaces */
+  /* Backward-compat aliases */
+  --control-radius: var(--radius-2);
+  --radius-md: var(--radius-2);
+  --radius-sm: var(--radius-1);
+  /* Type scale */
+  --text-eyebrow: 0.72rem;
+  --text-body: 0.95rem;
+  --text-title: 1.22rem;
+  --text-display: 2rem;
+  --letter-eyebrow: 0.12em;
+  --weight-bold: 700;
+  --weight-regular: 400;
+  /* Presence + attention accent colors */
+  --accent-presence: hsl(135 45% 42%);
+  --accent-presence-soft: hsl(135 45% 42% / 0.12);
+  --accent-attention: hsl(38 85% 50%);
+  --accent-attention-soft: hsl(38 85% 50% / 0.12);
+  /* Motion tokens */
+  --duration-slow: 320ms;
+  --curve-entrance: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Spacing addition */
+  --space-6: 2.4rem;
   /* Semantic aliases for panel cards and status indicators */
   --stroke-ui: var(--line-strong);
-  --radius-md: var(--control-radius);
-  --radius-sm: 0.55rem;
   --fg-base: var(--ink);
   --fg-subtle: var(--ink-muted);
   --surface-base: var(--surface-muted);
@@ -967,7 +992,7 @@ textarea {
   min-block-size: 100%;
   padding: 0.95rem 0.95rem 1.35rem;
   border: var(--stroke-width) solid var(--line-soft);
-  border-radius: 1.6rem;
+  border-radius: var(--radius-4);
   background: color-mix(in srgb, var(--surface-translucent) 88%, transparent);
   box-shadow:
     inset 0.04rem 0.04rem 0 color-mix(in srgb, var(--emboss-highlight) 80%, transparent),
@@ -985,8 +1010,8 @@ textarea {
 .desktop-sidebar__eyebrow,
 .desktop-dashboard__eyebrow,
 .desktop-group__title {
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: var(--text-eyebrow);
+  font-weight: var(--weight-bold);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--structure);
@@ -1046,7 +1071,7 @@ textarea {
   gap: 0.62rem;
   padding: 0.8rem 0.82rem;
   border: var(--stroke-width) solid var(--line-soft);
-  border-radius: 1.2rem;
+  border-radius: var(--radius-3);
   background: var(--surface-muted);
   box-shadow:
     inset 0.03rem 0.03rem 0 color-mix(in srgb, var(--emboss-highlight) 72%, transparent),
@@ -1155,7 +1180,7 @@ textarea {
   gap: 0.42rem;
   padding: 0.95rem 1rem;
   border: var(--stroke-width) solid var(--line-soft);
-  border-radius: 1.35rem;
+  border-radius: var(--radius-3);
   background: color-mix(in srgb, var(--surface-raised) 92%, transparent);
   box-shadow:
     inset 0.03rem 0.03rem 0 color-mix(in srgb, var(--emboss-highlight) 72%, transparent),
@@ -1164,14 +1189,14 @@ textarea {
 
 
 .desktop-dashboard__title {
-  font-size: 1.22rem;
-  font-weight: 700;
+  font-size: var(--text-title);
+  font-weight: var(--weight-bold);
   text-transform: lowercase;
 }
 
 .desktop-dashboard__metric {
-  font-size: 2rem;
-  font-weight: 700;
+  font-size: var(--text-display);
+  font-weight: var(--weight-bold);
   line-height: 1;
 }
 
@@ -1209,7 +1234,7 @@ textarea {
 .desktop-activity {
   padding: 0.55rem 0.85rem 0.65rem;
   border: var(--stroke-width) solid var(--line-soft);
-  border-radius: 1.35rem;
+  border-radius: var(--radius-3);
   background: color-mix(in srgb, var(--surface-raised) 92%, transparent);
   box-shadow:
     inset 0.03rem 0.03rem 0 color-mix(in srgb, var(--emboss-highlight) 72%, transparent),
@@ -1270,7 +1295,7 @@ textarea {
   gap: 0.85rem;
   padding: 0.95rem 1rem 1.05rem;
   border: var(--stroke-width) solid var(--line-soft);
-  border-radius: 1.35rem;
+  border-radius: var(--radius-3);
   background: color-mix(in srgb, var(--surface-raised) 94%, transparent);
   box-shadow:
     inset 0.03rem 0.03rem 0 color-mix(in srgb, var(--emboss-highlight) 72%, transparent),
@@ -1299,7 +1324,7 @@ textarea {
   gap: 0.5rem;
   padding: 0.75rem 0.65rem 0.85rem;
   border: var(--stroke-width) solid rgba(17, 17, 17, 0.2);
-  border-radius: 1.55rem;
+  border-radius: var(--radius-4);
   background: rgba(255, 255, 255, 0.34);
   box-shadow:
     inset 0.04rem 0.04rem 0 rgba(255, 255, 255, 0.55),
@@ -1574,9 +1599,9 @@ textarea {
 }
 
 .panel-section-header__eyebrow {
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-size: var(--text-eyebrow);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--letter-eyebrow);
   text-transform: uppercase;
   color: var(--structure);
 }
@@ -2830,7 +2855,7 @@ select.field__control {
   gap: 0.8rem;
   padding: 1rem;
   border: var(--stroke-width) solid var(--line-soft);
-  border-radius: 1.2rem;
+  border-radius: var(--radius-3);
   background: var(--surface);
   box-shadow:
     inset 0.03rem 0.03rem 0 color-mix(in srgb, var(--emboss-highlight) 70%, transparent),
