@@ -554,25 +554,26 @@
               <div class="panel-body">
                 <div class="panel-copy-row">
                   <p class="panel-copy">Configure shared inference sources and verify their availability.</p>
-                  <div class="panel-copy-row__actions">
-                    <button class="chrome-button panel-copy-row__button" id="rescan-sources" type="button" aria-label="Rescan sources" title="Rescan sources">
-                      rescan
-                    </button>
-                    <div class="panel-count" id="scan-count" aria-live="polite">
-                      <span class="panel-count__number" id="scan-count-number">0</span>
-                      <span class="panel-count__label" id="scan-count-label">detected</span>
-                    </div>
-                    <p class="panel-scan-state panel-scan-state--hidden" id="sources-state" aria-live="polite">Ready</p>
-                  </div>
+                  <p class="panel-scan-state panel-scan-state--hidden" id="sources-state" aria-live="polite">Ready</p>
                 </div>
 
                 <div class="panel-layout">
                   <aside class="panel-sidebar" aria-label="Sources">
-                    <div class="panel-section-header">
+                    <div class="panel-section-header panel-section-header--inline">
                       <p class="panel-section-header__eyebrow">sources</p>
+                      <div class="panel-count" id="scan-count" aria-live="polite">
+                        <span class="panel-count__number" id="scan-count-number">0</span>
+                        <span class="panel-count__label" id="scan-count-label">detected</span>
+                      </div>
                     </div>
                     <div class="source-menu" id="source-menu"></div>
                     <div class="panel-footer">
+                      <button class="icon-button panel-footer__button" id="rescan-sources" type="button" aria-label="Rescan sources" title="Rescan sources">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                          <path d="M20 12a8 8 0 1 1-2.34-5.66" />
+                          <path d="M20 4v5h-5" />
+                        </svg>
+                      </button>
                       <button class="icon-button panel-footer__button" id="add-source" type="button" aria-label="Add source" title="Add source">
                         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                           <path d="M12 5v14M5 12h14" />
@@ -657,28 +658,7 @@
               <div class="panel-body">
                 <div class="panel-copy-row">
                   <p class="panel-copy">Browse, create, and edit files inside the active organization.</p>
-                  <div class="panel-copy-row__actions">
-                    <button class="icon-button panel-copy-row__icon-button" id="refresh-files" type="button" aria-label="Refresh files" title="Refresh files">
-                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <path d="M20 12a8 8 0 1 1-2.34-5.66" />
-                        <path d="M20 4v5h-5" />
-                      </svg>
-                    </button>
-                    <button class="icon-button panel-copy-row__icon-button" id="add-folder-button" type="button" aria-label="New folder" title="New folder">
-                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <path d="M3 7h7l2 2h9v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
-                        <path d="M12 11v5M9.5 13.5h5" />
-                      </svg>
-                    </button>
-                    <button class="icon-button panel-copy-row__icon-button" id="add-file-button" type="button" aria-label="Add file" title="Add file">
-                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <path d="M7 3h7l5 5v13H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
-                        <path d="M14 3v5h5" />
-                        <path d="M12 12v5M9.5 14.5h5" />
-                      </svg>
-                    </button>
-                    <p class="panel-scan-state panel-scan-state--hidden" id="files-state" aria-live="polite">Ready</p>
-                  </div>
+                  <p class="panel-scan-state panel-scan-state--hidden" id="files-state" aria-live="polite">Ready</p>
                 </div>
 
                 <div class="panel-layout panel-layout--files">
@@ -691,6 +671,27 @@
                       <p class="panel-section-header__eyebrow">folders</p>
                     </div>
                     <div class="folder-menu" id="files-folder-menu"></div>
+                    <div class="panel-footer">
+                      <button class="icon-button panel-footer__button" id="refresh-files" type="button" aria-label="Refresh files" title="Refresh files">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                          <path d="M20 12a8 8 0 1 1-2.34-5.66" />
+                          <path d="M20 4v5h-5" />
+                        </svg>
+                      </button>
+                      <button class="icon-button panel-footer__button" id="add-folder-button" type="button" aria-label="New folder" title="New folder">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                          <path d="M3 7h7l2 2h9v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
+                          <path d="M12 11v5M9.5 13.5h5" />
+                        </svg>
+                      </button>
+                      <button class="icon-button panel-footer__button" id="add-file-button" type="button" aria-label="Add file" title="Add file">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                          <path d="M7 3h7l5 5v13H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
+                          <path d="M14 3v5h5" />
+                          <path d="M12 12v5M9.5 14.5h5" />
+                        </svg>
+                      </button>
+                    </div>
                   </aside>
 
                   <section class="panel-detail panel-detail--files" id="files-detail"></section>
@@ -739,21 +740,7 @@
               <div class="panel-body">
                 <div class="panel-copy-row">
                   <p class="panel-copy">Design the organization intranet with editable web fragments.</p>
-                  <div class="panel-copy-row__actions">
-                    <button class="icon-button panel-copy-row__icon-button" id="refresh-web" type="button" aria-label="Refresh web fragments" title="Refresh web fragments">
-                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <path d="M20 12a8 8 0 1 1-2.34-5.66" />
-                        <path d="M20 4v5h-5" />
-                      </svg>
-                    </button>
-                    <button class="icon-button panel-copy-row__icon-button" id="add-web-fragment" type="button" aria-label="Add web fragment" title="Add web fragment">
-                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <path d="M12 5v14M5 12h14" />
-                        <path d="M6 6h12v12H6z" />
-                      </svg>
-                    </button>
-                    <p class="panel-scan-state panel-scan-state--hidden" id="web-state" aria-live="polite">Ready</p>
-                  </div>
+                  <p class="panel-scan-state panel-scan-state--hidden" id="web-state" aria-live="polite">Ready</p>
                 </div>
                 <div class="panel-layout panel-layout--web">
                   <aside class="panel-sidebar" aria-label="Web fragments">
@@ -761,6 +748,20 @@
                       <p class="panel-section-header__eyebrow">fragments</p>
                     </div>
                     <div class="source-menu" id="web-menu"></div>
+                    <div class="panel-footer">
+                      <button class="icon-button panel-footer__button" id="refresh-web" type="button" aria-label="Refresh web fragments" title="Refresh web fragments">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                          <path d="M20 12a8 8 0 1 1-2.34-5.66" />
+                          <path d="M20 4v5h-5" />
+                        </svg>
+                      </button>
+                      <button class="icon-button panel-footer__button" id="add-web-fragment" type="button" aria-label="Add web fragment" title="Add web fragment">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                          <path d="M12 5v14M5 12h14" />
+                          <path d="M6 6h12v12H6z" />
+                        </svg>
+                      </button>
+                    </div>
                   </aside>
                   <section class="panel-detail panel-detail--web" id="web-detail"></section>
                 </div>
@@ -834,10 +835,7 @@
               <div class="panel-body">
                 <div class="panel-copy-row">
                   <p class="panel-copy">Sequence work as continuous objectives with priorities and dependencies.</p>
-                  <div class="panel-copy-row__actions">
-                    <button class="chrome-button panel-copy-row__button" id="add-schedule-task" type="button">new flow</button>
-                    <p class="panel-scan-state panel-scan-state--hidden" id="flow-state" aria-live="polite">Ready</p>
-                  </div>
+                  <p class="panel-scan-state panel-scan-state--hidden" id="flow-state" aria-live="polite">Ready</p>
                 </div>
                 <div class="panel-layout panel-layout--flow">
                   <aside class="panel-sidebar" aria-label="Flow objectives">
@@ -845,6 +843,13 @@
                       <p class="panel-section-header__eyebrow">flows</p>
                     </div>
                     <div class="source-menu" id="flow-list"></div>
+                    <div class="panel-footer">
+                      <button class="icon-button panel-footer__button" id="add-schedule-task" type="button" aria-label="New flow objective" title="New flow objective">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                          <path d="M12 5v14M5 12h14" />
+                        </svg>
+                      </button>
+                    </div>
                   </aside>
                   <section class="panel-detail panel-detail--flow" id="flow-detail"></section>
                 </div>
@@ -857,10 +862,7 @@
               <div class="panel-body">
                 <div class="panel-copy-row">
                   <p class="panel-copy">Coordinate meetings between agents and capture decisions.</p>
-                  <div class="panel-copy-row__actions">
-                    <button class="chrome-button panel-copy-row__button" id="create-meeting" type="button">new meeting</button>
-                    <p class="panel-scan-state panel-scan-state--hidden" id="meet-state" aria-live="polite">Ready</p>
-                  </div>
+                  <p class="panel-scan-state panel-scan-state--hidden" id="meet-state" aria-live="polite">Ready</p>
                 </div>
                 <div class="panel-layout panel-layout--meet">
                   <aside class="panel-sidebar" aria-label="Meetings">
@@ -868,6 +870,13 @@
                       <p class="panel-section-header__eyebrow">meetings</p>
                     </div>
                     <div class="source-menu" id="meeting-menu"></div>
+                    <div class="panel-footer">
+                      <button class="icon-button panel-footer__button" id="create-meeting" type="button" aria-label="New meeting" title="New meeting">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                          <path d="M12 5v14M5 12h14" />
+                        </svg>
+                      </button>
+                    </div>
                   </aside>
                   <section class="panel-detail panel-detail--meet" id="meet-detail"></section>
                 </div>
@@ -903,10 +912,6 @@
               <div class="panel-body">
                 <div class="panel-copy-row">
                   <p class="panel-copy">Watch inference dispatch, tier routing, and node health.</p>
-                  <div class="panel-copy-row__actions">
-                    <button class="chrome-button" id="queue-workflow-button" type="button">workflow</button>
-                    <button class="chrome-button" id="queue-enqueue-button" type="button">dispatch</button>
-                  </div>
                   <p class="panel-scan-state panel-scan-state--hidden" id="queue-state" aria-live="polite">Ready</p>
                 </div>
                 <div class="panel-layout panel-layout--queue">
@@ -959,6 +964,13 @@
                       <span class="field__label">objective</span>
                       <textarea class="field__control field__control--textarea" id="queue-workflow-objective" placeholder="Describe what this workflow should accomplish…"></textarea>
                     </label>
+                  </div>
+                  <div class="panel-section-header panel-section-header--inline">
+                    <p class="panel-section-header__eyebrow">dispatch</p>
+                    <div class="panel-section-header__actions">
+                      <button class="chrome-button" id="queue-workflow-button" type="button">workflow</button>
+                      <button class="chrome-button" id="queue-enqueue-button" type="button">dispatch</button>
+                    </div>
                   </div>
                   <div class="queue-metrics" id="queue-metrics"></div>
                   <div class="queue-nodes" id="queue-nodes"></div>
