@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "bun --watch .system/server/dev.ts",
     "start": "bun .system/server/dev.ts",
-    "test": "bun test ./.system/tests/*.test.ts"
+    "test": "bun test ./.system/tests/*.test.ts",
+    "seed:demo": "bun .system/scripts/seed-demo.ts"
   }
 }
