@@ -1348,10 +1348,6 @@ textarea {
   stroke-width: 3.2;
 }
 
-.desktop-icon__fill {
-  fill: var(--line);
-  stroke: none;
-}
 
 .desktop-icon__label {
   font-size: 0.88rem;
@@ -1360,9 +1356,6 @@ textarea {
   line-height: 1.1;
 }
 
-.desktop-icon--grouped {
-  inline-size: 5.5rem;
-}
 
 .source-card__meta-detail {
   font-size: 0.72rem;

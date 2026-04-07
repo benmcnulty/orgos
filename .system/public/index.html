@@ -17,6 +17,7 @@
             aria-pressed="false"
             aria-label="System idle mode"
             title="Set system mode"
+            hidden
           >
             <span class="mode-toggle__track">
               <span class="mode-toggle__thumb"></span>
@@ -53,6 +54,29 @@
               <span class="source-indicator__count" id="source-indicator-count" hidden></span>
             </button>
             <div class="source-tooltip" id="source-tooltip" role="tooltip" hidden></div>
+          </div>
+          <div class="notification-indicator-wrap" id="notification-indicator-wrap">
+            <button
+              class="notification-indicator"
+              id="notification-indicator"
+              type="button"
+              aria-label="Board notifications"
+              title="Board notifications"
+              hidden
+            >
+              <svg class="notification-indicator__icon" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+                <path d="M32 10c-9.4 0-17 7.6-17 17v8.5l-4.5 7.5h43L49 35.5V27c0-9.4-7.6-17-17-17z" />
+                <path d="M24 50c1.4 3 4.4 5 8 5s6.6-2 8-5" />
+              </svg>
+              <span class="notification-indicator__count" id="notification-indicator-count" hidden></span>
+            </button>
+            <div class="notification-popover" id="notification-popover" hidden>
+              <div class="notification-popover__header">
+                <span>Board</span>
+                <span id="notification-summary">No updates</span>
+              </div>
+              <div class="notification-popover__list" id="notification-popover-list"></div>
+            </div>
           </div>
           <div class="header-utility-stack">
             <div class="header-actions" aria-label="Display controls">
@@ -134,11 +158,97 @@
         </div>
 
         <section class="desktop-area" id="desktop-area" aria-label="desktop workspace">
+          <aside class="desktop-sidebar" id="desktop-org-sidebar" aria-label="organization runtime">
+            <div class="desktop-sidebar__header">
+              <div>
+                <p class="desktop-sidebar__eyebrow">runtime</p>
+                <p class="desktop-sidebar__title">organizations</p>
+              </div>
+              <button class="icon-button desktop-sidebar__toggle" id="desktop-sidebar-toggle" type="button" aria-label="Collapse organization sidebar" title="Collapse organization sidebar">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M15 6l-6 6 6 6" />
+                </svg>
+              </button>
+            </div>
+            <div class="desktop-sidebar__list" id="desktop-org-list"></div>
+            <div class="desktop-sidebar__footer">
+              <button class="chrome-button desktop-sidebar__footer-button" id="desktop-add-organization" type="button">new organization</button>
+              <button class="chrome-button desktop-sidebar__footer-button" id="desktop-open-about" type="button">about</button>
+            </div>
+          </aside>
+
+          <div class="desktop-main">
+            <section class="desktop-dashboard" id="desktop-dashboard" aria-label="organization dashboard">
+              <article class="desktop-dashboard__card desktop-dashboard__card--hero" id="dashboard-active-card">
+                <p class="desktop-dashboard__eyebrow">active organization</p>
+                <h2 class="desktop-dashboard__title" id="dashboard-active-name">welcome to orgos</h2>
+                <p class="desktop-dashboard__summary" id="dashboard-active-summary">Open an organization and set it to auto to begin autonomous work.</p>
+              </article>
+              <article class="desktop-dashboard__card" id="dashboard-queue-card">
+                <p class="desktop-dashboard__eyebrow">queue pressure</p>
+                <p class="desktop-dashboard__metric" id="dashboard-queue-metric">0</p>
+                <p class="desktop-dashboard__summary" id="dashboard-queue-summary">No queued work yet.</p>
+              </article>
+              <article class="desktop-dashboard__card" id="dashboard-notifications-card">
+                <p class="desktop-dashboard__eyebrow">board</p>
+                <p class="desktop-dashboard__metric" id="dashboard-notification-metric">0</p>
+                <p class="desktop-dashboard__summary" id="dashboard-notification-summary">No unread notifications.</p>
+              </article>
+              <article class="desktop-dashboard__card desktop-dashboard__card--feed" id="dashboard-activity-card">
+                <p class="desktop-dashboard__eyebrow">open organization activity</p>
+                <div class="desktop-dashboard__feed" id="desktop-dashboard-feed"></div>
+              </article>
+            </section>
+
+            <section class="desktop-groups">
+              <section class="desktop-group desktop-group--status" id="desktop-group-status" aria-label="workspace summary">
+                <header class="desktop-group__header">
+                  <h2 class="desktop-group__title">workspace</h2>
+                  <div class="desktop-group__actions">
+                    <button class="chrome-button desktop-group__tray-toggle" id="system-tray-toggle" type="button">system tray</button>
+                  </div>
+                </header>
+                <div class="desktop-group__status-launch">
+                  <button class="desktop-icon desktop-icon--launch" id="status-launch" type="button" data-app-scope="system" data-panel-id="status" aria-label="Open Status" title="Open Status">
+                    <svg class="desktop-icon__graphic" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+                      <path class="desktop-icon__stroke" d="M14 46V18h36v28" />
+                      <path class="desktop-icon__stroke" d="M22 38l8-10 7 6 9-12" />
+                      <path class="desktop-icon__stroke" d="M14 46h36" />
+                    </svg>
+                    <span class="desktop-icon__label">Status</span>
+                  </button>
+                </div>
+              </section>
+              <section class="desktop-group" id="desktop-group-organization" aria-label="organization applications">
+                <header class="desktop-group__header">
+                  <h2 class="desktop-group__title">organization</h2>
+                </header>
+                <div class="desktop-group__grid" id="desktop-organization-grid"></div>
+              </section>
+            </section>
+
+            <aside class="system-tray" id="system-tray" hidden aria-label="system applications">
+              <div class="system-tray__header">
+                <div>
+                  <p class="desktop-sidebar__eyebrow">shared</p>
+                  <p class="desktop-sidebar__title">system tray</p>
+                </div>
+                <button class="icon-button system-tray__close" id="system-tray-close" type="button" aria-label="Close system tray" title="Close system tray">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M6 6l12 12M18 6L6 18" />
+                  </svg>
+                </button>
+              </div>
+              <div class="desktop-group__grid" id="desktop-system-grid"></div>
+            </aside>
+          </div>
+
+          <div class="desktop-icon-reservoir" id="desktop-icon-reservoir" hidden>
           <button
             class="desktop-icon"
             id="about-icon"
             type="button"
-            data-app-scope="system"
+            data-app-scope="organization"
             data-panel-id="about"
             aria-label="Open About"
             title="Open About"
@@ -148,6 +258,23 @@
               <path class="desktop-icon__stroke" d="M32 27v13M32 22.5h.01" />
             </svg>
             <span class="desktop-icon__label">About</span>
+          </button>
+
+          <button
+            class="desktop-icon"
+            id="status-icon"
+            type="button"
+            data-app-scope="system"
+            data-panel-id="status"
+            aria-label="Open Status"
+            title="Open Status"
+          >
+            <svg class="desktop-icon__graphic" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+              <path class="desktop-icon__stroke" d="M14 46V18h36v28" />
+              <path class="desktop-icon__stroke" d="M22 38l8-10 7 6 9-12" />
+              <path class="desktop-icon__stroke" d="M14 46h36" />
+            </svg>
+            <span class="desktop-icon__label">Status</span>
           </button>
 
           <button
@@ -379,6 +506,26 @@
 
           <button
             class="desktop-icon"
+            id="web-icon"
+            type="button"
+            data-app-scope="organization"
+            data-panel-id="web"
+            aria-label="Open Web"
+            title="Open Web"
+          >
+            <svg class="desktop-icon__graphic" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+              <rect class="desktop-icon__stroke" x="8" y="10" width="48" height="44" rx="5" />
+              <path class="desktop-icon__stroke" d="M8 22h48" />
+              <path class="desktop-icon__stroke" d="M23 34h18M23 42h12" />
+              <circle class="desktop-icon__stroke" cx="18" cy="17" r="1.5" />
+              <circle class="desktop-icon__stroke" cx="24" cy="17" r="1.5" />
+              <circle class="desktop-icon__stroke" cx="30" cy="17" r="1.5" />
+            </svg>
+            <span class="desktop-icon__label">Web</span>
+          </button>
+
+          <button
+            class="desktop-icon"
             id="evals-icon"
             type="button"
             data-app-scope="organization"
@@ -393,6 +540,7 @@
             </svg>
             <span class="desktop-icon__label">Evals</span>
           </button>
+          </div>
         </section>
 
         <section class="panel-region" id="panel-region" hidden>
@@ -511,6 +659,29 @@
             </div>
           </section>
 
+          <section class="app-panel" id="status-panel" hidden>
+            <div class="app-panel__window">
+              <div class="panel-body">
+                <div class="panel-copy-row">
+                  <p class="panel-copy">Monitor system and organization runtime state in one place.</p>
+                  <p class="panel-scan-state panel-scan-state--hidden" id="status-state" aria-live="polite">Ready</p>
+                </div>
+                <div class="panel-layout panel-layout--status">
+                  <aside class="panel-sidebar" aria-label="Status sections">
+                    <div class="panel-section-header">
+                      <p class="panel-section-header__eyebrow">status</p>
+                    </div>
+                    <div class="source-menu" id="status-menu">
+                      <button class="source-item source-item--active" data-status-scope="organization" type="button">organization</button>
+                      <button class="source-item" data-status-scope="system" type="button">system</button>
+                    </div>
+                  </aside>
+                  <section class="panel-detail panel-detail--status" id="status-detail"></section>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <section class="app-panel" id="files-panel" hidden>
             <div class="app-panel__window">
               <div class="panel-body">
@@ -597,11 +768,45 @@
             </div>
           </section>
 
+          <section class="app-panel" id="web-panel" hidden>
+            <div class="app-panel__window">
+              <div class="panel-body">
+                <div class="panel-copy-row">
+                  <p class="panel-copy">Design the organization intranet with editable web fragments and tool previews.</p>
+                  <div class="panel-copy-row__actions">
+                    <button class="icon-button panel-copy-row__icon-button" id="refresh-web" type="button" aria-label="Refresh web fragments" title="Refresh web fragments">
+                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M20 12a8 8 0 1 1-2.34-5.66" />
+                        <path d="M20 4v5h-5" />
+                      </svg>
+                    </button>
+                    <button class="icon-button panel-copy-row__icon-button" id="add-web-fragment" type="button" aria-label="Add web fragment" title="Add web fragment">
+                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M12 5v14M5 12h14" />
+                        <path d="M6 6h12v12H6z" />
+                      </svg>
+                    </button>
+                    <p class="panel-scan-state panel-scan-state--hidden" id="web-state" aria-live="polite">Ready</p>
+                  </div>
+                </div>
+                <div class="panel-layout panel-layout--web">
+                  <aside class="panel-sidebar" aria-label="Web fragments">
+                    <div class="panel-section-header">
+                      <p class="panel-section-header__eyebrow">fragments</p>
+                    </div>
+                    <div class="source-menu" id="web-menu"></div>
+                  </aside>
+                  <section class="panel-detail panel-detail--web" id="web-detail"></section>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <section class="app-panel" id="agents-panel" hidden>
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Configure the agents available to orgos.</p>
+                  <p class="panel-copy">Define and edit the agents this system can deploy.</p>
                   <p class="panel-scan-state panel-scan-state--hidden" id="agents-state" aria-live="polite">Ready</p>
                 </div>
                 <div class="panel-layout panel-layout--agents">
@@ -628,7 +833,7 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Browse the skills available to agents in orgos.</p>
+                  <p class="panel-copy">Inspect the skill definitions agents can load at runtime.</p>
                   <p class="panel-scan-state panel-scan-state--hidden" id="skills-state" aria-live="polite">Ready</p>
                 </div>
                 <div class="panel-layout panel-layout--skills">
@@ -648,7 +853,7 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Inspect the shared tools available to orgos and its agents.</p>
+                  <p class="panel-copy">Browse registered tools available to agents and test them directly.</p>
                   <p class="panel-scan-state panel-scan-state--hidden" id="tools-state" aria-live="polite">Ready</p>
                 </div>
                 <div class="panel-layout panel-layout--tools">
@@ -662,7 +867,7 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Sequence continuous objective-driven work without idle calendar gaps.</p>
+                  <p class="panel-copy">Sequence work as continuous objectives, ordered by priority and dependencies.</p>
                   <div class="panel-copy-row__actions">
                     <button class="chrome-button panel-copy-row__button" id="add-schedule-task" type="button">new flow</button>
                     <p class="panel-scan-state panel-scan-state--hidden" id="schedule-state" aria-live="polite">Ready</p>
@@ -685,7 +890,7 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Run structured agent meetings inside orgos.</p>
+                  <p class="panel-copy">Coordinate structured meetings between agents and capture decisions.</p>
                   <div class="panel-copy-row__actions">
                     <button class="chrome-button panel-copy-row__button" id="create-meeting" type="button">new meeting</button>
                     <p class="panel-scan-state panel-scan-state--hidden" id="meet-state" aria-live="polite">Ready</p>
@@ -708,7 +913,7 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Send and receive messages between agents in orgos.</p>
+                  <p class="panel-copy">Route messages between agents and review the organization inbox.</p>
                   <p class="panel-scan-state panel-scan-state--hidden" id="mail-state" aria-live="polite">Ready</p>
                 </div>
                 <div class="panel-layout panel-layout--mail">
@@ -731,7 +936,7 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Monitor the inference queue and node telemetry for orgos.</p>
+                  <p class="panel-copy">Watch inference dispatch, tier routing, and node health in real time.</p>
                   <p class="panel-scan-state panel-scan-state--hidden" id="queue-state" aria-live="polite">Ready</p>
                 </div>
                 <div class="panel-layout panel-layout--queue">
@@ -747,7 +952,7 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Staff the organization with departments, teams, roles, and persistent identities.</p>
+                  <p class="panel-copy">Build the organizational structure — departments, teams, roles, and agent identities.</p>
                   <p class="panel-scan-state panel-scan-state--hidden" id="hire-state" aria-live="polite">Ready</p>
                 </div>
                 <div class="panel-layout panel-layout--hire">
@@ -778,7 +983,7 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Define delivery-focused projects and assign participants from the organization.</p>
+                  <p class="panel-copy">Define and track projects, assign roles, and connect them to flow objectives.</p>
                   <p class="panel-scan-state panel-scan-state--hidden" id="projects-state" aria-live="polite">Ready</p>
                 </div>
                 <div class="panel-layout panel-layout--projects">
@@ -803,7 +1008,7 @@
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Define and review evaluations for prompts, agents, skills, tools, and workflows.</p>
+                  <p class="panel-copy">Define evaluations and review results across agents, skills, and workflows.</p>
                   <p class="panel-scan-state panel-scan-state--hidden" id="evals-state" aria-live="polite">Ready</p>
                 </div>
                 <div class="panel-layout panel-layout--evals">
@@ -946,6 +1151,7 @@
           </span>
           <span class="source-menu-item__meta" data-role="meta"></span>
         </button>
+        <div class="organization-menu-item__badges" data-role="badges"></div>
       </article>
     </template>
 
@@ -1038,6 +1244,13 @@
           </label>
         </div>
 
+        <label class="field">
+          <span class="field__label">archetype</span>
+          <select class="field__control" data-field="archetypeId">
+            <option value="">custom organization</option>
+          </select>
+        </label>
+
         <label class="field" data-role="industry-custom-field" hidden>
           <span class="field__label">custom industry</span>
           <input class="field__control" data-field="industryCustom" type="text" name="orgos_organization_industry_custom" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" />
@@ -1047,6 +1260,40 @@
           <span class="field__label">description</span>
           <textarea class="field__control field__control--textarea" data-field="description" rows="7"></textarea>
         </label>
+
+        <div class="organization-runtime">
+          <div class="organization-runtime__row">
+            <button class="chrome-button source-card__button" data-action="toggle-open-organization" type="button">open</button>
+            <button class="chrome-button source-card__button" data-action="activate-organization" type="button">make active</button>
+            <button class="chrome-button source-card__button" data-action="toggle-mode-organization" type="button">set auto</button>
+          </div>
+          <div class="field-grid field-grid--compact">
+            <label class="field">
+              <span class="field__label">override theme</span>
+              <select class="field__control" data-field="appearanceTheme">
+                <option value="gray">gray</option>
+                <option value="light">light</option>
+                <option value="dark">dark</option>
+                <option value="system">system</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="field__label">override accent</span>
+              <select class="field__control" data-field="appearanceAccent">
+                <option value="neutral">neutral</option>
+                <option value="rose">rose</option>
+                <option value="orange">orange</option>
+                <option value="amber">amber</option>
+                <option value="lime">lime</option>
+                <option value="emerald">emerald</option>
+                <option value="cyan">cyan</option>
+                <option value="blue">blue</option>
+                <option value="indigo">indigo</option>
+                <option value="magenta">magenta</option>
+              </select>
+            </label>
+          </div>
+        </div>
 
         <div class="source-card__actions source-card__actions--end">
           <button class="chrome-button source-card__button source-card__button--danger" data-action="delete-organization" type="button">delete</button>

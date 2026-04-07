@@ -1,8 +1,10 @@
 const PANEL_ABOUT = "about";
+const PANEL_STATUS = "status";
 const PANEL_SOURCES = "sources";
 const PANEL_COLOR = "color";
 const PANEL_FILES = "files";
 const PANEL_TEXT = "text";
+const PANEL_WEB = "web";
 const PANEL_AGENTS = "agents";
 const PANEL_SKILLS = "skills";
 const PANEL_TOOLS = "tools";
@@ -28,10 +30,13 @@ const windowedButton = document.querySelector("#windowed-button");
 const modeToggle = document.querySelector("#mode-toggle");
 const modeToggleLabel = document.querySelector("#mode-toggle-label");
 const aboutIcon = document.querySelector("#about-icon");
+const statusIcon = document.querySelector("#status-icon");
+const statusLaunch = document.querySelector("#status-launch");
 const sourcesIcon = document.querySelector("#sources-icon");
 const colorIcon = document.querySelector("#color-icon");
 const filesIcon = document.querySelector("#files-icon");
 const textIcon = document.querySelector("#text-icon");
+const webIcon = document.querySelector("#web-icon");
 const agentsIcon = document.querySelector("#agents-icon");
 const skillsIcon = document.querySelector("#skills-icon");
 const toolsIcon = document.querySelector("#tools-icon");
@@ -52,10 +57,12 @@ const workspaceArea = document.querySelector(".workspace-area");
 const desktopArea = document.querySelector("#desktop-area");
 const panelRegion = document.querySelector("#panel-region");
 const aboutPanel = document.querySelector("#about-panel");
+const statusPanel = document.querySelector("#status-panel");
 const sourcesPanel = document.querySelector("#sources-panel");
 const colorPanel = document.querySelector("#color-panel");
 const filesPanel = document.querySelector("#files-panel");
 const textPanel = document.querySelector("#text-panel");
+const webPanel = document.querySelector("#web-panel");
 const agentsPanel = document.querySelector("#agents-panel");
 const skillsPanel = document.querySelector("#skills-panel");
 const toolsPanel = document.querySelector("#tools-panel");
@@ -87,6 +94,7 @@ const projectsDetail = document.querySelector("#projects-detail");
 const evalsMenu = document.querySelector("#evals-menu");
 const evalsDetail = document.querySelector("#evals-detail");
 const agentsState = document.querySelector("#agents-state");
+const statusState = document.querySelector("#status-state");
 const skillsState = document.querySelector("#skills-state");
 const toolsState = document.querySelector("#tools-state");
 const scheduleState = document.querySelector("#schedule-state");
@@ -129,6 +137,12 @@ const sourceIndicatorWrap = document.querySelector("#source-indicator-wrap");
 const sourceIndicator = document.querySelector("#source-indicator");
 const sourceIndicatorCount = document.querySelector("#source-indicator-count");
 const sourceTooltip = document.querySelector("#source-tooltip");
+const notificationIndicatorWrap = document.querySelector("#notification-indicator-wrap");
+const notificationIndicator = document.querySelector("#notification-indicator");
+const notificationIndicatorCount = document.querySelector("#notification-indicator-count");
+const notificationPopover = document.querySelector("#notification-popover");
+const notificationPopoverList = document.querySelector("#notification-popover-list");
+const notificationSummary = document.querySelector("#notification-summary");
 const confirmModal = document.querySelector("#confirm-modal");
 const confirmModalTitle = document.querySelector("#confirm-modal-title");
 const confirmModalBody = document.querySelector("#confirm-modal-body");
@@ -148,6 +162,11 @@ const textDocumentMenu = document.querySelector("#text-document-menu");
 const textDetail = document.querySelector("#text-detail");
 const addTextDocumentButton = document.querySelector("#add-text-document");
 const openTextDocumentButton = document.querySelector("#open-text-document");
+const refreshWebButton = document.querySelector("#refresh-web");
+const addWebFragmentButton = document.querySelector("#add-web-fragment");
+const webStateLabel = document.querySelector("#web-state");
+const webMenu = document.querySelector("#web-menu");
+const webDetail = document.querySelector("#web-detail");
 const textFilePicker = document.querySelector("#text-file-picker");
 const filePickerModeLabel = document.querySelector("#file-picker-mode-label");
 const filePickerTitle = document.querySelector("#file-picker-title");
@@ -171,6 +190,26 @@ const rootMenuItemTemplate = document.querySelector("#root-menu-item-template");
 const folderMenuItemTemplate = document.querySelector("#folder-menu-item-template");
 const fileEntryTemplate = document.querySelector("#file-entry-template");
 const textDocumentCardTemplate = document.querySelector("#text-document-card-template");
+const desktopSystemGrid = document.querySelector("#desktop-system-grid");
+const desktopOrganizationGrid = document.querySelector("#desktop-organization-grid");
+const desktopIconReservoir = document.querySelector("#desktop-icon-reservoir");
+const desktopOrgSidebar = document.querySelector("#desktop-org-sidebar");
+const desktopSidebarToggle = document.querySelector("#desktop-sidebar-toggle");
+const desktopOrgList = document.querySelector("#desktop-org-list");
+const desktopAddOrganizationButton = document.querySelector("#desktop-add-organization");
+const desktopOpenAboutButton = document.querySelector("#desktop-open-about");
+const dashboardActiveName = document.querySelector("#dashboard-active-name");
+const dashboardActiveSummary = document.querySelector("#dashboard-active-summary");
+const dashboardQueueMetric = document.querySelector("#dashboard-queue-metric");
+const dashboardQueueSummary = document.querySelector("#dashboard-queue-summary");
+const dashboardNotificationMetric = document.querySelector("#dashboard-notification-metric");
+const dashboardNotificationSummary = document.querySelector("#dashboard-notification-summary");
+const desktopDashboardFeed = document.querySelector("#desktop-dashboard-feed");
+const systemTray = document.querySelector("#system-tray");
+const systemTrayToggle = document.querySelector("#system-tray-toggle");
+const systemTrayClose = document.querySelector("#system-tray-close");
+const statusMenu = document.querySelector("#status-menu");
+const statusDetail = document.querySelector("#status-detail");
 
 const telemetry = [];
 let wakeLock = null;
@@ -195,6 +234,14 @@ let appearanceState = {
   accent: "neutral",
   theme: "gray",
 };
+let openOrganizationIds = [];
+let organizationModes = {};
+let organizationAppearanceOverrides = {};
+let boardNotifications = [];
+let notificationsOpen = false;
+let desktopSidebarCollapsed = false;
+let systemTrayOpen = false;
+let selectedStatusScope = "organization";
 let savingAppearance = false;
 let appearanceSaveQueued = false;
 let systemColorMediaQuery = null;
@@ -245,7 +292,24 @@ let selectedHireKey = null;
 let projects = [];
 let selectedProjectId = null;
 let evals = [];
+let runtimeOrganizations = [];
+let webState = {
+  fragments: [],
+  orgId: null,
+  preview: "",
+  selectedFragmentId: null,
+  tools: [],
+};
 let selectedEvalId = null;
+let templateCatalog = {
+  bundles: [],
+  departmentTemplates: [],
+  organizationArchetypes: [],
+  processTemplates: [],
+  roleTemplates: [],
+  teamTemplates: [],
+  version: 1,
+};
 let textViewSettings = {
   plainBold: false,
   plainCenter: false,
@@ -256,6 +320,14 @@ const ABOUT_ICON_MARKUP = `
   <svg viewBox="0 0 64 64" focusable="false">
     <circle class="desktop-icon__stroke" cx="32" cy="32" r="19" />
     <path class="desktop-icon__stroke" d="M32 27v13M32 22.5h.01" />
+  </svg>
+`;
+
+const STATUS_ICON_MARKUP = `
+  <svg viewBox="0 0 64 64" focusable="false">
+    <path class="desktop-icon__stroke" d="M14 46V18h36v28" />
+    <path class="desktop-icon__stroke" d="M22 38l8-10 7 6 9-12" />
+    <path class="desktop-icon__stroke" d="M14 46h36" />
   </svg>
 `;
 
@@ -295,6 +367,17 @@ const TEXT_ICON_MARKUP = `
     <path class="desktop-icon__stroke" d="M18 8h21l11 11v33c0 2.2-1.8 4-4 4H18c-2.2 0-4-1.8-4-4V12c0-2.2 1.8-4 4-4z" />
     <path class="desktop-icon__stroke" d="M39 8v11h11" />
     <path class="desktop-icon__stroke" d="M22 28h20M22 36h20M22 44h14" />
+  </svg>
+`;
+
+const WEB_ICON_MARKUP = `
+  <svg viewBox="0 0 64 64" focusable="false">
+    <rect class="desktop-icon__stroke" x="8" y="10" width="48" height="44" rx="5" />
+    <path class="desktop-icon__stroke" d="M8 22h48" />
+    <path class="desktop-icon__stroke" d="M23 34h18M23 42h12" />
+    <circle class="desktop-icon__stroke" cx="18" cy="17" r="1.5" />
+    <circle class="desktop-icon__stroke" cx="24" cy="17" r="1.5" />
+    <circle class="desktop-icon__stroke" cx="30" cy="17" r="1.5" />
   </svg>
 `;
 
@@ -414,13 +497,18 @@ function normalizeTier(value) {
 
 function createDraftOrganization(overrides = {}) {
   return {
+    archetypeId: "",
+    appearanceAccent: "neutral",
+    appearanceTheme: "gray",
     createdAt: "",
     description: "",
     id: `draft-${crypto.randomUUID()}`,
     industry: "technology",
     industryCustom: "",
     lastActiveAt: "",
+    mode: "idle",
     name: "",
+    open: false,
     persisted: false,
     updatedAt: "",
     ...overrides,
@@ -429,16 +517,60 @@ function createDraftOrganization(overrides = {}) {
 
 function normalizeOrganization(value) {
   return createDraftOrganization({
+    archetypeId: value.archetypeId ?? "",
+    appearanceAccent: normalizeAppearanceAccent(value.appearanceAccent),
+    appearanceTheme: normalizeAppearanceTheme(value.appearanceTheme),
     createdAt: value.createdAt ?? "",
     description: value.description ?? "",
     id: value.id ?? `draft-${crypto.randomUUID()}`,
     industry: value.industry ?? "technology",
     industryCustom: value.industryCustom ?? "",
     lastActiveAt: value.lastActiveAt ?? "",
+    mode: value.mode === "auto" ? "auto" : "idle",
     name: value.name ?? "",
+    open: Boolean(value.open),
     persisted: true,
     updatedAt: value.updatedAt ?? "",
   });
+}
+
+function getOrganizationArchetypes() {
+  return templateCatalog.organizationArchetypes ?? [];
+}
+
+function findOrganizationArchetype(archetypeId) {
+  return getOrganizationArchetypes().find((entry) => entry.id === archetypeId) ?? null;
+}
+
+function getRoleTemplates() {
+  return templateCatalog.roleTemplates ?? [];
+}
+
+function findRoleTemplateSummary(templateId) {
+  return getRoleTemplates().find((entry) => entry.id === templateId) ?? null;
+}
+
+function getDepartmentTemplates() {
+  return templateCatalog.departmentTemplates ?? [];
+}
+
+function findDepartmentTemplateSummary(templateId) {
+  return getDepartmentTemplates().find((entry) => entry.id === templateId) ?? null;
+}
+
+function getTeamTemplates() {
+  return templateCatalog.teamTemplates ?? [];
+}
+
+function findTeamTemplateSummary(templateId) {
+  return getTeamTemplates().find((entry) => entry.id === templateId) ?? null;
+}
+
+function getBundleSummaries(bundleIds = []) {
+  const all = templateCatalog.bundles ?? [];
+  return bundleIds
+    .map((bundleId) => all.find((entry) => entry.id === bundleId))
+    .filter(Boolean);
 }
 
 function createTextDocument(overrides = {}) {
@@ -917,6 +1049,44 @@ function setAboutState(message) {
   aboutState.textContent = message;
 }
 
+function unreadNotificationsForOrganization(organizationId) {
+  return boardNotifications.filter((notification) =>
+    notification.organizationId === organizationId && notification.unread
+  ).length;
+}
+
+function formatOrganizationRuntimeLabel(organization) {
+  if (!organization.persisted) {
+    return "draft";
+  }
+  const parts = [];
+  if (organization.id === activeOrganizationId) {
+    parts.push("active");
+  } else if (organization.open) {
+    parts.push("open");
+  } else {
+    parts.push("closed");
+  }
+  parts.push(organization.mode === "auto" ? "auto" : "idle");
+  const unread = unreadNotificationsForOrganization(organization.id);
+  if (unread > 0) {
+    parts.push(`${unread} unread`);
+  } else if (organization.id !== activeOrganizationId) {
+    parts.push(formatLastActiveLabel(organization));
+  }
+  return parts.join(" · ");
+}
+
+function getEffectiveAppearance() {
+  const activeOverride = activeOrganizationId
+    ? organizationAppearanceOverrides[activeOrganizationId] ?? null
+    : null;
+  return {
+    accent: normalizeAppearanceAccent(activeOverride?.accent ?? appearanceState.accent),
+    theme: normalizeAppearanceTheme(activeOverride?.theme ?? appearanceState.theme),
+  };
+}
+
 function updateHeaderCaption() {
   if (!headerCaption) return;
   const activeOrg = organizations.find((org) => org.id === activeOrganizationId && org.persisted);
@@ -925,6 +1095,7 @@ function updateHeaderCaption() {
   headerCaptionSubtitle.textContent = activeOrg?.createdAt
     ? `Founded in ${new Date(activeOrg.createdAt).getFullYear()}`
     : "";
+  document.documentElement.dataset.orgState = activeOrg?.mode === "auto" ? "auto" : "idle";
 }
 
 function loadSystemMode() {
@@ -977,16 +1148,23 @@ function renderSystemMode() {
   if (!modeToggle || !modeToggleLabel) {
     return;
   }
-  const isAuto = systemMode === "auto";
+  const activeMode = activeOrganizationId
+    ? organizations.find((organization) => organization.id === activeOrganizationId)?.mode ?? "idle"
+    : "idle";
+  systemMode = activeMode;
+  const isAuto = activeMode === "auto";
   modeToggle.classList.toggle("is-auto", isAuto);
   modeToggle.setAttribute("aria-pressed", String(isAuto));
-  modeToggle.setAttribute("aria-label", `System ${isAuto ? "auto" : "idle"} mode`);
-  modeToggle.title = `System ${isAuto ? "auto" : "idle"} mode`;
+  modeToggle.setAttribute("aria-label", `Organization ${isAuto ? "auto" : "idle"} mode`);
+  modeToggle.title = `Organization ${isAuto ? "auto" : "idle"} mode`;
   modeToggleLabel.textContent = isAuto ? "auto" : "idle";
 }
 
-async function bootstrapAutoMode() {
-  if (systemMode !== "auto" || !activeOrganizationId) {
+async function bootstrapAutoMode(orgId = activeOrganizationId) {
+  const runtimeMode = orgId
+    ? organizations.find((organization) => organization.id === orgId)?.mode ?? "idle"
+    : "idle";
+  if (runtimeMode !== "auto" || !orgId) {
     return;
   }
 
@@ -994,7 +1172,7 @@ async function bootstrapAutoMode() {
     await fetchJson("/api/system/auto-bootstrap", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ orgId: activeOrganizationId }),
+      body: JSON.stringify({ orgId }),
     });
     await Promise.all([
       loadSchedulePanelData(),
@@ -1135,12 +1313,14 @@ function themeTokens(themeMode) {
 
 function applyAppearance() {
   const root = document.documentElement;
-  const resolvedTheme = resolveThemeMode(appearanceState.theme);
+  const effectiveAppearance = getEffectiveAppearance();
+  const resolvedTheme = resolveThemeMode(effectiveAppearance.theme);
   const base = themeTokens(resolvedTheme);
-  const accent = accentTokens(resolvedTheme, appearanceState.accent);
+  const accent = accentTokens(resolvedTheme, effectiveAppearance.accent);
 
-  root.dataset.theme = appearanceState.theme;
+  root.dataset.theme = effectiveAppearance.theme;
   root.dataset.resolvedTheme = resolvedTheme;
+  root.dataset.orgAccent = effectiveAppearance.accent;
   root.style.setProperty("--page-background", base.pageBackground);
   root.style.setProperty("--surface", base.surface);
   root.style.setProperty("--surface-muted", base.surfaceMuted);
@@ -1307,6 +1487,388 @@ function updateDesktopAppAvailability() {
     icon.dataset.disabledReason = reason;
     icon.title = reason;
   });
+}
+
+function initializeDesktopGroups() {
+  if (!desktopSystemGrid || !desktopOrganizationGrid || !desktopIconReservoir) {
+    return;
+  }
+  const icons = [...desktopIconReservoir.querySelectorAll(".desktop-icon")];
+  for (const icon of icons) {
+    if (icon.id === "status-icon") {
+      continue;
+    }
+    icon.classList.add("desktop-icon--grouped");
+    const scope = icon.dataset.appScope === "organization" ? desktopOrganizationGrid : desktopSystemGrid;
+    scope.append(icon);
+  }
+}
+
+function renderNotifications() {
+  if (!notificationIndicatorCount || !notificationPopoverList || !notificationSummary) {
+    return;
+  }
+  if (notificationPopover) {
+    notificationPopover.hidden = !notificationsOpen;
+  }
+  const unreadCount = boardNotifications.filter((notification) => notification.unread).length;
+  notificationIndicatorCount.hidden = unreadCount === 0;
+  notificationIndicatorCount.textContent = String(unreadCount);
+  notificationIndicator?.classList.toggle("is-active", unreadCount > 0);
+  notificationSummary.textContent = unreadCount > 0 ? `${unreadCount} unread` : "No unread";
+  notificationPopoverList.replaceChildren();
+  if (boardNotifications.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "notification-popover__empty";
+    empty.textContent = "No board updates yet.";
+    notificationPopoverList.append(empty);
+    return;
+  }
+  for (const notification of boardNotifications.slice(0, 12)) {
+    const button = document.createElement("button");
+    button.className = "notification-item";
+    button.type = "button";
+    button.dataset.notificationId = notification.id;
+    const org = notification.organizationId
+      ? organizations.find((entry) => entry.id === notification.organizationId)?.name ?? notification.organizationId
+      : "system";
+    button.innerHTML = `
+      <span class="notification-item__title">${escapeHtml(notification.title)}</span>
+      <span class="notification-item__meta">${escapeHtml(org)} · ${escapeHtml(notification.sourceApp)}</span>
+      <span class="notification-item__summary">${escapeHtml(notification.summary)}</span>
+    `;
+    if (notification.unread) {
+      button.classList.add("is-unread");
+    }
+    notificationPopoverList.append(button);
+  }
+  renderDesktopSidebar();
+  renderDesktopDashboard();
+}
+
+function loadDesktopSidebarState() {
+  try {
+    desktopSidebarCollapsed = localStorage.getItem("orgos.desktopSidebarCollapsed") === "true";
+  } catch {
+    desktopSidebarCollapsed = false;
+  }
+}
+
+function persistDesktopSidebarState() {
+  try {
+    localStorage.setItem("orgos.desktopSidebarCollapsed", String(desktopSidebarCollapsed));
+  } catch {
+    console.debug("[orgos] could not persist desktop sidebar state");
+  }
+}
+
+function applyDesktopSidebarState() {
+  desktopArea?.classList.toggle("is-sidebar-collapsed", desktopSidebarCollapsed);
+  if (desktopSidebarToggle) {
+    desktopSidebarToggle.setAttribute(
+      "aria-label",
+      desktopSidebarCollapsed ? "Expand organization sidebar" : "Collapse organization sidebar",
+    );
+    desktopSidebarToggle.title = desktopSidebarCollapsed
+      ? "Expand organization sidebar"
+      : "Collapse organization sidebar";
+    desktopSidebarToggle.innerHTML = desktopSidebarCollapsed
+      ? '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6" /></svg>'
+      : '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15 6l-6 6 6 6" /></svg>';
+  }
+}
+
+function renderSystemTray() {
+  if (!systemTray || !systemTrayToggle) {
+    return;
+  }
+  systemTray.hidden = !systemTrayOpen;
+  systemTrayToggle.classList.toggle("is-active", systemTrayOpen);
+  systemTrayToggle.setAttribute("aria-expanded", String(systemTrayOpen));
+}
+
+function summarizeOrganizationActivity(organization) {
+  const runtimeSummary = runtimeOrganizations.find((entry) => entry.id === organization.id);
+  if (runtimeSummary?.headline) {
+    return runtimeSummary.headline;
+  }
+  const unread = unreadNotificationsForOrganization(organization.id);
+  if (unread > 0) {
+    return `${unread} board update${unread === 1 ? "" : "s"}`;
+  }
+  return organization.mode === "auto"
+    ? "running autonomous work"
+    : "idle and waiting";
+}
+
+function createDesktopOrganizationCard(organization) {
+  const card = document.createElement("article");
+  card.className = "desktop-org-card";
+  if (organization.id === activeOrganizationId) {
+    card.classList.add("is-active");
+  }
+
+  const unread = unreadNotificationsForOrganization(organization.id);
+  const runtimeSummary = runtimeOrganizations.find((entry) => entry.id === organization.id);
+
+  const trigger = document.createElement("button");
+  trigger.className = "desktop-org-card__trigger";
+  trigger.type = "button";
+  trigger.dataset.organizationId = organization.id;
+  trigger.dataset.action = "activate-desktop-organization";
+  trigger.innerHTML = `
+    <span class="desktop-org-card__title">${escapeHtml(organization.name || "new organization")}</span>
+    <span class="desktop-org-card__meta">${escapeHtml(runtimeSummary?.status || formatOrganizationRuntimeLabel(organization))}</span>
+  `;
+
+  const badges = document.createElement("div");
+  badges.className = "desktop-org-card__badges";
+  if (organization.id === activeOrganizationId) {
+    badges.append(createRuntimeBadge("active", "active"));
+  } else if (organization.open) {
+    badges.append(createRuntimeBadge("open", "open"));
+  }
+  const notificationLabel = unread > 0 ? `${unread} unread` : "board clear";
+  badges.append(createRuntimeBadge(notificationLabel, unread > 0 ? "unread" : ""));
+
+  const actions = document.createElement("div");
+  actions.className = "desktop-org-card__actions";
+  actions.append(
+    createDesktopOrgAction(organization.id === activeOrganizationId ? "view" : "focus", "activate-desktop-organization", organization.id),
+    createDesktopOrgModeToggle(organization),
+    createDesktopOrgAction(
+      organization.open ? "close" : "open",
+      "toggle-open-desktop-organization",
+      organization.id,
+      false,
+    ),
+  );
+
+  card.append(trigger, badges, actions);
+  return card;
+}
+
+function createRuntimeBadge(label, modifier = "") {
+  const badge = document.createElement("span");
+  badge.className = `organization-runtime-badge${modifier ? ` organization-runtime-badge--${modifier}` : ""}`;
+  badge.textContent = label;
+  return badge;
+}
+
+function createDesktopOrgAction(label, action, organizationId, disabled = false) {
+  const button = document.createElement("button");
+  button.className = "chrome-button";
+  button.type = "button";
+  button.dataset.action = action;
+  button.dataset.organizationId = organizationId;
+  button.textContent = label;
+  button.disabled = disabled;
+  return button;
+}
+
+function createDesktopOrgModeToggle(organization) {
+  const button = document.createElement("button");
+  button.className = `mode-toggle desktop-org-card__mode-toggle${organization.mode === "auto" ? " is-auto" : ""}`;
+  button.dataset.action = "toggle-mode-desktop-organization";
+  button.dataset.organizationId = organization.id;
+  button.type = "button";
+  button.setAttribute("aria-pressed", String(organization.mode === "auto"));
+  button.setAttribute("aria-label", `${organization.name || "organization"} ${organization.mode === "auto" ? "auto" : "idle"} mode`);
+  button.title = `${organization.mode === "auto" ? "set idle" : "set auto"}`;
+  button.innerHTML = `
+    <span class="mode-toggle__track">
+      <span class="mode-toggle__thumb"></span>
+    </span>
+    <span class="mode-toggle__label">${organization.mode === "auto" ? "auto" : "idle"}</span>
+  `;
+  return button;
+}
+
+function renderDesktopSidebar() {
+  if (!desktopOrgList) {
+    return;
+  }
+  desktopOrgList.replaceChildren();
+  const list = sortOrganizations(organizations).filter((organization) => organization.persisted);
+  if (list.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "panel-copy";
+    empty.textContent = "Create an organization in About to begin.";
+    desktopOrgList.append(empty);
+  } else {
+    for (const organization of list) {
+      desktopOrgList.append(createDesktopOrganizationCard(organization));
+    }
+  }
+}
+
+function renderDesktopDashboard() {
+  const activeOrg = organizations.find((organization) => organization.id === activeOrganizationId) ?? null;
+  if (dashboardActiveName) {
+    dashboardActiveName.textContent = activeOrg?.name || "welcome to orgos";
+  }
+  if (dashboardActiveSummary) {
+    dashboardActiveSummary.textContent = activeOrg
+      ? summarizeOrganizationActivity(activeOrg)
+      : "Verify a source, create an organization, and set it to auto to begin.";
+  }
+  if (dashboardQueueMetric) {
+    const pending = queueState.filter((item) => item.status === "pending" || item.status === "running").length;
+    dashboardQueueMetric.textContent = String(pending);
+  }
+  if (dashboardQueueSummary) {
+    const pending = queueState.filter((item) => item.status === "pending").length;
+    const running = queueState.filter((item) => item.status === "running").length;
+    dashboardQueueSummary.textContent = pending || running
+      ? `${running} running · ${pending} pending`
+      : "No queued work yet.";
+  }
+  const unread = boardNotifications.filter((notification) => notification.unread).length;
+  if (dashboardNotificationMetric) {
+    dashboardNotificationMetric.textContent = String(unread);
+  }
+  if (dashboardNotificationSummary) {
+    dashboardNotificationSummary.textContent = unread > 0
+      ? `${unread} unread board notifications`
+      : "No unread notifications.";
+  }
+  if (!desktopDashboardFeed) {
+    return;
+  }
+  desktopDashboardFeed.replaceChildren();
+  const feedItems = (runtimeOrganizations.length > 0 ? runtimeOrganizations : organizations
+    .filter((organization) => organization.persisted)
+    .map((organization) => ({
+      headline: summarizeOrganizationActivity(organization),
+      id: organization.id,
+      name: organization.name,
+      status: organization.mode,
+      summary: formatOrganizationRuntimeLabel(organization),
+    }))).slice(0, 6);
+  if (feedItems.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "panel-copy";
+    empty.textContent = "Open organizations will report their current activity here.";
+    desktopDashboardFeed.append(empty);
+    return;
+  }
+  for (const item of feedItems) {
+    const node = document.createElement("article");
+    node.className = "desktop-feed-item";
+    node.innerHTML = `
+      <span class="desktop-feed-item__title">${escapeHtml(item.name)}</span>
+      <span class="desktop-feed-item__meta">${escapeHtml(item.status || "idle")}</span>
+      <span class="desktop-dashboard__summary">${escapeHtml(item.headline || item.summary || "No recent activity.")}</span>
+    `;
+    desktopDashboardFeed.append(node);
+  }
+}
+
+function setStatusState(message, busy = false) {
+  setPanelState(statusState, message, busy);
+}
+
+function createStatusMetricCard(eyebrow, value, summary) {
+  const card = document.createElement("article");
+  card.className = "desktop-dashboard__card";
+  card.innerHTML = `
+    <p class="desktop-dashboard__eyebrow">${escapeHtml(eyebrow)}</p>
+    <p class="desktop-dashboard__metric">${escapeHtml(String(value))}</p>
+    <p class="desktop-dashboard__summary">${escapeHtml(summary)}</p>
+  `;
+  return card;
+}
+
+function createStatusFeedCard(title, items, emptyMessage) {
+  const card = document.createElement("article");
+  card.className = "desktop-dashboard__card desktop-dashboard__card--feed";
+  const heading = document.createElement("p");
+  heading.className = "desktop-dashboard__eyebrow";
+  heading.textContent = title;
+  card.append(heading);
+
+  const feed = document.createElement("div");
+  feed.className = "desktop-dashboard__feed";
+  if (!items.length) {
+    const empty = document.createElement("p");
+    empty.className = "panel-copy";
+    empty.textContent = emptyMessage;
+    feed.append(empty);
+  } else {
+    for (const item of items) {
+      const node = document.createElement("article");
+      node.className = "desktop-feed-item";
+      node.innerHTML = `
+        <span class="desktop-feed-item__title">${escapeHtml(item.title)}</span>
+        <span class="desktop-feed-item__meta">${escapeHtml(item.meta)}</span>
+        <span class="desktop-dashboard__summary">${escapeHtml(item.summary)}</span>
+      `;
+      feed.append(node);
+    }
+  }
+  card.append(feed);
+  return card;
+}
+
+function renderStatusPanel() {
+  if (!statusDetail) {
+    return;
+  }
+  statusDetail.replaceChildren();
+  const scope = selectedStatusScope === "system" ? "system" : "organization";
+  statusMenu?.querySelectorAll("[data-status-scope]").forEach((button) => {
+    button.classList.toggle("source-item--active", button.dataset.statusScope === scope);
+  });
+
+  if (scope === "organization") {
+    const activeOrg = organizations.find((organization) => organization.id === activeOrganizationId) ?? null;
+    const activeCard = document.createElement("article");
+    activeCard.className = "desktop-dashboard__card desktop-dashboard__card--hero";
+    activeCard.innerHTML = `
+      <p class="desktop-dashboard__eyebrow">active organization</p>
+      <h2 class="desktop-dashboard__title">${escapeHtml(activeOrg?.name || "welcome to orgos")}</h2>
+      <p class="desktop-dashboard__summary">${escapeHtml(activeOrg ? summarizeOrganizationActivity(activeOrg) : "No active organization selected.")}</p>
+    `;
+    statusDetail.append(activeCard);
+
+    const unread = activeOrg ? unreadNotificationsForOrganization(activeOrg.id) : 0;
+    statusDetail.append(
+      createStatusMetricCard("mode", activeOrg?.mode || "idle", activeOrg ? formatOrganizationRuntimeLabel(activeOrg) : "Select or open an organization."),
+      createStatusMetricCard("board", unread, unread ? `${unread} unread updates for this organization.` : "No unread updates for this organization."),
+    );
+
+    const items = (runtimeOrganizations.length > 0 ? runtimeOrganizations : organizations
+      .filter((organization) => organization.persisted)
+      .map((organization) => ({
+        headline: summarizeOrganizationActivity(organization),
+        id: organization.id,
+        name: organization.name,
+        status: formatOrganizationRuntimeLabel(organization),
+        summary: organization.mode === "auto" ? "autonomous work enabled" : "waiting for activation",
+      })))
+      .map((item) => ({
+        title: item.name,
+        meta: item.status,
+        summary: item.headline || item.summary,
+      }));
+    statusDetail.append(createStatusFeedCard("open organizations", items, "No open organizations yet."));
+    return;
+  }
+
+  const pending = queueState.filter((item) => item.status === "pending").length;
+  const running = queueState.filter((item) => item.status === "running").length;
+  const sourceCount = sourceState.filter((source) => source.active && source.persisted).length;
+  statusDetail.append(
+    createStatusMetricCard("queue pressure", running + pending, running || pending ? `${running} running · ${pending} pending` : "System queue is clear."),
+    createStatusMetricCard("verified sources", sourceCount, sourceCount ? "Shared inference is available for autonomous work." : "Verify a source to enable auto mode."),
+  );
+
+  const systemItems = boardNotifications.slice(0, 8).map((notification) => ({
+    title: notification.title,
+    meta: `${notification.organizationId ? organizations.find((entry) => entry.id === notification.organizationId)?.name ?? notification.organizationId : "system"} · ${notification.sourceApp}`,
+    summary: notification.summary,
+  }));
+  statusDetail.append(createStatusFeedCard("board notifications", systemItems, "No Board notifications yet."));
 }
 
 function getFilesystemRootMeta(rootId) {
@@ -1496,10 +2058,12 @@ function defaultDetectedName(source, fallbackIndex) {
 function panelLabel(panelId) {
   const labels = {
     [PANEL_ABOUT]: "About",
+    [PANEL_STATUS]: "Status",
     [PANEL_SOURCES]: "Sources",
     [PANEL_COLOR]: "Color",
     [PANEL_FILES]: "Files",
     [PANEL_TEXT]: "Text",
+    [PANEL_WEB]: "Web",
     [PANEL_AGENTS]: "Agents",
     [PANEL_SKILLS]: "Skills",
     [PANEL_TOOLS]: "Tools",
@@ -1514,6 +2078,13 @@ function panelLabel(panelId) {
   return labels[panelId] ?? panelId;
 }
 
+function getPanelScope(panelId) {
+  return [PANEL_STATUS, PANEL_SOURCES, PANEL_COLOR, PANEL_FILES, PANEL_TEXT, PANEL_AGENTS, PANEL_SKILLS, PANEL_TOOLS, PANEL_QUEUE]
+    .includes(panelId)
+    ? "system"
+    : "organization";
+}
+
 function formatContextWindowLabel(value) {
   if (!Number.isFinite(value)) {
     return "128k";
@@ -1524,10 +2095,12 @@ function formatContextWindowLabel(value) {
 function panelIconMarkup(panelId) {
   const icons = {
     [PANEL_ABOUT]: ABOUT_ICON_MARKUP,
+    [PANEL_STATUS]: STATUS_ICON_MARKUP,
     [PANEL_SOURCES]: SOURCES_ICON_MARKUP,
     [PANEL_COLOR]: COLOR_ICON_MARKUP,
     [PANEL_FILES]: FILES_ICON_MARKUP,
     [PANEL_TEXT]: TEXT_ICON_MARKUP,
+    [PANEL_WEB]: WEB_ICON_MARKUP,
     [PANEL_AGENTS]: AGENTS_ICON_MARKUP,
     [PANEL_SKILLS]: SKILLS_ICON_MARKUP,
     [PANEL_TOOLS]: TOOLS_ICON_MARKUP,
@@ -1651,25 +2224,8 @@ function touchOrganizationRecent(id) {
 }
 
 function getDesktopIcons() {
-  return [
-    aboutIcon,
-    sourcesIcon,
-    colorIcon,
-    filesIcon,
-    textIcon,
-    agentsIcon,
-    skillsIcon,
-    toolsIcon,
-    scheduleIcon,
-    meetIcon,
-    mailIcon,
-    queueIcon,
-    hireIcon,
-    projectsIcon,
-    evalsIcon,
-  ].filter(
-    (icon) => icon && !icon.disabled,
-  );
+  return [...desktopArea.querySelectorAll(".desktop-icon")]
+    .filter((icon) => !icon.hidden && !icon.disabled && !icon.closest("[hidden]"));
 }
 
 function updateDesktopNavHighlight() {
@@ -1730,6 +2286,8 @@ function sortOrganizations(list) {
   return [...list].sort((left, right) => {
     if (left.id === activeOrganizationId) return -1;
     if (right.id === activeOrganizationId) return 1;
+    if (left.open && !right.open) return -1;
+    if (right.open && !left.open) return 1;
 
     const leftRecent = recentRank.get(left.id);
     const rightRecent = recentRank.get(right.id);
@@ -1768,9 +2326,104 @@ function isOrganizationDirty(organization) {
     return false;
   }
 
-  return ["name", "industry", "industryCustom", "description"].some(
+  return ["name", "industry", "industryCustom", "description", "archetypeId"].some(
     (key) => organization[key] !== baseline[key],
   );
+}
+
+function populateSelectOptions(select, entries, { includeBlank = null, valueKey = "id", labelKey = "name" } = {}) {
+  if (!select) {
+    return;
+  }
+
+  const currentValue = select.value;
+  select.replaceChildren();
+
+  if (includeBlank !== null) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = includeBlank;
+    select.append(option);
+  }
+
+  for (const entry of entries) {
+    const option = document.createElement("option");
+    option.value = entry[valueKey] ?? "";
+    option.textContent = entry[labelKey] ?? entry[valueKey] ?? "";
+    select.append(option);
+  }
+
+  if ([...select.options].some((option) => option.value === currentValue)) {
+    select.value = currentValue;
+  }
+}
+
+function summarizeTemplateProvenance(templateId, templateSource, fallbackLabel = "custom") {
+  if (!templateId) {
+    return fallbackLabel;
+  }
+
+  const template = findRoleTemplateSummary(templateId)
+    ?? findDepartmentTemplateSummary(templateId)
+    ?? findTeamTemplateSummary(templateId);
+  return template
+    ? `${templateSource === "local" ? "local" : "system"} template · ${template.name}`
+    : `${templateSource === "local" ? "local" : "system"} template`;
+}
+
+function renderBundleChips(bundleIds = []) {
+  const summaries = getBundleSummaries(bundleIds);
+  if (summaries.length === 0) {
+    return '<p class="source-card__note">No shared bundles attached.</p>';
+  }
+
+  return `
+    <div class="template-chip-row">
+      ${summaries.map((bundle) => `<span class="template-chip">${escapeHtml(bundle.name)}</span>`).join("")}
+    </div>
+  `;
+}
+
+function formatListForTextarea(values = []) {
+  return (values ?? []).filter(Boolean).join("\n");
+}
+
+function applyDepartmentTemplate(item, templateId) {
+  const template = findDepartmentTemplateSummary(templateId);
+  item.templateId = templateId || "";
+  item.templateSource = templateId ? "system" : "";
+  if (!template) {
+    return;
+  }
+  item.name = template.name;
+  item.summary = template.summary ?? item.summary ?? "";
+}
+
+function applyTeamTemplate(item, templateId) {
+  const template = findTeamTemplateSummary(templateId);
+  item.templateId = templateId || "";
+  item.templateSource = templateId ? "system" : "";
+  if (!template) {
+    return;
+  }
+  item.name = template.name;
+  item.summary = template.summary ?? item.summary ?? "";
+}
+
+function applyRoleTemplate(item, templateId) {
+  const template = findRoleTemplateSummary(templateId);
+  item.templateId = templateId || "";
+  item.templateSource = templateId ? "system" : "";
+  if (!template) {
+    return;
+  }
+  item.title = template.name;
+  item.templateName = template.agentTemplate ?? item.templateName ?? "";
+  item.requiredSkills = [...(template.defaultSkills ?? [])];
+  item.requiredTools = [...(template.defaultTools ?? [])];
+  item.bundleIds = [...(template.bundleIds ?? [])];
+  item.evaluationFocus = template.evaluationFocus ?? "";
+  item.notes = template.summary ?? item.notes ?? "";
 }
 
 function normalizeOrganizationNameKey(name) {
@@ -1887,12 +2540,11 @@ function mergeDetectedSources(detectedSources) {
 
 async function loadWorkspaceBootstrap() {
   const payload = await fetchJson("/api/workspace/bootstrap");
+  templateCatalog = payload.templates ?? templateCatalog;
   appearanceState = {
     accent: normalizeAppearanceAccent(payload.appearance?.accent),
     theme: normalizeAppearanceTheme(payload.appearance?.theme),
   };
-  applyAppearance();
-  renderAppearanceControls();
   filesystemRoots = payload.filesystem?.roots ?? [];
 
   sourceState = (payload.sources ?? []).map(normalizeSavedSource);
@@ -1911,7 +2563,20 @@ async function loadWorkspaceBootstrap() {
     );
   }
 
-  organizations = (payload.organizations ?? []).map(normalizeOrganization);
+  openOrganizationIds = Array.isArray(payload.openOrganizationIds) ? payload.openOrganizationIds : [];
+  organizationModes = payload.organizationModes ?? {};
+  organizationAppearanceOverrides = payload.organizationAppearanceOverrides ?? {};
+  boardNotifications = payload.notifications ?? [];
+  runtimeOrganizations = payload.organizationRuntime ?? [];
+  organizations = (payload.organizations ?? []).map((organization) =>
+    normalizeOrganization({
+      ...organization,
+      appearanceAccent: organizationAppearanceOverrides[organization.id]?.accent,
+      appearanceTheme: organizationAppearanceOverrides[organization.id]?.theme,
+      mode: organizationModes[organization.id] ?? "idle",
+      open: openOrganizationIds.includes(organization.id),
+    })
+  );
   if (organizations.length === 0) {
     organizations = [createDraftOrganization()];
     activeOrganizationId = null;
@@ -1920,6 +2585,11 @@ async function loadWorkspaceBootstrap() {
     activeOrganizationId = payload.activeOrganizationId ?? organizations[0].id;
     setAboutState(activeOrganizationId ? "Organization active" : "Ready");
   }
+  applyAppearance();
+  renderAppearanceControls();
+  renderSystemTray();
+  renderNotifications();
+  renderStatusPanel();
 
   organizationDrafts = new Map(
     organizations
@@ -1940,6 +2610,11 @@ async function loadWorkspaceBootstrap() {
   agentFiles = payload.agents ?? [];
   skillFiles = payload.skills ?? [];
   queueState = payload.queue ?? [];
+  webState.orgId = activeOrganizationId;
+  webState.fragments = payload.web?.fragments ?? [];
+  webState.selectedFragmentId = payload.web?.fragments?.[0]?.id ?? null;
+  webState.preview = payload.web?.preview ?? "";
+  webState.tools = payload.web?.tools ?? [];
   scheduleTasks = payload.flow ?? payload.schedule ?? [];
   meetings = payload.meetings ?? [];
   mailMessages = (payload.mailInbox ?? []).map((message) => ({ ...message, persisted: true }));
@@ -1958,6 +2633,7 @@ async function loadWorkspaceBootstrap() {
   renderTextPanel();
   renderAgentsPanel();
   renderSkillsPanel();
+  renderWebPanel();
   renderQueuePanel();
   renderSchedulePanel();
   renderMeetPanel();
@@ -1965,6 +2641,7 @@ async function loadWorkspaceBootstrap() {
   renderHirePanel();
   renderProjectsPanel();
   renderEvalsPanel();
+  renderNotifications();
 }
 
 async function persistSources() {
@@ -2374,15 +3051,25 @@ function createOrganizationMenuItem(organization) {
   const fragment = organizationMenuItemTemplate.content.cloneNode(true);
   const item = fragment.querySelector(".source-menu-item");
   const selectButton = fragment.querySelector('[data-action="select"]');
+  const badges = fragment.querySelector('[data-role="badges"]');
   item.dataset.organizationId = organization.id;
   fragment.querySelector('[data-role="name"]').textContent =
     organization.name || "new organization";
-  if (!organization.persisted) {
-    fragment.querySelector('[data-role="meta"]').textContent = "draft";
-  } else if (organization.id === activeOrganizationId) {
-    fragment.querySelector('[data-role="meta"]').textContent = "active";
-  } else {
-    fragment.querySelector('[data-role="meta"]').textContent = formatLastActiveLabel(organization);
+  fragment.querySelector('[data-role="meta"]').textContent = formatOrganizationRuntimeLabel(organization);
+
+  badges.replaceChildren();
+  if (organization.persisted) {
+    const addBadge = (label, modifier) => {
+      const badge = document.createElement("span");
+      badge.className = `organization-runtime-badge${modifier ? ` organization-runtime-badge--${modifier}` : ""}`;
+      badge.textContent = label;
+      badges.append(badge);
+    };
+    if (organization.id === activeOrganizationId) addBadge("active", "active");
+    else if (organization.open) addBadge("open", "open");
+    if (organization.mode === "auto") addBadge("auto", "auto");
+    const unread = unreadNotificationsForOrganization(organization.id);
+    if (unread > 0) addBadge(String(unread), "unread");
   }
 
   if (organization.id === selectedOrganizationId) {
@@ -2440,10 +3127,18 @@ function createOrganizationDetail(organization) {
   card.querySelector('[data-field="industry"]').value = organization.industry;
   card.querySelector('[data-field="industryCustom"]').value = organization.industryCustom;
   card.querySelector('[data-field="description"]').value = organization.description;
+  const archetypeSelect = card.querySelector('[data-field="archetypeId"]');
+  populateSelectOptions(archetypeSelect, getOrganizationArchetypes(), { includeBlank: "custom organization" });
+  archetypeSelect.value = organization.archetypeId ?? "";
 
   const founded = card.querySelector('[data-role="founded"]');
-  founded.textContent = formatFoundedLabel(organization);
+  const archetype = findOrganizationArchetype(organization.archetypeId);
+  founded.textContent = [formatFoundedLabel(organization), archetype?.name ? `Archetype: ${archetype.name}` : ""]
+    .filter(Boolean)
+    .join(" · ");
   founded.hidden = !founded.textContent;
+  card.querySelector('[data-field="appearanceTheme"]').value = organization.appearanceTheme || "gray";
+  card.querySelector('[data-field="appearanceAccent"]').value = organization.appearanceAccent || "neutral";
 
   const customField = card.querySelector('[data-role="industry-custom-field"]');
   customField.hidden = organization.industry !== "custom";
@@ -2455,6 +3150,14 @@ function createOrganizationDetail(organization) {
   );
 
   renderOrganizationAction(card.querySelector('[data-role="org-action"]'), organization);
+  const openButton = card.querySelector('[data-action="toggle-open-organization"]');
+  const activeButton = card.querySelector('[data-action="activate-organization"]');
+  const modeButton = card.querySelector('[data-action="toggle-mode-organization"]');
+  openButton.textContent = organization.open ? "close" : "open";
+  activeButton.textContent = organization.id === activeOrganizationId ? "active" : "make active";
+  activeButton.disabled = !organization.persisted || organization.id === activeOrganizationId;
+  modeButton.textContent = organization.mode === "auto" ? "set idle" : "set auto";
+  modeButton.disabled = !organization.persisted || !organization.open;
   return fragment;
 }
 
@@ -2468,16 +3171,32 @@ function refreshOrganizationDetailCard(card, organization) {
   const deleteButton = card.querySelector('[data-action="delete-organization"]');
   const nameField = card.querySelector('[data-field="name"]');
 
-  founded.textContent = formatFoundedLabel(organization);
+  const archetype = findOrganizationArchetype(organization.archetypeId);
+  founded.textContent = [formatFoundedLabel(organization), archetype?.name ? `Archetype: ${archetype.name}` : ""]
+    .filter(Boolean)
+    .join(" · ");
   founded.hidden = !founded.textContent;
   customField.hidden = organization.industry !== "custom";
   deleteButton.textContent = organization.persisted ? "delete" : "cancel";
+  card.querySelector('[data-field="appearanceTheme"]').value = organization.appearanceTheme || "gray";
+  card.querySelector('[data-field="appearanceAccent"]').value = organization.appearanceAccent || "neutral";
+  const archetypeSelect = card.querySelector('[data-field="archetypeId"]');
+  populateSelectOptions(archetypeSelect, getOrganizationArchetypes(), { includeBlank: "custom organization" });
+  archetypeSelect.value = organization.archetypeId ?? "";
   nameField.setCustomValidity(
     hasDuplicateOrganizationName(organization.name, organization.id)
       ? "Organization name already in use"
       : "",
   );
   renderOrganizationAction(card.querySelector('[data-role="org-action"]'), organization);
+  const openButton = card.querySelector('[data-action="toggle-open-organization"]');
+  const activeButton = card.querySelector('[data-action="activate-organization"]');
+  const modeButton = card.querySelector('[data-action="toggle-mode-organization"]');
+  openButton.textContent = organization.open ? "close" : "open";
+  activeButton.textContent = organization.id === activeOrganizationId ? "active" : "make active";
+  activeButton.disabled = !organization.persisted || organization.id === activeOrganizationId;
+  modeButton.textContent = organization.mode === "auto" ? "set idle" : "set auto";
+  modeButton.disabled = !organization.persisted || !organization.open;
 }
 
 function renderOrganizations() {
@@ -2496,6 +3215,9 @@ function renderOrganizations() {
   }
   updateHeaderCaption();
   updateDesktopAppAvailability();
+  renderDesktopSidebar();
+  renderDesktopDashboard();
+  renderStatusPanel();
 }
 
 function setFilesState(message, busy = false) {
@@ -2523,6 +3245,15 @@ function setPanelState(target, message, busy = false) {
   target.textContent = message;
   target.hidden = !message;
   target.classList.toggle("is-busy", busy);
+}
+
+function setPanelScanState(panelId, message, busy = false) {
+  const el = document.querySelector(`#${panelId}-state`);
+  setPanelState(el, message, busy);
+}
+
+function renderEmptyDetail(target, message) {
+  target?.replaceChildren(emptyDetailCard(message));
 }
 
 function requireActiveOrganization(target, message = "Activate an organization to use this application.") {
@@ -2830,6 +3561,15 @@ function describeFlowMeta(task) {
   if (task.cadence) {
     parts.push(task.cadence);
   }
+  if (task.workstream) {
+    parts.push(task.workstream);
+  }
+  if (task.contextRequirement) {
+    parts.push(formatContextWindowLabel(task.contextRequirement));
+  }
+  if (task.evaluationRequired) {
+    parts.push("eval");
+  }
   return parts.join(" · ");
 }
 
@@ -2985,6 +3725,112 @@ function renderTextPanel() {
     empty.append(message, actions);
     textDetail.append(empty);
   }
+}
+
+function setWebState(message, busy = false) {
+  if (!webStateLabel) {
+    return;
+  }
+  webStateLabel.textContent = message;
+  webStateLabel.hidden = !message;
+  webStateLabel.classList.toggle("is-busy", busy);
+}
+
+async function loadWebPanelData() {
+  if (!activeOrganizationId) {
+    webState = {
+      fragments: [],
+      orgId: null,
+      preview: "",
+      selectedFragmentId: null,
+      tools: [],
+    };
+    renderWebPanel();
+    return;
+  }
+  setWebState("Loading...", true);
+  try {
+    const payload = await fetchJson(`/api/web/list?orgId=${encodeURIComponent(activeOrganizationId)}`);
+    webState = {
+      fragments: payload.fragments ?? [],
+      orgId: activeOrganizationId,
+      preview: payload.preview ?? "",
+      selectedFragmentId: payload.fragments?.find((entry) => entry.id === webState.selectedFragmentId)?.id
+        ?? payload.fragments?.[0]?.id
+        ?? null,
+      tools: payload.tools ?? [],
+    };
+    setWebState("");
+  } catch (error) {
+    console.error(error);
+    setWebState("Load failed");
+  }
+  renderWebPanel();
+}
+
+function renderWebPanel() {
+  if (!webMenu || !webDetail) {
+    return;
+  }
+  if (!activeOrganizationId) {
+    webMenu.replaceChildren();
+    requireActiveOrganization(webDetail, "Activate an organization to shape its intranet.");
+    return;
+  }
+
+  webMenu.replaceChildren();
+  for (const fragment of webState.fragments) {
+    webMenu.append(
+      createMenuCard({
+        id: fragment.id,
+        meta: fragment.type || "fragment",
+        name: fragment.label || fragment.name || "untitled fragment",
+        selected: fragment.id === webState.selectedFragmentId,
+        type: "web-fragment",
+      }),
+    );
+  }
+
+  webDetail.replaceChildren();
+  const selected = webState.fragments.find((entry) => entry.id === webState.selectedFragmentId) ?? null;
+  const shell = document.createElement("div");
+  shell.className = "web-workspace";
+  shell.innerHTML = `
+    <div class="web-workspace__column">
+      <article class="web-fragment-card">
+        <p class="source-card__status">${selected?.label || "Intranet fragment"}</p>
+        <p class="source-card__note">${selected?.path ? formatPathLabel("organization", selected.path) : "Open or create a fragment to begin."}</p>
+        <div class="source-card__actions">
+          <button class="chrome-button source-card__button" data-action="open-web-fragment-text" type="button" ${selected ? "" : "disabled"}>edit in text</button>
+        </div>
+      </article>
+      <article class="web-tool-test-card">
+        <p class="source-card__status">custom js tools</p>
+        <div class="web-tool-test-list">
+          ${(webState.tools ?? []).map((tool) => `
+            <div class="web-tool-test-item">
+              <div>
+                <p class="source-card__meta-detail">${escapeHtml(tool.name)}</p>
+                <p class="source-card__note">${escapeHtml(tool.file || "")}</p>
+              </div>
+              <button class="chrome-button source-card__button" data-action="open-tool-registry" type="button">view</button>
+            </div>
+          `).join("") || '<p class="source-card__note">No organization custom tools detected yet.</p>'}
+        </div>
+      </article>
+    </div>
+    <div class="web-workspace__column">
+      <article class="web-preview-card">
+        <p class="source-card__status">preview</p>
+        <iframe class="web-preview-frame" title="Organization intranet preview"></iframe>
+      </article>
+    </div>
+  `;
+  const frame = shell.querySelector(".web-preview-frame");
+  if (frame) {
+    frame.srcdoc = webState.preview || "<!doctype html><html><body><p>No preview available.</p></body></html>";
+  }
+  webDetail.append(shell);
 }
 
 function renderTextDocumentMenuOnly() {
@@ -3265,34 +4111,110 @@ function renderAgentsPanel() {
   if (!agentMenu || !agentDetail) return;
   agentMenu.replaceChildren();
   for (const agent of agentFiles) {
-    const item = document.createElement("button");
-    item.className =
-      "source-item" + (agent.name === selectedAgentName ? " source-item--active" : "");
-    item.type = "button";
-    item.textContent = agent.name;
-    item.addEventListener("click", () => {
-      selectedAgentName = agent.name;
-      renderAgentsPanel();
-      loadAgentDetail(agent.name);
-    });
-    agentMenu.append(item);
+    agentMenu.append(
+      createMenuCard({
+        id: agent.name,
+        meta: [agent.domain, ...(agent.bundles ?? []).slice(0, 2)].filter(Boolean).join(" · ") || "template",
+        name: agent.name,
+        selected: agent.name === selectedAgentName,
+        type: "agent",
+      }),
+    );
   }
   if (agentFiles.length === 0) {
-    agentDetail.replaceChildren();
-    const empty = document.createElement("p");
-    empty.className = "panel-copy";
-    empty.textContent = "No agents defined yet. Click + to create one.";
-    agentDetail.append(empty);
+    renderEmptyDetail(agentDetail, "No agents defined yet. Create an agent to get started.");
   }
 }
 
 async function loadAgentDetail(name) {
+  setPanelScanState(PANEL_AGENTS, "Loading...", true);
   try {
     const data = await fetchJson(`/api/agents/read?name=${encodeURIComponent(name)}`);
     if (!agentDetail) return;
-    agentDetail.replaceChildren();
-    const card = document.createElement("div");
-    card.className = "agent-card";
+    const summary = agentFiles.find((entry) => entry.name === name) ?? null;
+
+    const card = document.createElement("article");
+    card.className = "source-card";
+    card.dataset.agentName = name;
+
+    const header = document.createElement("div");
+    header.className = "source-card__header";
+    const identity = document.createElement("div");
+    identity.className = "source-card__identity";
+    const title = document.createElement("p");
+    title.className = "source-card__status";
+    title.textContent = summary?.name ?? name;
+    const meta = document.createElement("p");
+    meta.className = "source-card__meta-detail";
+    meta.textContent = [summary?.tier, summary?.role, summary?.model].filter(Boolean).join(" · ");
+    identity.append(title, meta);
+    const headerActions = document.createElement("div");
+    headerActions.className = "source-card__actions";
+    const saveBtn = document.createElement("button");
+    saveBtn.className = "chrome-button source-card__button";
+    saveBtn.type = "button";
+    saveBtn.textContent = "save";
+    saveBtn.addEventListener("click", async () => {
+      setPanelScanState(PANEL_AGENTS, "Saving...", true);
+      try {
+        await fetchJson("/api/agents/write", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ name, content: editor.value }),
+        });
+        setPanelScanState(PANEL_AGENTS, "Saved");
+      } catch {
+        setPanelScanState(PANEL_AGENTS, "Save failed");
+      }
+    });
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "chrome-button source-card__button";
+    deleteBtn.type = "button";
+    deleteBtn.textContent = "delete";
+    deleteBtn.addEventListener("click", async () => {
+      setPanelScanState(PANEL_AGENTS, "Deleting...", true);
+      try {
+        await fetchJson("/api/agents/delete", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
+        const data2 = await fetchJson("/api/agents/list");
+        agentFiles = data2.agents ?? [];
+        selectedAgentName = null;
+        setPanelScanState(PANEL_AGENTS, "");
+        renderAgentsPanel();
+      } catch {
+        setPanelScanState(PANEL_AGENTS, "Delete failed");
+      }
+    });
+    headerActions.append(saveBtn, deleteBtn);
+    header.append(identity, headerActions);
+    card.append(header);
+
+    if (summary) {
+      const frontmatter = document.createElement("div");
+      frontmatter.className = "agent-frontmatter";
+      for (const [label, value] of [
+        ["tier", summary.tier ?? ""],
+        ["role", summary.role ?? ""],
+        ["model", summary.model ?? ""],
+        ["skills", (summary.skills ?? []).join(", ") || "none"],
+        ["tools", (summary.tools ?? []).join(", ") || "none"],
+      ]) {
+        const field = document.createElement("div");
+        field.className = "agent-frontmatter__field";
+        const lbl = document.createElement("span");
+        lbl.className = "agent-frontmatter__label";
+        lbl.textContent = label;
+        const val = document.createElement("span");
+        val.className = "agent-frontmatter__value";
+        val.textContent = value;
+        field.append(lbl, val);
+        frontmatter.append(field);
+      }
+      card.append(frontmatter);
+    }
 
     const editor = document.createElement("textarea");
     editor.className = "agent-editor";
@@ -3300,42 +4222,11 @@ async function loadAgentDetail(name) {
     editor.setAttribute("aria-label", `Agent definition for ${name}`);
     card.append(editor);
 
-    const actions = document.createElement("div");
-    actions.className = "panel-copy-row__actions";
-
-    const saveBtn = document.createElement("button");
-    saveBtn.className = "chrome-button";
-    saveBtn.type = "button";
-    saveBtn.textContent = "save";
-    saveBtn.addEventListener("click", async () => {
-      await fetchJson("/api/agents/write", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, content: editor.value }),
-      });
-    });
-
-    const deleteBtn = document.createElement("button");
-    deleteBtn.className = "chrome-button";
-    deleteBtn.type = "button";
-    deleteBtn.textContent = "delete";
-    deleteBtn.addEventListener("click", async () => {
-      await fetchJson("/api/agents/delete", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name }),
-      });
-      const data2 = await fetchJson("/api/agents/list");
-      agentFiles = data2.agents ?? [];
-      selectedAgentName = null;
-      renderAgentsPanel();
-    });
-
-    actions.append(saveBtn, deleteBtn);
-    card.append(actions);
-    agentDetail.append(card);
+    agentDetail.replaceChildren(card);
+    setPanelScanState(PANEL_AGENTS, "");
   } catch (error) {
     console.error("[orgos] loadAgentDetail", error);
+    setPanelScanState(PANEL_AGENTS, "Load failed");
   }
 }
 
@@ -3345,39 +4236,102 @@ function renderSkillsPanel() {
   if (!skillMenu || !skillDetail) return;
   skillMenu.replaceChildren();
   for (const skill of skillFiles) {
-    const item = document.createElement("button");
-    item.className =
-      "source-item" + (skill.name === selectedSkillName ? " source-item--active" : "");
-    item.type = "button";
-    item.textContent = skill.name;
-    item.addEventListener("click", () => {
-      selectedSkillName = skill.name;
-      renderSkillsPanel();
-      loadSkillDetail(skill.name);
-    });
-    skillMenu.append(item);
+    skillMenu.append(
+      createMenuCard({
+        id: skill.name,
+        meta: skill.context ? `${Math.round(skill.context / 1024)}k ctx` : "skill",
+        name: skill.name,
+        selected: skill.name === selectedSkillName,
+        type: "skill",
+      }),
+    );
   }
   if (skillFiles.length === 0) {
-    skillDetail.replaceChildren();
-    const empty = document.createElement("p");
-    empty.className = "panel-copy";
-    empty.textContent = "No skills found.";
-    skillDetail.append(empty);
+    renderEmptyDetail(skillDetail, "No skill definitions found.");
   }
 }
 
 async function loadSkillDetail(name) {
+  setPanelScanState(PANEL_SKILLS, "Loading...", true);
   try {
     const data = await fetchJson(`/api/skills/read?name=${encodeURIComponent(name)}`);
     if (!skillDetail) return;
-    skillDetail.replaceChildren();
+
+    const card = document.createElement("article");
+    card.className = "source-card";
+
+    const header = document.createElement("div");
+    header.className = "source-card__header";
+    const identity = document.createElement("div");
+    identity.className = "source-card__identity";
+    const title = document.createElement("p");
+    title.className = "source-card__status";
+    title.textContent = name;
+    const meta = document.createElement("p");
+    meta.className = "source-card__meta-detail";
+    meta.textContent = data.version ? `v${data.version}` : "skill definition";
+    identity.append(title, meta);
+    header.append(identity);
+    card.append(header);
+
     const pre = document.createElement("pre");
     pre.className = "agent-editor";
-    pre.style.overflowY = "auto";
     pre.textContent = data.content ?? "";
-    skillDetail.append(pre);
+    card.append(pre);
+
+    skillDetail.replaceChildren(card);
+    setPanelScanState(PANEL_SKILLS, "");
   } catch (error) {
     console.error("[orgos] loadSkillDetail", error);
+    setPanelScanState(PANEL_SKILLS, "Load failed");
+  }
+}
+
+// ── Tools panel render ───────────────────────────────────────────────────
+
+async function loadToolsPanel() {
+  if (!toolRegistry) return;
+  setPanelScanState(PANEL_TOOLS, "Loading...", true);
+  try {
+    const data = await fetchJson("/api/tools/list");
+    const tools = data.tools ?? [];
+    toolRegistry.replaceChildren();
+    if (tools.length === 0) {
+      toolRegistry.append(emptyDetailCard("No tools registered. Tools become available as sources are connected."));
+      setPanelScanState(PANEL_TOOLS, "");
+      return;
+    }
+    for (const tool of tools) {
+      const card = document.createElement("article");
+      card.className = "source-card tool-card";
+
+      const header = document.createElement("div");
+      header.className = "source-card__header";
+      const identity = document.createElement("div");
+      identity.className = "source-card__identity";
+      const name = document.createElement("p");
+      name.className = "source-card__status";
+      name.textContent = tool.name;
+      const scopeMeta = document.createElement("p");
+      scopeMeta.className = "source-card__meta-detail";
+      scopeMeta.textContent = tool.scope ?? "shared";
+      identity.append(name, scopeMeta);
+      header.append(identity);
+      card.append(header);
+
+      if (tool.file) {
+        const detail = document.createElement("p");
+        detail.className = "source-card__detail";
+        detail.textContent = tool.file;
+        card.append(detail);
+      }
+
+      toolRegistry.append(card);
+    }
+    setPanelScanState(PANEL_TOOLS, "");
+  } catch (error) {
+    console.error("[orgos] loadToolsPanel", error);
+    setPanelScanState(PANEL_TOOLS, "Load failed");
   }
 }
 
@@ -3434,6 +4388,11 @@ function renderQueuePanel() {
 
   // Queue items
   queueItems.replaceChildren();
+  if (queueState.length === 0) {
+    queueItems.append(emptyDetailCard("No inference tasks queued. The queue will populate when agents are dispatched."));
+    setPanelState(queueStateLabel, "");
+    return;
+  }
   const sorted = [...queueState].sort((a, b) => {
     const order = { running: 0, pending: 1, failed: 2, done: 3 };
     return (order[a.status] ?? 4) - (order[b.status] ?? 4);
@@ -3585,6 +4544,10 @@ function renderSchedulePanel() {
   const card = document.createElement("article");
   card.className = "source-card";
   card.dataset.scheduleId = selected.id;
+  const dependencyOptions = scheduleTasks
+    .filter((task) => task.id !== selected.id)
+    .map((task) => `<option value="${task.id}">${escapeHtml(task.name || task.id)}</option>`)
+    .join("");
   card.innerHTML = `
     <div class="source-card__header">
       <div class="source-card__identity">
@@ -3619,6 +4582,32 @@ function renderSchedulePanel() {
         <input class="field__control" data-field="assigneeValue" type="text" value="${escapeHtml(selected.assigneeValue ?? "")}" />
       </label>
     </div>
+    <div class="field-grid field-grid--compact">
+      <label class="field">
+        <span class="field__label">workstream</span>
+        <input class="field__control" data-field="workstream" type="text" value="${escapeHtml(selected.workstream ?? "")}" />
+      </label>
+      <label class="field">
+        <span class="field__label">group</span>
+        <input class="field__control" data-field="groupKey" type="text" value="${escapeHtml(selected.groupKey ?? "")}" />
+      </label>
+    </div>
+    <div class="field-grid field-grid--compact">
+      <label class="field">
+        <span class="field__label">context</span>
+        <input class="field__control" data-field="contextRequirement" type="number" min="1000" step="1000" value="${Number(selected.contextRequirement ?? 128000)}" />
+      </label>
+      <label class="source-card__toggle source-card__toggle--compact">
+        <input class="source-card__checkbox" data-field="evaluationRequired" type="checkbox" ${selected.evaluationRequired ? "checked" : ""} />
+        evaluation required
+      </label>
+    </div>
+    <label class="field">
+      <span class="field__label">depends on</span>
+      <select class="field__control" data-field="dependencyIds" multiple size="4">
+        ${dependencyOptions}
+      </select>
+    </label>
     <label class="field">
       <span class="field__label">objective</span>
       <textarea class="field__control field__control--textarea" data-field="objective">${escapeHtml(selected.objective ?? "")}</textarea>
@@ -3633,6 +4622,10 @@ function renderSchedulePanel() {
     </label>
   `;
   card.querySelector('[data-field="assigneeType"]').value = selected.assigneeType ?? "agent_template";
+  const dependencySelect = card.querySelector('[data-field="dependencyIds"]');
+  [...dependencySelect.options].forEach((option) => {
+    option.selected = (selected.dependencyIds ?? []).includes(option.value);
+  });
   scheduleDetail.append(card);
 }
 
@@ -3839,7 +4832,7 @@ function renderHirePanel() {
   (hireState?.departments ?? []).forEach((department) => {
     hireMenu.append(createMenuCard({
       id: department.id,
-      meta: "department",
+      meta: summarizeTemplateProvenance(department.templateId, department.templateSource, "department"),
       name: department.name || "new department",
       selected: selectedHireKey === `department:${department.id}`,
       type: "department",
@@ -3849,7 +4842,9 @@ function renderHirePanel() {
     const department = hireState?.departments.find((entry) => entry.id === team.departmentId);
     hireMenu.append(createMenuCard({
       id: team.id,
-      meta: department?.name || "team",
+      meta: [department?.name, summarizeTemplateProvenance(team.templateId, team.templateSource, "team")]
+        .filter(Boolean)
+        .join(" · "),
       name: team.name || "new team",
       selected: selectedHireKey === `team:${team.id}`,
       type: "team",
@@ -3861,7 +4856,7 @@ function renderHirePanel() {
       id: role.id,
       meta: identity
         ? `employee ${identity.employeeNumber} · ${identity.name}`
-        : `${role.status} · ${role.templateName || "unassigned"}`,
+        : `${role.status} · ${findRoleTemplateSummary(role.templateId)?.name || role.templateName || "unassigned"}`,
       name: role.title || "new role",
       selected: selectedHireKey === `role:${role.id}`,
       type: "role",
@@ -3882,35 +4877,51 @@ function renderHirePanel() {
   card.dataset.hireId = item.id;
 
   if (type === "department") {
+    const departmentTemplateOptions = getDepartmentTemplates().map((template) =>
+      `<option value="${template.id}">${escapeHtml(template.name)}</option>`
+    ).join("");
     card.innerHTML = `
       <div class="source-card__header">
-        <div class="source-card__identity"><p class="source-card__status">${item.name || "new department"}</p></div>
+        <div class="source-card__identity">
+          <p class="source-card__status">${item.name || "new department"}</p>
+          <p class="source-card__meta-detail">${escapeHtml(summarizeTemplateProvenance(item.templateId, item.templateSource, "department"))}</p>
+        </div>
         <div class="source-card__actions">
           <button class="chrome-button source-card__button" data-action="save-hire" type="button">save</button>
           <button class="chrome-button source-card__button" data-action="delete-hire" type="button">delete</button>
         </div>
       </div>
+      <label class="field"><span class="field__label">template</span><select class="field__control" data-field="templateId"><option value="">custom department</option>${departmentTemplateOptions}</select></label>
       <label class="field"><span class="field__label">department</span><input class="field__control" data-field="name" type="text" value="${escapeHtml(item.name ?? "")}" /></label>
       <label class="field"><span class="field__label">summary</span><textarea class="field__control field__control--textarea" data-field="summary">${escapeHtml(item.summary ?? "")}</textarea></label>
     `;
+    card.querySelector('[data-field="templateId"]').value = item.templateId ?? "";
   } else if (type === "team") {
     const departmentOptions = (hireState?.departments ?? []).map((department) =>
       `<option value="${department.id}">${escapeHtml(department.name)}</option>`
     ).join("");
+    const teamTemplateOptions = getTeamTemplates().map((template) =>
+      `<option value="${template.id}">${escapeHtml(template.name)}</option>`
+    ).join("");
     card.innerHTML = `
       <div class="source-card__header">
-        <div class="source-card__identity"><p class="source-card__status">${item.name || "new team"}</p></div>
+        <div class="source-card__identity">
+          <p class="source-card__status">${item.name || "new team"}</p>
+          <p class="source-card__meta-detail">${escapeHtml(summarizeTemplateProvenance(item.templateId, item.templateSource, "team"))}</p>
+        </div>
         <div class="source-card__actions">
           <button class="chrome-button source-card__button" data-action="save-hire" type="button">save</button>
           <button class="chrome-button source-card__button" data-action="delete-hire" type="button">delete</button>
         </div>
       </div>
+      <label class="field"><span class="field__label">template</span><select class="field__control" data-field="templateId"><option value="">custom team</option>${teamTemplateOptions}</select></label>
       <div class="field-grid field-grid--compact">
         <label class="field"><span class="field__label">team</span><input class="field__control" data-field="name" type="text" value="${escapeHtml(item.name ?? "")}" /></label>
         <label class="field"><span class="field__label">department</span><select class="field__control" data-field="departmentId">${departmentOptions}</select></label>
       </div>
       <label class="field"><span class="field__label">summary</span><textarea class="field__control field__control--textarea" data-field="summary">${escapeHtml(item.summary ?? "")}</textarea></label>
     `;
+    card.querySelector('[data-field="templateId"]').value = item.templateId ?? "";
     card.querySelector('[data-field="departmentId"]').value = item.departmentId ?? "";
   } else {
     const identity = findIdentityForRole(item.id);
@@ -3920,14 +4931,21 @@ function renderHirePanel() {
     const agentOptions = agentFiles.map((agent) =>
       `<option value="${agent.name}">${escapeHtml(agent.name)}</option>`
     ).join("");
+    const roleTemplateOptions = getRoleTemplates().map((template) =>
+      `<option value="${template.id}">${escapeHtml(template.name)}</option>`
+    ).join("");
     card.innerHTML = `
       <div class="source-card__header">
-        <div class="source-card__identity"><p class="source-card__status">${item.title || "new role"}</p></div>
+        <div class="source-card__identity">
+          <p class="source-card__status">${item.title || "new role"}</p>
+          <p class="source-card__meta-detail">${escapeHtml(summarizeTemplateProvenance(item.templateId, item.templateSource, "custom role"))}</p>
+        </div>
         <div class="source-card__actions">
           <button class="chrome-button source-card__button" data-action="save-hire" type="button">save</button>
           <button class="chrome-button source-card__button" data-action="delete-hire" type="button">delete</button>
         </div>
       </div>
+      <label class="field"><span class="field__label">template</span><select class="field__control" data-field="templateId"><option value="">custom role</option>${roleTemplateOptions}</select></label>
       <div class="field-grid field-grid--compact">
         <label class="field"><span class="field__label">role</span><input class="field__control" data-field="title" type="text" value="${escapeHtml(item.title ?? "")}" /></label>
         <label class="field"><span class="field__label">team</span><select class="field__control" data-field="teamId">${teamOptions}</select></label>
@@ -3941,6 +4959,14 @@ function renderHirePanel() {
         <label class="field"><span class="field__label">assignee</span><input class="field__control" data-field="assigneeLabel" type="text" value="${escapeHtml(item.assigneeLabel ?? "")}" /></label>
       </div>
       <div class="field-grid field-grid--compact">
+        <label class="field"><span class="field__label">evaluation focus</span><input class="field__control" data-field="evaluationFocus" type="text" value="${escapeHtml(item.evaluationFocus ?? "")}" /></label>
+        <div class="field"><span class="field__label">bundles</span><div class="field__static">${renderBundleChips(item.bundleIds ?? [])}</div></div>
+      </div>
+      <div class="field-grid">
+        <label class="field"><span class="field__label">required skills</span><textarea class="field__control field__control--textarea" data-field="requiredSkills">${escapeHtml(formatListForTextarea(item.requiredSkills))}</textarea></label>
+        <label class="field"><span class="field__label">required tools</span><textarea class="field__control field__control--textarea" data-field="requiredTools">${escapeHtml(formatListForTextarea(item.requiredTools))}</textarea></label>
+      </div>
+      <div class="field-grid field-grid--compact">
         <label class="field"><span class="field__label">identity</span><input class="field__control" type="text" value="${escapeHtml(identity?.name ?? "not generated")}" readonly /></label>
         <label class="field"><span class="field__label">employee</span><input class="field__control" type="text" value="${identity ? `employee ${identity.employeeNumber}` : "unassigned"}" readonly /></label>
       </div>
@@ -3951,6 +4977,7 @@ function renderHirePanel() {
       </div>
       <label class="field"><span class="field__label">notes</span><textarea class="field__control field__control--textarea" data-field="notes">${escapeHtml(item.notes ?? "")}</textarea></label>
     `;
+    card.querySelector('[data-field="templateId"]').value = item.templateId ?? "";
     card.querySelector('[data-field="teamId"]').value = item.teamId ?? "";
     card.querySelector('[data-field="templateName"]').value = item.templateName ?? "";
     card.querySelector('[data-field="tier"]').value = item.tier ?? "mid";
@@ -4112,6 +5139,14 @@ function renderEvalsPanel() {
 function updateScheduleField(id, field, value) {
   const task = scheduleTasks.find((entry) => entry.id === id);
   if (!task) return;
+  if (field === "dependencyIds") {
+    task.dependencyIds = value;
+    return;
+  }
+  if (field === "contextRequirement") {
+    task.contextRequirement = Number(value) || 128000;
+    return;
+  }
   task[field] = value;
 }
 
@@ -4151,6 +5186,11 @@ function addScheduleTask() {
     id: crypto.randomUUID(),
     name: "new flow",
     cadence: "continuous",
+    contextRequirement: 128000,
+    dependencyIds: [],
+    evaluationRequired: false,
+    groupKey: "",
+    workstream: "",
     assigneeType: "agent_template",
     assigneeValue: agentFiles[0]?.name ?? "",
     enabled: true,
@@ -4293,6 +5333,8 @@ function addHireRecord(type) {
       id: crypto.randomUUID(),
       name: "new department",
       summary: "",
+      templateId: "",
+      templateSource: "system",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -4304,6 +5346,8 @@ function addHireRecord(type) {
       departmentId: hireState.departments[0]?.id ?? "",
       name: "new team",
       summary: "",
+      templateId: "",
+      templateSource: "system",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -4313,11 +5357,17 @@ function addHireRecord(type) {
     const item = {
       id: crypto.randomUUID(),
       assigneeLabel: "",
+      bundleIds: [],
       createdAt: new Date().toISOString(),
+      evaluationFocus: "",
       notes: "",
+      requiredSkills: [],
+      requiredTools: [],
       status: "open",
       teamId: hireState.teams[0]?.id ?? "",
+      templateId: "",
       templateName: agentFiles[0]?.name ?? "",
+      templateSource: "system",
       tier: "mid",
       title: "new role",
       updatedAt: new Date().toISOString(),
@@ -4332,6 +5382,29 @@ function updateHireField(type, id, field, value) {
   const list = type === "department" ? hireState?.departments : type === "team" ? hireState?.teams : hireState?.roles;
   const record = list?.find((entry) => entry.id === id);
   if (!record) return;
+  if (type === "department" && field === "templateId") {
+    applyDepartmentTemplate(record, value);
+    record.updatedAt = new Date().toISOString();
+    renderHirePanel();
+    return;
+  }
+  if (type === "team" && field === "templateId") {
+    applyTeamTemplate(record, value);
+    record.updatedAt = new Date().toISOString();
+    renderHirePanel();
+    return;
+  }
+  if (type === "role" && field === "templateId") {
+    applyRoleTemplate(record, value);
+    record.updatedAt = new Date().toISOString();
+    renderHirePanel();
+    return;
+  }
+  if (type === "role" && (field === "requiredSkills" || field === "requiredTools")) {
+    record[field] = String(value).split("\n").map((item) => item.trim()).filter(Boolean);
+    record.updatedAt = new Date().toISOString();
+    return;
+  }
   record[field] = value;
   record.updatedAt = new Date().toISOString();
 }
@@ -4454,6 +5527,51 @@ function updateEvalField(id, field, value) {
   if (!evalRecord) return;
   evalRecord[field] = value;
   evalRecord.updatedAt = new Date().toISOString();
+}
+
+function applyOrganizationsPayload(organizationsState) {
+  openOrganizationIds = Array.isArray(organizationsState.openOrganizationIds)
+    ? organizationsState.openOrganizationIds
+    : [];
+  organizationModes = organizationsState.organizationModes ?? {};
+  organizationAppearanceOverrides = organizationsState.organizationAppearanceOverrides ?? {};
+  runtimeOrganizations = organizationsState.organizationRuntime ?? runtimeOrganizations;
+  organizations = (organizationsState.organizations ?? []).map((organization) =>
+    normalizeOrganization({
+      ...organization,
+      appearanceAccent: organizationAppearanceOverrides[organization.id]?.accent,
+      appearanceTheme: organizationAppearanceOverrides[organization.id]?.theme,
+      mode: organizationModes[organization.id] ?? "idle",
+      open: openOrganizationIds.includes(organization.id),
+    })
+  );
+  activeOrganizationId = organizationsState.activeOrganizationId ?? null;
+  organizationDrafts = new Map(
+    organizations.filter((entry) => entry.persisted).map((entry) => [entry.id, { ...entry }]),
+  );
+  if (activeOrganizationId) {
+    touchOrganizationRecent(activeOrganizationId);
+  }
+  organizations = sortOrganizations(organizations);
+  filesystemRoots = filesystemRoots.map((root) =>
+    root.id === "organization"
+      ? {
+        ...root,
+        available: Boolean(activeOrganizationId),
+        label: organizations.find((entry) => entry.id === activeOrganizationId)?.name ?? "organization",
+      }
+      : root.id === "deleted"
+        ? { ...root, available: Boolean(activeOrganizationId) }
+        : root
+  );
+  syncFilesystemState();
+  renderOrganizations();
+  renderFilesPanel();
+  renderTextPanel();
+  renderSystemMode();
+  applyAppearance();
+  renderNotifications();
+  renderStatusPanel();
 }
 
 async function saveEvalRecord(id) {
@@ -4633,6 +5751,7 @@ async function saveOrganization(organizationId) {
         activate: !wasPersisted,
         organization: {
           id: organization.persisted ? organization.id : undefined,
+          archetypeId: organization.archetypeId,
           description: organization.description,
           industry: organization.industry,
           industryCustom: organization.industryCustom,
@@ -4645,27 +5764,14 @@ async function saveOrganization(organizationId) {
       method: "POST",
     });
 
-    organizations = organizationsState.organizations.map(normalizeOrganization);
-    activeOrganizationId = organizationsState.activeOrganizationId;
-    organizationDrafts = new Map(
-      organizations.map((entry) => [entry.id, { ...entry }]),
-    );
+    applyOrganizationsPayload(organizationsState);
     const match =
       organizations.find((entry) => entry.id === organization.id) ??
-      organizations.find((entry) => entry.name === organization.name);
+      organizations.find((entry) => normalizeOrganizationNameKey(entry.name) === normalizeOrganizationNameKey(organization.name));
     if (match) {
       selectedOrganizationId = match.id;
       touchOrganizationRecent(match.id);
     }
-    organizations = sortOrganizations(organizations);
-    filesystemRoots = filesystemRoots.map((root) =>
-      root.id === "organization"
-        ? { ...root, available: Boolean(activeOrganizationId), label: match?.name ?? "organization" }
-        : root.id === "deleted"
-          ? { ...root, available: Boolean(activeOrganizationId) }
-          : root
-    );
-    syncFilesystemState();
     openPanel(PANEL_ABOUT);
     setAboutState("Organization saved");
     if (systemMode === "auto" && activeOrganizationId) {
@@ -4700,26 +5806,9 @@ async function loadOrganization(organizationId) {
       method: "POST",
     });
 
-    organizations = organizationsState.organizations.map(normalizeOrganization);
-    activeOrganizationId = organizationsState.activeOrganizationId;
+    applyOrganizationsPayload(organizationsState);
     touchOrganizationRecent(organizationId);
-    organizations = sortOrganizations(organizations);
-    organizationDrafts = new Map(
-      organizations.map((entry) => [entry.id, { ...entry }]),
-    );
     selectedOrganizationId = organizationId;
-    filesystemRoots = filesystemRoots.map((root) =>
-      root.id === "organization"
-        ? {
-          ...root,
-          available: Boolean(activeOrganizationId),
-          label: organizations.find((entry) => entry.id === activeOrganizationId)?.name ?? "organization",
-        }
-        : root.id === "deleted"
-          ? { ...root, available: Boolean(activeOrganizationId) }
-          : root
-    );
-    syncFilesystemState();
     openPanel(PANEL_ABOUT);
     setAboutState("Organization active");
     if (systemMode === "auto" && activeOrganizationId) {
@@ -4742,22 +5831,16 @@ async function deleteOrganization(organizationId) {
     method: "POST",
   });
 
-  organizations = organizationsState.organizations.map(normalizeOrganization);
-  activeOrganizationId = organizationsState.activeOrganizationId;
-  organizationDrafts = new Map(
-    organizations.map((entry) => [entry.id, { ...entry }]),
-  );
+  applyOrganizationsPayload(organizationsState);
   organizationRecentIds = organizationRecentIds.filter((id) => id !== organizationId);
 
   if (activeOrganizationId) {
     touchOrganizationRecent(activeOrganizationId);
-    organizations = sortOrganizations(organizations);
     const selectedExists = organizations.some((organization) => organization.id === selectedOrganizationId);
     selectedOrganizationId = selectedExists ? selectedOrganizationId : activeOrganizationId;
     setAboutState("Organization deleted");
     openPanel(PANEL_ABOUT);
   } else if (organizations.length > 0) {
-    organizations = sortOrganizations(organizations);
     selectedOrganizationId = organizations[0].id;
     setAboutState("Welcome to orgos");
     if (deletedWasActive) {
@@ -4776,19 +5859,6 @@ async function deleteOrganization(organizationId) {
       showingDesktop = false;
     }
   }
-
-  filesystemRoots = filesystemRoots.map((root) =>
-    root.id === "organization"
-      ? {
-        ...root,
-        available: Boolean(activeOrganizationId),
-        label: organizations.find((entry) => entry.id === activeOrganizationId)?.name ?? "organization",
-      }
-      : root.id === "deleted"
-        ? { ...root, available: Boolean(activeOrganizationId) }
-        : root
-  );
-  syncFilesystemState();
 
   renderOrganizations();
   renderFilesPanel();
@@ -4818,6 +5888,54 @@ function cancelDraftOrganization(organizationId) {
   renderTextPanel();
 }
 
+async function setOrganizationRuntime(organizationId, payload) {
+  const organizationsState = await fetchJson("/api/organizations/runtime", {
+    body: JSON.stringify({ id: organizationId, ...payload }),
+    headers: { "content-type": "application/json" },
+    method: "POST",
+  });
+  applyOrganizationsPayload(organizationsState);
+}
+
+async function setOrganizationAppearanceOverride(organizationId, payload) {
+  const organizationsState = await fetchJson("/api/organizations/appearance", {
+    body: JSON.stringify({ id: organizationId, ...payload }),
+    headers: { "content-type": "application/json" },
+    method: "POST",
+  });
+  applyOrganizationsPayload(organizationsState);
+}
+
+async function markNotificationRead(notificationId, unread = false) {
+  await fetchJson("/api/notifications/read", {
+    body: JSON.stringify({ id: notificationId, unread }),
+    headers: { "content-type": "application/json" },
+    method: "POST",
+  });
+  boardNotifications = boardNotifications.map((notification) =>
+    notification.id === notificationId ? { ...notification, unread } : notification
+  );
+  renderNotifications();
+  renderOrganizations();
+  renderStatusPanel();
+}
+
+async function openNotificationTarget(notificationId) {
+  const notification = boardNotifications.find((entry) => entry.id === notificationId);
+  if (!notification) {
+    return;
+  }
+  notificationsOpen = false;
+  if (notification.organizationId) {
+    await setOrganizationRuntime(notification.organizationId, { active: true, open: true });
+    selectedOrganizationId = notification.organizationId;
+  }
+  if (notification.targetPanel) {
+    openPanel(notification.targetPanel);
+  }
+  await markNotificationRead(notificationId, false);
+}
+
 function openPanel(panelId) {
   tabNavIndex = -1;
   openPanelIds = [panelId, ...openPanelIds.filter((item) => item !== panelId)];
@@ -4827,42 +5945,34 @@ function openPanel(panelId) {
   if (panelId === PANEL_FILES) {
     void loadFilesDirectory(filesView.root, filesView.path);
   }
+  if (panelId === PANEL_WEB) {
+    void loadWebPanelData();
+  }
   if (panelId === PANEL_QUEUE) {
     connectQueueSSE();
   }
   if (panelId === PANEL_AGENTS) {
+    setPanelScanState(PANEL_AGENTS, "Loading...", true);
     fetchJson("/api/agents/list").then((data) => {
       agentFiles = data.agents ?? [];
+      setPanelScanState(PANEL_AGENTS, "");
       renderAgentsPanel();
-    }).catch(() => {});
+    }).catch(() => {
+      setPanelScanState(PANEL_AGENTS, "Load failed");
+    });
   }
   if (panelId === PANEL_SKILLS) {
+    setPanelScanState(PANEL_SKILLS, "Loading...", true);
     fetchJson("/api/skills/list").then((data) => {
       skillFiles = data.skills ?? [];
+      setPanelScanState(PANEL_SKILLS, "");
       renderSkillsPanel();
-    }).catch(() => {});
+    }).catch(() => {
+      setPanelScanState(PANEL_SKILLS, "Load failed");
+    });
   }
   if (panelId === PANEL_TOOLS) {
-    fetchJson("/api/tools/list").then((data) => {
-      if (!toolRegistry) return;
-      const tools = data.tools ?? [];
-      toolRegistry.replaceChildren();
-      for (const tool of tools) {
-        const card = document.createElement("div");
-        card.className = "tool-card";
-        const name = document.createElement("div");
-        name.className = "tool-card__name";
-        name.textContent = tool.name;
-        const scope = document.createElement("div");
-        scope.className = "tool-card__meta";
-        scope.textContent = tool.scope ?? "shared";
-        const desc = document.createElement("div");
-        desc.className = "tool-card__description";
-        desc.textContent = tool.file ?? "";
-        card.append(name, scope, desc);
-        toolRegistry.append(card);
-      }
-    }).catch(() => {});
+    void loadToolsPanel();
   }
   if (panelId === PANEL_SCHEDULE) {
     void loadSchedulePanelData();
@@ -4901,10 +6011,12 @@ function renderPanels() {
   panelRegion.hidden = activePanelId === null || showingDesktop;
   desktopArea.hidden = !isDesktopVisible();
   aboutPanel.hidden = activePanelId !== PANEL_ABOUT || showingDesktop;
+  statusPanel.hidden = activePanelId !== PANEL_STATUS || showingDesktop;
   sourcesPanel.hidden = activePanelId !== PANEL_SOURCES || showingDesktop;
   colorPanel.hidden = activePanelId !== PANEL_COLOR || showingDesktop;
   filesPanel.hidden = activePanelId !== PANEL_FILES || showingDesktop;
   textPanel.hidden = activePanelId !== PANEL_TEXT || showingDesktop;
+  webPanel.hidden = activePanelId !== PANEL_WEB || showingDesktop;
   agentsPanel.hidden = activePanelId !== PANEL_AGENTS || showingDesktop;
   skillsPanel.hidden = activePanelId !== PANEL_SKILLS || showingDesktop;
   toolsPanel.hidden = activePanelId !== PANEL_TOOLS || showingDesktop;
@@ -4916,6 +6028,7 @@ function renderPanels() {
   projectsPanel.hidden = activePanelId !== PANEL_PROJECTS || showingDesktop;
   evalsPanel.hidden = activePanelId !== PANEL_EVALS || showingDesktop;
   workspaceArea.classList.toggle("has-open-panels", openPanelIds.length > 0);
+  renderSystemTray();
 
   headerTabActiveSlot.replaceChildren();
   headerTabs.replaceChildren();
@@ -4930,6 +6043,7 @@ function renderPanels() {
 
     tab.dataset.panelId = activePanelId;
     tab.classList.add("is-active");
+    tab.classList.add(`header-tab--${getPanelScope(activePanelId)}`);
     activateButton.dataset.panelId = activePanelId;
     closeButton.dataset.panelId = activePanelId;
     fragment.querySelector('[data-role="label"]').textContent = panelLabel(activePanelId);
@@ -4944,6 +6058,7 @@ function renderPanels() {
     const closeButton = fragment.querySelector('[data-action="close-tab"]');
 
     tab.dataset.panelId = panelId;
+    tab.classList.add(`header-tab--${getPanelScope(panelId)}`);
     activateButton.dataset.panelId = panelId;
     closeButton.dataset.panelId = panelId;
     fragment.querySelector('[data-role="label"]').textContent = panelLabel(panelId);
@@ -5053,12 +6168,23 @@ windowedButton.addEventListener("click", async () => {
 });
 
 modeToggle?.addEventListener("click", () => {
-  systemMode = systemMode === "auto" ? "idle" : "auto";
-  persistSystemMode();
-  renderSystemMode();
-  if (systemMode === "auto") {
-    void bootstrapAutoMode();
+  if (!activeOrganizationId) {
+    return;
   }
+  const organization = organizations.find((entry) => entry.id === activeOrganizationId);
+  const nextMode = organization?.mode === "auto" ? "idle" : "auto";
+  void setOrganizationRuntime(activeOrganizationId, { mode: nextMode, open: true, active: true }).then(() => {
+    if (nextMode === "auto") {
+      return bootstrapAutoMode();
+    }
+    return null;
+  });
+});
+
+desktopSidebarToggle?.addEventListener("click", () => {
+  desktopSidebarCollapsed = !desktopSidebarCollapsed;
+  applyDesktopSidebarState();
+  persistDesktopSidebarState();
 });
 
 appearanceThemeGrid?.addEventListener("click", (event) => {
@@ -5113,6 +6239,14 @@ aboutIcon.addEventListener("click", () => {
   openPanel(PANEL_ABOUT);
 });
 
+statusIcon?.addEventListener("click", () => {
+  openPanel(PANEL_STATUS);
+});
+
+statusLaunch?.addEventListener("click", () => {
+  openPanel(PANEL_STATUS);
+});
+
 sourcesIcon.addEventListener("click", () => {
   openPanel(PANEL_SOURCES);
 });
@@ -5127,6 +6261,10 @@ filesIcon.addEventListener("click", () => {
 
 textIcon.addEventListener("click", () => {
   openPanel(PANEL_TEXT);
+});
+
+webIcon.addEventListener("click", () => {
+  openPanel(PANEL_WEB);
 });
 
 agentsIcon.addEventListener("click", () => {
@@ -5175,6 +6313,21 @@ headerCaption.addEventListener("click", () => {
 
 sourceIndicator.addEventListener("click", () => {
   openPanel(PANEL_SOURCES);
+});
+
+notificationIndicator?.addEventListener("click", () => {
+  notificationsOpen = !notificationsOpen;
+  if (notificationPopover) {
+    notificationPopover.hidden = !notificationsOpen;
+  }
+});
+
+notificationPopoverList?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-notification-id]");
+  if (!button) {
+    return;
+  }
+  void openNotificationTarget(button.dataset.notificationId);
 });
 
 headerTabs.addEventListener("click", (event) => {
@@ -5380,6 +6533,12 @@ document.addEventListener("click", (event) => {
   if (!sourceIndicatorWrap.contains(event.target)) {
     sourceTooltip.hidden = true;
   }
+  if (notificationIndicatorWrap && !notificationIndicatorWrap.contains(event.target)) {
+    notificationsOpen = false;
+    if (notificationPopover) {
+      notificationPopover.hidden = true;
+    }
+  }
   hideKeyboardNavigation();
 });
 
@@ -5405,6 +6564,65 @@ addOrganizationButton.addEventListener("click", () => {
   touchOrganizationRecent(organization.id);
   renderOrganizations();
   setAboutState("Draft organization");
+});
+
+desktopOrgList?.addEventListener("click", async (event) => {
+  const button = event.target.closest("button");
+  if (!button) {
+    return;
+  }
+  const organizationId = button.dataset.organizationId;
+  if (!organizationId) {
+    return;
+  }
+  if (button.dataset.action === "activate-desktop-organization") {
+    await setOrganizationRuntime(organizationId, { active: true, open: true });
+    selectedOrganizationId = organizationId;
+    touchOrganizationRecent(organizationId);
+    renderOrganizations();
+    return;
+  }
+  if (button.dataset.action === "toggle-open-desktop-organization") {
+    const organization = findOrganization(organizationId);
+    await setOrganizationRuntime(organizationId, { open: !organization?.open, active: organizationId === activeOrganizationId ? organization?.open ? false : true : undefined });
+    return;
+  }
+  if (button.dataset.action === "toggle-mode-desktop-organization") {
+    const organization = findOrganization(organizationId);
+    const nextMode = organization?.mode === "auto" ? "idle" : "auto";
+    await setOrganizationRuntime(organizationId, { mode: nextMode, open: true });
+    if (nextMode === "auto") {
+      await bootstrapAutoMode(organizationId);
+    }
+  }
+});
+
+desktopAddOrganizationButton?.addEventListener("click", () => {
+  addOrganizationButton.click();
+  openPanel(PANEL_ABOUT);
+});
+
+desktopOpenAboutButton?.addEventListener("click", () => {
+  openPanel(PANEL_ABOUT);
+});
+
+systemTrayToggle?.addEventListener("click", () => {
+  systemTrayOpen = !systemTrayOpen;
+  renderSystemTray();
+});
+
+systemTrayClose?.addEventListener("click", () => {
+  systemTrayOpen = false;
+  renderSystemTray();
+});
+
+statusMenu?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-status-scope]");
+  if (!button) {
+    return;
+  }
+  selectedStatusScope = button.dataset.statusScope === "system" ? "system" : "organization";
+  renderStatusPanel();
 });
 
 sourceMenu.addEventListener("click", (event) => {
@@ -5591,6 +6809,25 @@ organizationDetail.addEventListener("change", (event) => {
   organization[field] = target.value;
   if (field === "industry") {
     refreshOrganizationDetailCard(card, organization);
+    return;
+  }
+  if (field === "archetypeId") {
+    refreshOrganizationDetailCard(card, organization);
+    return;
+  }
+  if (field === "appearanceTheme" || field === "appearanceAccent") {
+    if (!organization.persisted) {
+      return;
+    }
+    if (field === "appearanceTheme") {
+      organization.appearanceTheme = target.value;
+    } else {
+      organization.appearanceAccent = target.value;
+    }
+    void setOrganizationAppearanceOverride(organization.id, {
+      accent: organization.appearanceAccent,
+      theme: organization.appearanceTheme,
+    });
   }
 });
 
@@ -5618,6 +6855,40 @@ organizationDetail.addEventListener("click", async (event) => {
 
   if (action === "load-organization") {
     await loadOrganization(organizationId);
+    return;
+  }
+
+  if (action === "toggle-open-organization") {
+    const organization = findOrganization(organizationId);
+    if (!organization?.persisted) {
+      return;
+    }
+    await setOrganizationRuntime(organizationId, { open: !organization.open });
+    return;
+  }
+
+  if (action === "activate-organization") {
+    const organization = findOrganization(organizationId);
+    if (!organization?.persisted) {
+      return;
+    }
+    await setOrganizationRuntime(organizationId, { active: true, open: true });
+    selectedOrganizationId = organizationId;
+    return;
+  }
+
+  if (action === "toggle-mode-organization") {
+    const organization = findOrganization(organizationId);
+    if (!organization?.persisted) {
+      return;
+    }
+    await setOrganizationRuntime(organizationId, {
+      mode: organization.mode === "auto" ? "idle" : "auto",
+      open: true,
+    });
+    if (organizationId === activeOrganizationId && organizations.find((entry) => entry.id === organizationId)?.mode === "auto") {
+      await bootstrapAutoMode();
+    }
     return;
   }
 
@@ -5672,6 +6943,22 @@ Update this template.
   await loadAgentDetail(name);
 });
 
+agentMenu?.addEventListener("click", (event) => {
+  const button = event.target.closest('[data-action="select-record"]');
+  if (!button) return;
+  selectedAgentName = button.dataset.recordId;
+  renderAgentsPanel();
+  void loadAgentDetail(selectedAgentName);
+});
+
+skillMenu?.addEventListener("click", (event) => {
+  const button = event.target.closest('[data-action="select-record"]');
+  if (!button) return;
+  selectedSkillName = button.dataset.recordId;
+  renderSkillsPanel();
+  void loadSkillDetail(selectedSkillName);
+});
+
 addScheduleTaskButton?.addEventListener("click", () => {
   addScheduleTask();
 });
@@ -5686,13 +6973,27 @@ scheduleList?.addEventListener("click", (event) => {
 scheduleDetail?.addEventListener("input", (event) => {
   const card = event.target.closest(".source-card");
   if (!card) return;
-  updateScheduleField(card.dataset.scheduleId, event.target.dataset.field, event.target.type === "checkbox" ? event.target.checked : event.target.value);
+  const field = event.target.dataset.field;
+  if (!field) return;
+  const value = field === "dependencyIds"
+    ? [...event.target.selectedOptions].map((option) => option.value)
+    : event.target.type === "checkbox"
+      ? event.target.checked
+      : event.target.value;
+  updateScheduleField(card.dataset.scheduleId, field, value);
 });
 
 scheduleDetail?.addEventListener("change", (event) => {
   const card = event.target.closest(".source-card");
   if (!card) return;
-  updateScheduleField(card.dataset.scheduleId, event.target.dataset.field, event.target.type === "checkbox" ? event.target.checked : event.target.value);
+  const field = event.target.dataset.field;
+  if (!field) return;
+  const value = field === "dependencyIds"
+    ? [...event.target.selectedOptions].map((option) => option.value)
+    : event.target.type === "checkbox"
+      ? event.target.checked
+      : event.target.value;
+  updateScheduleField(card.dataset.scheduleId, field, value);
 });
 
 scheduleDetail?.addEventListener("click", async (event) => {
@@ -6007,6 +7308,60 @@ openTextDocumentButton?.addEventListener("click", async () => {
   await openFilePicker("open");
 });
 
+refreshWebButton?.addEventListener("click", () => {
+  void loadWebPanelData();
+});
+
+addWebFragmentButton?.addEventListener("click", async () => {
+  if (!activeOrganizationId) {
+    return;
+  }
+  const index = webState.fragments.length + 1;
+  setWebState("Creating...", true);
+  try {
+    await fetchJson("/api/web/write", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        content: `<section>\n  <h1>Fragment ${index}</h1>\n  <p>New web fragment.</p>\n</section>\n`,
+        file: `fragment-${index}.htm`,
+        orgId: activeOrganizationId,
+      }),
+    });
+    await loadWebPanelData();
+    setWebState("Created");
+  } catch (error) {
+    console.error(error);
+    setWebState("Create failed");
+  }
+});
+
+webMenu?.addEventListener("click", (event) => {
+  const button = event.target.closest('[data-action="select-record"]');
+  if (!button) {
+    return;
+  }
+  webState.selectedFragmentId = button.dataset.recordId;
+  renderWebPanel();
+});
+
+webDetail?.addEventListener("click", async (event) => {
+  const button = event.target.closest("button");
+  if (!button) {
+    return;
+  }
+  if (button.dataset.action === "open-web-fragment-text") {
+    const selected = webState.fragments.find((entry) => entry.id === webState.selectedFragmentId);
+    if (selected?.path) {
+      await openTextDocument("organization", selected.path);
+    }
+    return;
+  }
+  if (button.dataset.action === "open-tool-registry") {
+    openPanel(PANEL_TOOLS);
+  }
+});
+
 textDocumentMenu?.addEventListener("click", (event) => {
   const button = event.target.closest('[data-action="select-text-document"]');
   if (!button) {
@@ -6229,6 +7584,9 @@ async function initialize() {
     }
   });
   renderAccentOptions();
+  initializeDesktopGroups();
+  loadDesktopSidebarState();
+  applyDesktopSidebarState();
   loadSystemMode();
   loadTextViewSettings();
   renderSystemMode();
@@ -6250,8 +7608,9 @@ async function initialize() {
   if (!hasSavedOrg) {
     openPanel(PANEL_ABOUT);
   }
-  if (systemMode === "auto" && activeOrganizationId) {
-    await bootstrapAutoMode();
+  const autoOrganizations = organizations.filter((organization) => organization.persisted && organization.open && organization.mode === "auto");
+  for (const organization of autoOrganizations) {
+    await bootstrapAutoMode(organization.id);
   }
   await discoverSources();
 }
