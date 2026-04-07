@@ -937,9 +937,43 @@
               <div class="panel-body">
                 <div class="panel-copy-row">
                   <p class="panel-copy">Watch inference dispatch, tier routing, and node health in real time.</p>
+                  <div class="panel-copy-row__actions">
+                    <button class="chrome-button" id="queue-enqueue-button" type="button">dispatch</button>
+                  </div>
                   <p class="panel-scan-state panel-scan-state--hidden" id="queue-state" aria-live="polite">Ready</p>
                 </div>
                 <div class="panel-layout panel-layout--queue">
+                  <div class="queue-enqueue-form source-card" id="queue-enqueue-form" hidden>
+                    <div class="source-card__header">
+                      <div class="source-card__identity">
+                        <p class="source-card__status">Dispatch task</p>
+                      </div>
+                      <div class="source-card__actions">
+                        <button class="chrome-button source-card__button" id="queue-enqueue-submit" type="button">enqueue</button>
+                        <button class="chrome-button source-card__button" id="queue-enqueue-cancel" type="button">cancel</button>
+                      </div>
+                    </div>
+                    <div class="field-grid field-grid--compact">
+                      <label class="field">
+                        <span class="field__label">agent</span>
+                        <select class="field__control" id="queue-enqueue-agent"></select>
+                      </label>
+                      <label class="field">
+                        <span class="field__label">priority</span>
+                        <select class="field__control" id="queue-enqueue-priority">
+                          <option value="normal">normal</option>
+                          <option value="high">high</option>
+                          <option value="low">low</option>
+                          <option value="critical">critical</option>
+                          <option value="background">background</option>
+                        </select>
+                      </label>
+                    </div>
+                    <label class="field">
+                      <span class="field__label">task</span>
+                      <textarea class="field__control field__control--textarea" id="queue-enqueue-task" placeholder="Describe the task for this agent…"></textarea>
+                    </label>
+                  </div>
                   <div class="queue-metrics" id="queue-metrics"></div>
                   <div class="queue-nodes" id="queue-nodes"></div>
                   <div class="queue-items" id="queue-items"></div>

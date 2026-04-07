@@ -927,6 +927,7 @@ export function createOrgosApp(rootDir: string): OrgosApp {
   const deletedDir = path.join(systemDir, "deleted");
   const agentsDir = path.join(rootDir, ".agents");
   const skillsDir = path.join(rootDir, ".skills");
+  const promptsDir = path.join(rootDir, "prompts");
   const templatesDir = path.join(rootDir, ".system", "templates");
   const templateCatalogPath = path.join(templatesDir, "catalog.json");
   const watchDirs = [
@@ -2502,6 +2503,144 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     return candidates[0].address;
   }
 
+  // ── Prompt assembly ───────────────────────────────────────────────────────
+
+  async function assembleAgentPrompt(
+    promptFile: string,
+    variables: Record<string, string>,
+  ): Promise<{ systemPrompt: string; warnings: string[] }> {
+    const warnings: string[] = [];
+    if (!promptFile) {
+      return { systemPrompt: "", warnings: ["No prompt_file specified for this agent."] };
+    }
+    const resolved = safeJoin(promptsDir, promptFile.replace(/^prompts\//, ""));
+    if (!resolved || !existsSync(resolved)) {
+      return {
+        systemPrompt: "",
+        warnings: [`Prompt file not found: ${promptFile}`],
+      };
+    }
+    let raw = await readFile(resolved, "utf-8") as string;
+    // Strip header comment block (lines starting with # before the first blank line)
+    const lines = raw.split("\n");
+    let bodyStart = 0;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].startsWith("#")) {
+        bodyStart = i + 1;
+      } else if (lines[i].trim() === "" && bodyStart > 0) {
+        break;
+      }
+    }
+    raw = lines.slice(bodyStart).join("\n").trimStart();
+
+    // Substitute {{VARIABLE}} placeholders
+    const result = raw.replace(/\{\{([A-Z0-9_]+)\}\}/g, (match, key) => {
+      if (key in variables) return variables[key];
+      warnings.push(`Missing variable: ${key}`);
+      return match;
+    });
+
+    return { systemPrompt: result, warnings };
+  }
+
+  // ── Inference dispatch ────────────────────────────────────────────────────
+
+  const dispatchingNodes = new Set<string>();
+
+  async function dispatchToNode(item: QueueItem, nodeAddress: string) {
+    const node = nodeTelemetry.get(nodeAddress);
+    if (!node) return;
+
+    item.status = "dispatching";
+    item.dispatchedAt = Date.now();
+    item.nodeAddress = nodeAddress;
+    node.activeRequests++;
+    emitQueueEvent("queue:update", { id: item.id, status: item.status, nodeAddress });
+    dispatchingNodes.add(nodeAddress);
+
+    try {
+      item.status = "running";
+      emitQueueEvent("queue:update", { id: item.id, status: item.status });
+
+      const controller = new AbortController();
+      const timeoutMs = item.estimatedDurationMs * 4;
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+      const response = await fetch(`${nodeAddress}/api/chat`, {
+        body: JSON.stringify({
+          messages: item.promptMessages,
+          model: item.model,
+          options: { num_ctx: 8192 },
+          stream: false,
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        throw new Error(`Ollama ${response.status}: ${await response.text()}`);
+      }
+
+      const chat = (await response.json()) as {
+        message?: { content?: string };
+      };
+      const result = chat.message?.content ?? "";
+
+      item.status = "done";
+      item.result = result;
+      item.completedAt = Date.now();
+      item.actualDurationMs = item.completedAt - (item.dispatchedAt ?? item.completedAt);
+      emitQueueEvent("queue:done", { id: item.id, result, status: "done" });
+
+      await recordInferenceTelemetry("queue:done", {
+        address: nodeAddress,
+        contextWindow: 8192,
+        model: item.model,
+      });
+    } catch (err) {
+      item.retryCount++;
+      if (item.retryCount < item.maxRetries) {
+        item.status = "retrying";
+        item.error = String(err);
+        emitQueueEvent("queue:update", { error: item.error, id: item.id, status: item.status });
+        setTimeout(() => {
+          item.status = "pending";
+          item.error = null;
+          emitQueueEvent("queue:update", { id: item.id, status: item.status });
+        }, 2000 * item.retryCount);
+      } else {
+        item.status = "failed";
+        item.error = String(err);
+        item.completedAt = Date.now();
+        emitQueueEvent("queue:failed", { error: item.error, id: item.id, status: "failed" });
+      }
+    } finally {
+      node.activeRequests = Math.max(0, node.activeRequests - 1);
+      dispatchingNodes.delete(nodeAddress);
+    }
+  }
+
+  function tickDispatchLoop() {
+    const next = dequeueNext();
+    if (!next) return;
+    const nodeAddress = selectNodeForTier(next.tier, next.model);
+    if (!nodeAddress) {
+      // Emit blocked if we have active nodes but none match
+      if (nodeTelemetry.size > 0) {
+        emitQueueEvent("queue:blocked", { id: next.id, reason: "no_matching_node" });
+      }
+      return;
+    }
+    // Avoid re-dispatching to a node that is already handling a dispatch this tick
+    if (dispatchingNodes.has(nodeAddress)) return;
+    // Fire-and-forget: do not await, so the ticker can continue
+    dispatchToNode(next, nodeAddress).catch((err) => {
+      console.error("[orgos] dispatchToNode error", err);
+    });
+  }
+
   function normalizeRelativePath(input: string | null | undefined) {
     const value = (input ?? "").replaceAll("\\", "/").replace(/^\/+/, "");
     if (!value) {
@@ -3132,6 +3271,7 @@ export function createOrgosApp(rootDir: string): OrgosApp {
         ? { id: "orgos", name: "orgos", scope: "system" }
         : null,
       projects,
+      nodeTelemetry: [...nodeTelemetry.values()],
       queue: getQueueSnapshot(),
       staff,
       skills,
@@ -3202,6 +3342,8 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     }, 5000);
     // Initial poll on startup
     pollNodeTelemetry().catch(() => {});
+    // Dispatch loop: check for ready queue items every second
+    setInterval(tickDispatchLoop, 1000);
   }
 
   async function fetchHandler(request: Request) {
@@ -3596,12 +3738,56 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     }
 
     if (url.pathname === "/api/queue/enqueue" && request.method === "POST") {
-      const payload = (await request.json()) as Partial<QueueItem>;
-      if (!payload.agentId || !payload.promptMessages) {
-        return new Response("Bad Request", { status: 400 });
+      const payload = (await request.json()) as {
+        agentId?: string;
+        taskDescription?: string;
+        variables?: Record<string, string>;
+        priority?: QueuePriority;
+        dependencies?: string[];
+        workflowId?: string;
+        // Legacy direct-message form
+        promptMessages?: { role: string; content: string }[];
+        tier?: TierLevel;
+        model?: string;
+      };
+      if (!payload.agentId) {
+        return new Response("Bad Request: agentId required", { status: 400 });
       }
-      const tier: TierLevel =
-        payload.tier === "top" || payload.tier === "low" ? payload.tier : "mid";
+
+      let promptMessages: { role: string; content: string }[];
+      let tier: TierLevel = "mid";
+      let model = payload.model ?? "";
+
+      if (payload.promptMessages) {
+        // Legacy form: caller supplies raw messages
+        promptMessages = payload.promptMessages;
+        tier = payload.tier ?? "mid";
+      } else {
+        // Preferred form: server assembles from agent template
+        if (!payload.taskDescription) {
+          return new Response("Bad Request: taskDescription required", { status: 400 });
+        }
+        const agents = await listAgentFiles();
+        const agent = agents.find(
+          (a) => a.name === payload.agentId || a.file === payload.agentId + ".md",
+        );
+        if (!agent) {
+          return new Response(`Not Found: agent '${payload.agentId}'`, { status: 404 });
+        }
+        tier = agent.tier;
+        model = agent.model || model;
+        const variables: Record<string, string> = {
+          TASK: payload.taskDescription,
+          ...payload.variables,
+        };
+        const assembled = await assembleAgentPrompt(agent.promptFile, variables);
+        const systemContent = assembled.systemPrompt || `You are ${agent.name}. ${agent.description}`;
+        promptMessages = [
+          { role: "system", content: systemContent },
+          { role: "user", content: payload.taskDescription },
+        ];
+      }
+
       const item: QueueItem = {
         agentId: payload.agentId,
         actualDurationMs: null,
@@ -3610,17 +3796,17 @@ export function createOrgosApp(rootDir: string): OrgosApp {
         dispatchedAt: null,
         enqueuedAt: Date.now(),
         error: null,
-        estimatedDurationMs: payload.estimatedDurationMs ?? 30000,
+        estimatedDurationMs: 30000,
         id: crypto.randomUUID(),
-        maxRetries: payload.maxRetries ?? 3,
-        model: payload.model ?? "",
+        maxRetries: 2,
+        model,
         nodeAddress: null,
         priority: payload.priority ?? "normal",
-        promptMessages: payload.promptMessages,
+        promptMessages,
         result: null,
         retryCount: 0,
         status: "pending",
-        taskId: payload.taskId ?? crypto.randomUUID(),
+        taskId: crypto.randomUUID(),
         tier,
         workflowId: payload.workflowId ?? "",
       };
@@ -3638,6 +3824,19 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       item.error = "Cancelled by user";
       emitQueueEvent("queue:update", { id: item.id, status: item.status });
       return Response.json({ ok: true });
+    }
+
+    if (url.pathname === "/api/prompts/preview" && request.method === "POST") {
+      const payload = (await request.json()) as {
+        agentId?: string;
+        variables?: Record<string, string>;
+      };
+      if (!payload.agentId) return new Response("Bad Request", { status: 400 });
+      const agents = await listAgentFiles();
+      const agent = agents.find((a) => a.name === payload.agentId);
+      if (!agent) return new Response("Not Found", { status: 404 });
+      const assembled = await assembleAgentPrompt(agent.promptFile, payload.variables ?? {});
+      return Response.json(assembled);
     }
 
     // ── Agents API ───────────────────────────────────────────────────────────

@@ -86,6 +86,13 @@ const mailDetail = document.querySelector("#mail-detail");
 const queueMetrics = document.querySelector("#queue-metrics");
 const queueNodes = document.querySelector("#queue-nodes");
 const queueItems = document.querySelector("#queue-items");
+const queueEnqueueButton = document.querySelector("#queue-enqueue-button");
+const queueEnqueueForm = document.querySelector("#queue-enqueue-form");
+const queueEnqueueAgent = document.querySelector("#queue-enqueue-agent");
+const queueEnqueuePriority = document.querySelector("#queue-enqueue-priority");
+const queueEnqueueTask = document.querySelector("#queue-enqueue-task");
+const queueEnqueueSubmit = document.querySelector("#queue-enqueue-submit");
+const queueEnqueueCancel = document.querySelector("#queue-enqueue-cancel");
 const scheduleDetail = document.querySelector("#schedule-detail");
 const hireMenu = document.querySelector("#hire-menu");
 const hireDetail = document.querySelector("#hire-detail");
@@ -2610,6 +2617,7 @@ async function loadWorkspaceBootstrap() {
   agentFiles = payload.agents ?? [];
   skillFiles = payload.skills ?? [];
   queueState = payload.queue ?? [];
+  queueNodeState = payload.nodeTelemetry ?? [];
   webState.orgId = activeOrganizationId;
   webState.fragments = payload.web?.fragments ?? [];
   webState.selectedFragmentId = payload.web?.fragments?.[0]?.id ?? null;
@@ -7185,6 +7193,49 @@ evalsDetail?.addEventListener("click", async (event) => {
   }
   if (button.dataset.action === "delete-eval") {
     await deleteEvalRecord(card.dataset.evalId);
+  }
+});
+
+// ── Queue dispatch form ───────────────────────────────────────────────────
+
+queueEnqueueButton?.addEventListener("click", () => {
+  if (!queueEnqueueForm) return;
+  queueEnqueueForm.hidden = !queueEnqueueForm.hidden;
+  if (!queueEnqueueForm.hidden && queueEnqueueAgent) {
+    queueEnqueueAgent.replaceChildren();
+    for (const agent of agentFiles) {
+      const opt = document.createElement("option");
+      opt.value = agent.name;
+      opt.textContent = agent.name;
+      queueEnqueueAgent.append(opt);
+    }
+  }
+});
+
+queueEnqueueCancel?.addEventListener("click", () => {
+  if (queueEnqueueForm) queueEnqueueForm.hidden = true;
+});
+
+queueEnqueueSubmit?.addEventListener("click", async () => {
+  const agentId = queueEnqueueAgent?.value;
+  const taskDescription = queueEnqueueTask?.value?.trim();
+  const priority = queueEnqueuePriority?.value ?? "normal";
+  if (!agentId || !taskDescription) {
+    setPanelState(queueStateLabel, "Agent and task are required.");
+    return;
+  }
+  setPanelState(queueStateLabel, "Dispatching...", true);
+  try {
+    await fetchJson("/api/queue/enqueue", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ agentId, taskDescription, priority }),
+    });
+    if (queueEnqueueTask) queueEnqueueTask.value = "";
+    if (queueEnqueueForm) queueEnqueueForm.hidden = true;
+    setPanelState(queueStateLabel, "Dispatched");
+  } catch {
+    setPanelState(queueStateLabel, "Dispatch failed");
   }
 });
 

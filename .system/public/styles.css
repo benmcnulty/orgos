@@ -2780,6 +2780,10 @@ select.field__control {
   overflow: hidden;
 }
 
+.queue-enqueue-form {
+  flex-shrink: 0;
+}
+
 .panel-layout--tools,
 .panel-layout--schedule,
 .panel-layout--queue {
