@@ -93,6 +93,13 @@ const queueEnqueuePriority = document.querySelector("#queue-enqueue-priority");
 const queueEnqueueTask = document.querySelector("#queue-enqueue-task");
 const queueEnqueueSubmit = document.querySelector("#queue-enqueue-submit");
 const queueEnqueueCancel = document.querySelector("#queue-enqueue-cancel");
+const queueWorkflowButton = document.querySelector("#queue-workflow-button");
+const queueWorkflowForm = document.querySelector("#queue-workflow-form");
+const queueWorkflowTitle = document.querySelector("#queue-workflow-title");
+const queueWorkflowObjective = document.querySelector("#queue-workflow-objective");
+const queueWorkflowSubmit = document.querySelector("#queue-workflow-submit");
+const queueWorkflowCancel = document.querySelector("#queue-workflow-cancel");
+const queueWorkflowsEl = document.querySelector("#queue-workflows");
 const scheduleDetail = document.querySelector("#schedule-detail");
 const hireMenu = document.querySelector("#hire-menu");
 const hireDetail = document.querySelector("#hire-detail");
@@ -282,6 +289,7 @@ let filePickerSession = {
 let fileActionSession = null;
 let queueState = [];
 let queueNodeState = [];
+let workflowState = [];
 let queueSSE = null;
 let agentFiles = [];
 let skillFiles = [];
@@ -2618,6 +2626,7 @@ async function loadWorkspaceBootstrap() {
   skillFiles = payload.skills ?? [];
   queueState = payload.queue ?? [];
   queueNodeState = payload.nodeTelemetry ?? [];
+  workflowState = payload.workflows ?? [];
   webState.orgId = activeOrganizationId;
   webState.fragments = payload.web?.fragments ?? [];
   webState.selectedFragmentId = payload.web?.fragments?.[0]?.id ?? null;
@@ -4392,6 +4401,47 @@ function renderQueuePanel() {
     status.textContent = `${node.status} · ${node.tier} · ${node.activeRequests} req`;
     card.append(name, model, status);
     queueNodes.append(card);
+  }
+
+  // Workflow cards
+  if (queueWorkflowsEl) {
+    queueWorkflowsEl.replaceChildren();
+    for (const wf of workflowState) {
+      const card = document.createElement("div");
+      card.className = "queue-item-card";
+      const badge = document.createElement("span");
+      badge.className = "queue-item-status" +
+        (wf.status === "running" ? " queue-item-status--running" : "") +
+        (wf.status === "done" ? " queue-item-status--done" : "") +
+        (wf.status === "failed" || wf.status === "cancelled" ? " queue-item-status--failed" : "");
+      badge.textContent = wf.status;
+      const info = document.createElement("div");
+      const title = document.createElement("div");
+      title.className = "queue-item-card__agent";
+      title.textContent = wf.title;
+      const meta = document.createElement("div");
+      meta.className = "queue-item-card__meta";
+      meta.textContent = wf.objective.slice(0, 80) + (wf.objective.length > 80 ? "…" : "");
+      const actions = document.createElement("div");
+      actions.className = "queue-item-card__meta";
+      if (wf.status === "draft") {
+        const runBtn = document.createElement("button");
+        runBtn.className = "chrome-button";
+        runBtn.textContent = "run";
+        runBtn.addEventListener("click", () => runWorkflow(wf));
+        actions.append(runBtn);
+      }
+      if (wf.status === "running") {
+        const cancelBtn = document.createElement("button");
+        cancelBtn.className = "chrome-button";
+        cancelBtn.textContent = "cancel";
+        cancelBtn.addEventListener("click", () => cancelWorkflow(wf));
+        actions.append(cancelBtn);
+      }
+      info.append(title, meta, actions);
+      card.append(badge, info);
+      queueWorkflowsEl.append(card);
+    }
   }
 
   // Queue items
@@ -7238,6 +7288,84 @@ queueEnqueueSubmit?.addEventListener("click", async () => {
     setPanelState(queueStateLabel, "Dispatch failed");
   }
 });
+
+// ── Queue workflow form ───────────────────────────────────────────────────
+
+queueWorkflowButton?.addEventListener("click", () => {
+  if (!queueWorkflowForm) return;
+  queueWorkflowForm.hidden = !queueWorkflowForm.hidden;
+  if (queueEnqueueForm) queueEnqueueForm.hidden = true;
+});
+
+queueWorkflowCancel?.addEventListener("click", () => {
+  if (queueWorkflowForm) queueWorkflowForm.hidden = true;
+});
+
+queueWorkflowSubmit?.addEventListener("click", async () => {
+  const title = queueWorkflowTitle?.value?.trim();
+  const objective = queueWorkflowObjective?.value?.trim();
+  const orgId = activeOrganizationId;
+  if (!orgId) {
+    setPanelState(queueStateLabel, "No active organization.");
+    return;
+  }
+  if (!title || !objective) {
+    setPanelState(queueStateLabel, "Title and objective are required.");
+    return;
+  }
+  setPanelState(queueStateLabel, "Creating workflow...", true);
+  try {
+    const wf = await fetchJson("/api/workflows/create", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ orgId, title, objective }),
+    });
+    workflowState = [...workflowState.filter((w) => w.id !== wf.id), wf];
+    if (queueWorkflowTitle) queueWorkflowTitle.value = "";
+    if (queueWorkflowObjective) queueWorkflowObjective.value = "";
+    if (queueWorkflowForm) queueWorkflowForm.hidden = true;
+    setPanelState(queueStateLabel, "Workflow created");
+    renderQueuePanel();
+  } catch {
+    setPanelState(queueStateLabel, "Failed to create workflow");
+  }
+});
+
+async function runWorkflow(wf) {
+  const orgId = activeOrganizationId;
+  if (!orgId) return;
+  setPanelState(queueStateLabel, "Starting workflow...", true);
+  try {
+    const updated = await fetchJson("/api/workflows/run", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ orgId, id: wf.id }),
+    });
+    workflowState = workflowState.map((w) => w.id === updated.id ? updated : w);
+    setPanelState(queueStateLabel, "Workflow running");
+    renderQueuePanel();
+  } catch {
+    setPanelState(queueStateLabel, "Failed to start workflow");
+  }
+}
+
+async function cancelWorkflow(wf) {
+  const orgId = activeOrganizationId;
+  if (!orgId) return;
+  setPanelState(queueStateLabel, "Cancelling...", true);
+  try {
+    const updated = await fetchJson("/api/workflows/cancel", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ orgId, id: wf.id }),
+    });
+    workflowState = workflowState.map((w) => w.id === updated.id ? updated : w);
+    setPanelState(queueStateLabel, "Workflow cancelled");
+    renderQueuePanel();
+  } catch {
+    setPanelState(queueStateLabel, "Failed to cancel workflow");
+  }
+}
 
 filesRootMenu?.addEventListener("click", (event) => {
   const button = event.target.closest('[data-action="select-root"]');

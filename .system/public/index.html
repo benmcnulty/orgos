@@ -938,6 +938,7 @@
                 <div class="panel-copy-row">
                   <p class="panel-copy">Watch inference dispatch, tier routing, and node health in real time.</p>
                   <div class="panel-copy-row__actions">
+                    <button class="chrome-button" id="queue-workflow-button" type="button">workflow</button>
                     <button class="chrome-button" id="queue-enqueue-button" type="button">dispatch</button>
                   </div>
                   <p class="panel-scan-state panel-scan-state--hidden" id="queue-state" aria-live="polite">Ready</p>
@@ -974,8 +975,28 @@
                       <textarea class="field__control field__control--textarea" id="queue-enqueue-task" placeholder="Describe the task for this agent…"></textarea>
                     </label>
                   </div>
+                  <div class="queue-workflow-form source-card" id="queue-workflow-form" hidden>
+                    <div class="source-card__header">
+                      <div class="source-card__identity">
+                        <p class="source-card__status">New workflow</p>
+                      </div>
+                      <div class="source-card__actions">
+                        <button class="chrome-button source-card__button" id="queue-workflow-submit" type="button">create</button>
+                        <button class="chrome-button source-card__button" id="queue-workflow-cancel" type="button">cancel</button>
+                      </div>
+                    </div>
+                    <label class="field">
+                      <span class="field__label">title</span>
+                      <input class="field__control" id="queue-workflow-title" placeholder="Name this workflow…" type="text" />
+                    </label>
+                    <label class="field">
+                      <span class="field__label">objective</span>
+                      <textarea class="field__control field__control--textarea" id="queue-workflow-objective" placeholder="Describe what this workflow should accomplish…"></textarea>
+                    </label>
+                  </div>
                   <div class="queue-metrics" id="queue-metrics"></div>
                   <div class="queue-nodes" id="queue-nodes"></div>
+                  <div class="queue-workflows" id="queue-workflows"></div>
                   <div class="queue-items" id="queue-items"></div>
                 </div>
               </div>

@@ -1115,4 +1115,84 @@ describe("orgos app integration", () => {
     const payload = await res.json();
     expect(Array.isArray(payload.nodeTelemetry)).toBe(true);
   });
+
+  test("creates, lists, reads, and deletes workflows", async () => {
+    const orgId = "integ-test";
+    const createRes = await app.fetch(
+      new Request("http://orgos.local/api/workflows/create", {
+        body: JSON.stringify({
+          objective: "Write a haiku about the sea, then refine it.",
+          orgId,
+          title: "Haiku Workflow",
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+    expect(createRes.status).toBe(200);
+    const wf = await createRes.json();
+    expect(wf.id).toBeTruthy();
+    expect(wf.title).toBe("Haiku Workflow");
+    expect(wf.status).toBe("draft");
+    expect(wf.taskIds).toEqual([]);
+
+    const listRes = await app.fetch(
+      new Request(`http://orgos.local/api/workflows/list?orgId=${orgId}`),
+    );
+    expect(listRes.status).toBe(200);
+    const { workflows } = await listRes.json();
+    expect(Array.isArray(workflows)).toBe(true);
+    expect(workflows.some((w: { id: string }) => w.id === wf.id)).toBe(true);
+
+    const readRes = await app.fetch(
+      new Request(`http://orgos.local/api/workflows/read?orgId=${orgId}&id=${wf.id}`),
+    );
+    expect(readRes.status).toBe(200);
+    const readWf = await readRes.json();
+    expect(readWf.id).toBe(wf.id);
+
+    const runRes = await app.fetch(
+      new Request("http://orgos.local/api/workflows/run", {
+        body: JSON.stringify({ id: wf.id, orgId }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+    expect(runRes.status).toBe(200);
+    const runWf = await runRes.json();
+    expect(runWf.status).toBe("running");
+
+    const cancelRes = await app.fetch(
+      new Request("http://orgos.local/api/workflows/cancel", {
+        body: JSON.stringify({ id: wf.id, orgId }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+    expect(cancelRes.status).toBe(200);
+    const cancelledWf = await cancelRes.json();
+    expect(cancelledWf.status).toBe("cancelled");
+
+    const deleteRes = await app.fetch(
+      new Request("http://orgos.local/api/workflows/delete", {
+        body: JSON.stringify({ id: wf.id, orgId }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+    expect(deleteRes.status).toBe(200);
+
+    const afterDelete = await app.fetch(
+      new Request(`http://orgos.local/api/workflows/read?orgId=${orgId}&id=${wf.id}`),
+    );
+    expect(afterDelete.status).toBe(404);
+  });
+
+  test("workflow list and read return 400 without orgId", async () => {
+    const listRes = await app.fetch(new Request("http://orgos.local/api/workflows/list"));
+    expect(listRes.status).toBe(400);
+
+    const readRes = await app.fetch(new Request("http://orgos.local/api/workflows/read?id=fake"));
+    expect(readRes.status).toBe(400);
+  });
 });

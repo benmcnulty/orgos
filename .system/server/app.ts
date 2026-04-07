@@ -388,6 +388,20 @@ type EvalsRecord = {
   updatedAt: string;
 };
 
+type WorkflowStatus = "draft" | "running" | "done" | "failed" | "cancelled";
+
+type Workflow = {
+  createdAt: string;
+  createdBy: string;
+  id: string;
+  objective: string;
+  organizationId: string;
+  status: WorkflowStatus;
+  taskIds: string[];
+  title: string;
+  updatedAt: string;
+};
+
 type AgentTemplateSummary = {
   bundles?: string[];
   description: string;
@@ -2008,6 +2022,40 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     return true;
   }
 
+  async function readWorkflows(orgId: string): Promise<Workflow[]> {
+    const workflows = await readOrganizationScopedJson<Workflow[]>(orgId, "workflows.json", []);
+    return Array.isArray(workflows) ? workflows : [];
+  }
+
+  async function writeWorkflow(orgId: string, payload: Partial<Workflow>): Promise<Workflow> {
+    const current = await readWorkflows(orgId);
+    const now = new Date().toISOString();
+    const existing = payload.id ? current.find((w) => w.id === payload.id) : null;
+    const workflow: Workflow = {
+      createdAt: existing?.createdAt ?? now,
+      createdBy: payload.createdBy ?? existing?.createdBy ?? "user",
+      id: payload.id ?? crypto.randomUUID(),
+      objective: payload.objective ?? existing?.objective ?? "",
+      organizationId: orgId,
+      status: payload.status ?? existing?.status ?? "draft",
+      taskIds: payload.taskIds ?? existing?.taskIds ?? [],
+      title: payload.title ?? existing?.title ?? "Untitled Workflow",
+      updatedAt: now,
+    };
+    const next = [...current.filter((w) => w.id !== workflow.id), workflow]
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    await writeOrganizationScopedJson(orgId, "workflows.json", next);
+    return workflow;
+  }
+
+  async function deleteWorkflow(orgId: string, id: string) {
+    const current = await readWorkflows(orgId);
+    const next = current.filter((w) => w.id !== id);
+    if (next.length === current.length) return false;
+    await writeOrganizationScopedJson(orgId, "workflows.json", next);
+    return true;
+  }
+
   async function buildOrganizationRuntimeSummary(
     organization: OrganizationAbout,
     index: OrganizationsIndex,
@@ -2606,6 +2654,11 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       item.actualDurationMs = item.completedAt - (item.dispatchedAt ?? item.completedAt);
       emitQueueEvent("queue:done", { id: item.id, result, status: "done" });
 
+      // Check if this item belongs to a workflow and all its tasks are now done
+      if (item.workflowId) {
+        onQueueItemDone(item).catch(() => {});
+      }
+
       await recordInferenceTelemetry("queue:done", {
         address: nodeAddress,
         contextWindow: 8192,
@@ -2631,6 +2684,40 @@ export function createOrgosApp(rootDir: string): OrgosApp {
     } finally {
       node.activeRequests = Math.max(0, node.activeRequests - 1);
       dispatchingNodes.delete(nodeAddress);
+    }
+  }
+
+  async function onQueueItemDone(item: QueueItem) {
+    if (!item.workflowId) return;
+    // Find the org that owns this workflow — scan open organizations
+    const index = await readOrganizationsIndex();
+    for (const orgId of index.openOrganizationIds) {
+      const workflows = await readWorkflows(orgId);
+      const wf = workflows.find((w) => w.id === item.workflowId);
+      if (!wf) continue;
+      const allDone = wf.taskIds.every((tid) => {
+        const qi = inferenceQueue.find((q) => q.id === tid);
+        return !qi || qi.status === "done";
+      });
+      const anyFailed = wf.taskIds.some((tid) => {
+        const qi = inferenceQueue.find((q) => q.id === tid);
+        return qi?.status === "failed";
+      });
+      const nextStatus: WorkflowStatus = anyFailed ? "failed" : allDone ? "done" : "running";
+      if (nextStatus !== wf.status) {
+        await writeWorkflow(orgId, { ...wf, status: nextStatus });
+        if (nextStatus === "done" || nextStatus === "failed") {
+          await createBoardNotification({
+            organizationId: orgId,
+            sourceApp: "queue",
+            summary: `Workflow "${wf.title}" ${nextStatus}.`,
+            targetId: wf.id,
+            targetPanel: "queue",
+            title: `Workflow ${nextStatus === "done" ? "complete" : "failed"}`,
+          });
+        }
+      }
+      break;
     }
   }
 
@@ -3231,7 +3318,7 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       ),
     );
     const telemetry = await readTelemetryConfig();
-    const [flow, meetings, mailInbox, staff, projects, evals, datamap, web] = orgId
+    const [flow, meetings, mailInbox, staff, projects, evals, workflows, datamap, web] = orgId
       ? await Promise.all([
         readFlow(orgId),
         listMeetings(orgId),
@@ -3239,6 +3326,7 @@ export function createOrgosApp(rootDir: string): OrgosApp {
         readStaffState(orgId),
         readProjects(orgId),
         readEvals(orgId),
+        readWorkflows(orgId),
         readOrganizationDatamap(orgId),
         (async () => {
           const fragments = await listWebFragments(orgId);
@@ -3254,6 +3342,7 @@ export function createOrgosApp(rootDir: string): OrgosApp {
         [],
         [],
         null,
+        [],
         [],
         [],
         { entries: [], generatedAt: new Date().toISOString(), organizationId: "", version: 1 },
@@ -3283,6 +3372,7 @@ export function createOrgosApp(rootDir: string): OrgosApp {
         ? { id: "orgos", name: "orgos", scope: "system" }
         : null,
       projects,
+      workflows,
       nodeTelemetry: [...nodeTelemetry.values()],
       queue: getQueueSnapshot(),
       staff,
@@ -3936,6 +4026,8 @@ export function createOrgosApp(rootDir: string): OrgosApp {
         { name: "meet.write", file: "/api/meet/write", scope: "organization" },
         { name: "projects.write", file: "/api/projects/write", scope: "organization" },
         { name: "evals.write", file: "/api/evals/write", scope: "organization" },
+        { name: "workflows.create", file: "/api/workflows/create", scope: "organization" },
+        { name: "workflows.run", file: "/api/workflows/run", scope: "organization" },
         { name: "skills.registry", file: ".skills/", scope: "system" },
       ];
       return Response.json({ tools, skills });
@@ -4089,6 +4181,74 @@ export function createOrgosApp(rootDir: string): OrgosApp {
       const ok = await deleteEval(payload.orgId, payload.id);
       if (!ok) return new Response("Not Found", { status: 404 });
       return Response.json({ ok: true });
+    }
+
+    // Workflow routes
+    if (url.pathname === "/api/workflows/list") {
+      const orgId = url.searchParams.get("orgId");
+      if (!orgId) return new Response("Bad Request", { status: 400 });
+      const workflows = await readWorkflows(orgId);
+      return Response.json({ workflows });
+    }
+
+    if (url.pathname === "/api/workflows/create" && request.method === "POST") {
+      const payload = (await request.json()) as {
+        objective?: string;
+        orgId?: string;
+        title?: string;
+      };
+      if (!payload.orgId) return new Response("Bad Request", { status: 400 });
+      const workflow = await writeWorkflow(payload.orgId, {
+        createdBy: "user",
+        objective: payload.objective ?? "",
+        status: "draft",
+        taskIds: [],
+        title: payload.title ?? "Untitled Workflow",
+      });
+      return Response.json(workflow);
+    }
+
+    if (url.pathname === "/api/workflows/run" && request.method === "POST") {
+      const payload = (await request.json()) as { id?: string; orgId?: string };
+      if (!payload.id || !payload.orgId) return new Response("Bad Request", { status: 400 });
+      const workflows = await readWorkflows(payload.orgId);
+      const wf = workflows.find((w) => w.id === payload.id);
+      if (!wf) return new Response("Not Found", { status: 404 });
+      const updated = await writeWorkflow(payload.orgId, { ...wf, status: "running" });
+      return Response.json(updated);
+    }
+
+    if (url.pathname === "/api/workflows/cancel" && request.method === "POST") {
+      const payload = (await request.json()) as { id?: string; orgId?: string };
+      if (!payload.id || !payload.orgId) return new Response("Bad Request", { status: 400 });
+      const workflows = await readWorkflows(payload.orgId);
+      const wf = workflows.find((w) => w.id === payload.id);
+      if (!wf) return new Response("Not Found", { status: 404 });
+      // Cancel any pending queue items belonging to this workflow
+      for (const tid of wf.taskIds) {
+        const qi = inferenceQueue.find((q) => q.id === tid && q.status === "pending");
+        if (qi) qi.status = "failed";
+      }
+      const updated = await writeWorkflow(payload.orgId, { ...wf, status: "cancelled" });
+      return Response.json(updated);
+    }
+
+    if (url.pathname === "/api/workflows/delete" && request.method === "POST") {
+      const payload = (await request.json()) as { id?: string; orgId?: string };
+      if (!payload.id || !payload.orgId) return new Response("Bad Request", { status: 400 });
+      const ok = await deleteWorkflow(payload.orgId, payload.id);
+      if (!ok) return new Response("Not Found", { status: 404 });
+      return Response.json({ ok: true });
+    }
+
+    if (url.pathname === "/api/workflows/read") {
+      const orgId = url.searchParams.get("orgId");
+      const id = url.searchParams.get("id");
+      if (!orgId || !id) return new Response("Bad Request", { status: 400 });
+      const workflows = await readWorkflows(orgId);
+      const wf = workflows.find((w) => w.id === id);
+      if (!wf) return new Response("Not Found", { status: 404 });
+      return Response.json(wf);
     }
 
     if (url.pathname.startsWith("/assets/")) {
