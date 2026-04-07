@@ -1,0 +1,492 @@
+{
+  "version": 1,
+  "bundles": [
+    {
+      "id": "default-worker",
+      "name": "Default Worker",
+      "summary": "Baseline worker capability shared by all agent templates unless explicitly restricted.",
+      "skills": ["default-worker", "memory", "filesystem", "web-browsing"],
+      "tools": ["files.list", "files.write", "notifications.list", "projects.write", "mail.write"],
+      "scope": "system",
+      "category": "baseline"
+    },
+    {
+      "id": "leadership-suite",
+      "name": "Leadership Suite",
+      "summary": "Executive judgment, synthesis, planning, and decision support.",
+      "skills": ["flow", "projects", "evals", "meet"],
+      "tools": ["flow.write", "projects.write", "evals.write", "meet.write"],
+      "scope": "system",
+      "category": "domain"
+    },
+    {
+      "id": "operations-suite",
+      "name": "Operations Suite",
+      "summary": "Operational sequencing, queue awareness, and reliable execution handoffs.",
+      "skills": ["flow", "mail", "meet"],
+      "tools": ["flow.write", "mail.write", "notifications.write"],
+      "scope": "system",
+      "category": "domain"
+    },
+    {
+      "id": "technical-builder",
+      "name": "Technical Builder",
+      "summary": "Technical planning, tool building, JavaScript creation, and web execution support.",
+      "skills": ["coding", "filesystem", "memory", "web-browsing"],
+      "tools": ["web.write", "files.write", "datamap.read", "telemetry.read"],
+      "scope": "system",
+      "category": "domain"
+    },
+    {
+      "id": "facilitation-suite",
+      "name": "Facilitation Suite",
+      "summary": "Agenda stewardship, retrospective discipline, and consensus shaping.",
+      "skills": ["meet", "flow", "mail", "evals"],
+      "tools": ["meet.write", "flow.write", "notifications.write", "evals.write"],
+      "scope": "system",
+      "category": "domain"
+    },
+    {
+      "id": "communications-suite",
+      "name": "Communications Suite",
+      "summary": "External and internal communication, message handling, and narrative clarity.",
+      "skills": ["mail", "meet", "web-browsing"],
+      "tools": ["mail.write", "notifications.write", "files.write"],
+      "scope": "system",
+      "category": "domain"
+    },
+    {
+      "id": "evaluation-suite",
+      "name": "Evaluation Suite",
+      "summary": "Evaluation definition, quality review, and evidence-backed iteration.",
+      "skills": ["evals", "memory", "web-browsing"],
+      "tools": ["evals.write", "datamap.read", "telemetry.read"],
+      "scope": "system",
+      "category": "domain"
+    }
+  ],
+  "organizationArchetypes": [
+    {
+      "id": "wellness-practice",
+      "name": "Wellness Practice",
+      "summary": "A focused organization for personal wellness, health research, care coordination, and ongoing optimization.",
+      "departmentTemplateIds": ["executive-core", "wellness-operations"],
+      "processTemplateIds": ["founding-alignment", "care-review", "weekly-retrospective"]
+    },
+    {
+      "id": "recruitment-firm",
+      "name": "Recruitment Firm",
+      "summary": "A hiring and talent-matching organization with research, outreach, and structured candidate evaluation.",
+      "departmentTemplateIds": ["executive-core", "talent-operations"],
+      "processTemplateIds": ["founding-alignment", "staffing-review", "blocked-work-intervention"]
+    },
+    {
+      "id": "marketing-agency",
+      "name": "Marketing Agency",
+      "summary": "A demand-generation and brand execution shop optimized for messaging, campaigns, and measurement.",
+      "departmentTemplateIds": ["executive-core", "brand-and-growth"],
+      "processTemplateIds": ["founding-alignment", "project-kickoff", "evaluation-review"]
+    },
+    {
+      "id": "design-agency",
+      "name": "Design Agency",
+      "summary": "A design-focused organization for brand systems, product thinking, and presentation-quality outputs.",
+      "departmentTemplateIds": ["executive-core", "creative-studio"],
+      "processTemplateIds": ["founding-alignment", "project-kickoff", "weekly-retrospective"]
+    },
+    {
+      "id": "web-development-boutique",
+      "name": "Web Development Boutique",
+      "summary": "A compact software and web delivery organization centered on technical execution and bespoke tooling.",
+      "departmentTemplateIds": ["executive-core", "product-engineering"],
+      "processTemplateIds": ["founding-alignment", "project-kickoff", "evaluation-review"]
+    },
+    {
+      "id": "research-strategy-shop",
+      "name": "Research and Strategy Shop",
+      "summary": "A research-intensive organization for synthesis, analysis, positioning, and decision support.",
+      "departmentTemplateIds": ["executive-core", "research-and-strategy"],
+      "processTemplateIds": ["founding-alignment", "planning-review", "weekly-retrospective"]
+    }
+  ],
+  "departmentTemplates": [
+    {
+      "id": "executive-core",
+      "name": "Executive Core",
+      "summary": "Core leadership and facilitation structure.",
+      "teamTemplateIds": ["leadership-core"]
+    },
+    {
+      "id": "wellness-operations",
+      "name": "Wellness Operations",
+      "summary": "Wellness specialists, care coordination, and health systems support.",
+      "teamTemplateIds": ["wellness-advisory"]
+    },
+    {
+      "id": "talent-operations",
+      "name": "Talent Operations",
+      "summary": "Recruiting, screening, and candidate communication.",
+      "teamTemplateIds": ["talent-delivery"]
+    },
+    {
+      "id": "brand-and-growth",
+      "name": "Brand and Growth",
+      "summary": "Creative strategy, messaging, campaigns, and growth systems.",
+      "teamTemplateIds": ["growth-studio"]
+    },
+    {
+      "id": "creative-studio",
+      "name": "Creative Studio",
+      "summary": "Visual design, art direction, and presentation systems.",
+      "teamTemplateIds": ["design-delivery"]
+    },
+    {
+      "id": "product-engineering",
+      "name": "Product Engineering",
+      "summary": "Technical execution, web delivery, and custom tool building.",
+      "teamTemplateIds": ["web-delivery"]
+    },
+    {
+      "id": "research-and-strategy",
+      "name": "Research and Strategy",
+      "summary": "Research, synthesis, advisory, and recommendation systems.",
+      "teamTemplateIds": ["strategy-lab"]
+    }
+  ],
+  "teamTemplates": [
+    {
+      "id": "leadership-core",
+      "name": "Leadership Core",
+      "summary": "Executive and facilitation roles.",
+      "roleTemplateIds": ["ceo-executive", "coo-executive", "cto-executive", "orgos-runtime", "facilitator-runtime"]
+    },
+    {
+      "id": "wellness-advisory",
+      "name": "Wellness Advisory",
+      "summary": "Personal wellness planning and care operations.",
+      "roleTemplateIds": ["wellness-strategist", "research-analyst", "operations-manager"]
+    },
+    {
+      "id": "talent-delivery",
+      "name": "Talent Delivery",
+      "summary": "Research, outreach, and candidate evaluation.",
+      "roleTemplateIds": ["recruiting-lead", "research-analyst", "communications-manager"]
+    },
+    {
+      "id": "growth-studio",
+      "name": "Growth Studio",
+      "summary": "Marketing strategy, content, and performance systems.",
+      "roleTemplateIds": ["marketing-strategist", "project-manager", "communications-manager"]
+    },
+    {
+      "id": "design-delivery",
+      "name": "Design Delivery",
+      "summary": "Design systems and creative execution.",
+      "roleTemplateIds": ["design-director", "project-manager", "communications-manager"]
+    },
+    {
+      "id": "web-delivery",
+      "name": "Web Delivery",
+      "summary": "Web engineering and technical delivery.",
+      "roleTemplateIds": ["technical-lead", "product-engineer", "project-manager"]
+    },
+    {
+      "id": "strategy-lab",
+      "name": "Strategy Lab",
+      "summary": "Research and advisory outputs.",
+      "roleTemplateIds": ["strategy-director", "research-analyst", "project-manager"]
+    }
+  ],
+  "roleTemplates": [
+    {
+      "id": "ceo-executive",
+      "name": "CEO",
+      "domain": "leadership",
+      "summary": "Strategic executive synthesis and organizational direction.",
+      "templateAgentName": "CEO",
+      "defaultTier": "top",
+      "bundles": ["default-worker", "leadership-suite"],
+      "requiredSkills": ["flow", "meet", "evals"],
+      "requiredTools": ["flow.write", "projects.write", "meet.write"],
+      "evaluationFocus": "Strategic coherence, prioritization quality, and decision framing.",
+      "authority": "Final strategic direction and executive arbitration.",
+      "outputs": ["priorities", "direction", "decision memos"],
+      "dependencies": ["organizational context", "queue pressure visibility"]
+    },
+    {
+      "id": "coo-executive",
+      "name": "COO",
+      "domain": "operations",
+      "summary": "Operational sequencing, throughput management, and handoff quality.",
+      "templateAgentName": "COO",
+      "defaultTier": "mid",
+      "bundles": ["default-worker", "operations-suite"],
+      "requiredSkills": ["flow", "mail", "meet"],
+      "requiredTools": ["flow.write", "mail.write", "notifications.write"],
+      "evaluationFocus": "Execution smoothness, reduced blocking, and reliable completion.",
+      "authority": "Operational planning and execution standards.",
+      "outputs": ["flow records", "handoff notes", "resource plans"],
+      "dependencies": ["queue telemetry", "project status"]
+    },
+    {
+      "id": "cto-executive",
+      "name": "CTO",
+      "domain": "technical",
+      "summary": "Technical architecture, coding capability, and bespoke tool creation.",
+      "templateAgentName": "CTO",
+      "defaultTier": "top",
+      "bundles": ["default-worker", "technical-builder"],
+      "requiredSkills": ["coding", "filesystem", "web-browsing"],
+      "requiredTools": ["web.write", "files.write", "telemetry.read"],
+      "evaluationFocus": "Technical correctness, maintainability, and leverage of tooling.",
+      "authority": "Technical direction, tooling, and execution systems.",
+      "outputs": ["tooling", "web systems", "technical plans"],
+      "dependencies": ["source capability visibility", "project requirements"]
+    },
+    {
+      "id": "orgos-runtime",
+      "name": "Orgos",
+      "domain": "governance",
+      "summary": "Organization-scoped orchestration, facilitation support, and deterministic systems stewardship.",
+      "templateAgentName": "orgos",
+      "defaultTier": "mid",
+      "bundles": ["default-worker", "facilitation-suite", "evaluation-suite"],
+      "requiredSkills": ["flow", "meet", "evals", "memory"],
+      "requiredTools": ["notifications.write", "datamap.rebuild", "evals.write"],
+      "evaluationFocus": "Operational consistency, meeting hygiene, and bounded improvement loops.",
+      "authority": "Shared process stewardship and cross-app coordination.",
+      "outputs": ["agendas", "handoffs", "retrospectives", "quality prompts"],
+      "dependencies": ["flow state", "meeting state", "notification state"]
+    },
+    {
+      "id": "facilitator-runtime",
+      "name": "Facilitator",
+      "domain": "facilitation",
+      "summary": "Agenda, scope, and consensus hygiene for group work.",
+      "templateAgentName": "Facilitator",
+      "defaultTier": "mid",
+      "bundles": ["default-worker", "facilitation-suite"],
+      "requiredSkills": ["meet", "flow", "mail"],
+      "requiredTools": ["meet.write", "mail.write", "notifications.write"],
+      "evaluationFocus": "Meeting quality, bounded scope, and decision clarity.",
+      "authority": "Meeting and process facilitation.",
+      "outputs": ["agendas", "minutes", "consensus records"],
+      "dependencies": ["participants", "project goals"]
+    },
+    {
+      "id": "wellness-strategist",
+      "name": "Wellness Strategist",
+      "domain": "wellness",
+      "summary": "Personal wellness planning and longitudinal optimization.",
+      "templateAgentName": "",
+      "defaultTier": "mid",
+      "bundles": ["default-worker", "research-suite"],
+      "requiredSkills": ["memory", "web-browsing", "projects"],
+      "requiredTools": ["files.list", "projects.write", "evals.write"],
+      "evaluationFocus": "Grounded recommendations, measurable routines, and sustainable improvement.",
+      "authority": "Wellness planning and advisory recommendations.",
+      "outputs": ["plans", "protocols", "review summaries"],
+      "dependencies": ["research inputs", "personal goals"]
+    },
+    {
+      "id": "recruiting-lead",
+      "name": "Recruiting Lead",
+      "domain": "recruiting",
+      "summary": "Candidate pipeline planning, evaluation consistency, and outreach strategy.",
+      "templateAgentName": "",
+      "defaultTier": "mid",
+      "bundles": ["default-worker", "communications-suite", "evaluation-suite"],
+      "requiredSkills": ["mail", "evals", "web-browsing"],
+      "requiredTools": ["mail.write", "evals.write", "files.write"],
+      "evaluationFocus": "Signal quality, candidate match, and process consistency.",
+      "authority": "Recruiting process leadership.",
+      "outputs": ["briefs", "outreach", "evaluation summaries"],
+      "dependencies": ["role definitions", "candidate research"]
+    },
+    {
+      "id": "marketing-strategist",
+      "name": "Marketing Strategist",
+      "domain": "marketing",
+      "summary": "Positioning, messaging, campaign planning, and growth systems.",
+      "templateAgentName": "",
+      "defaultTier": "mid",
+      "bundles": ["default-worker", "communications-suite"],
+      "requiredSkills": ["web-browsing", "projects", "meet"],
+      "requiredTools": ["projects.write", "files.write", "web.write"],
+      "evaluationFocus": "Message clarity, differentiation, and measurable growth outcomes.",
+      "authority": "Marketing strategy and campaign framing.",
+      "outputs": ["campaign plans", "messaging", "briefs"],
+      "dependencies": ["research", "brand direction"]
+    },
+    {
+      "id": "design-director",
+      "name": "Design Director",
+      "domain": "design",
+      "summary": "Visual direction, design systems, and presentation quality.",
+      "templateAgentName": "",
+      "defaultTier": "mid",
+      "bundles": ["default-worker", "communications-suite"],
+      "requiredSkills": ["filesystem", "web-browsing", "projects"],
+      "requiredTools": ["files.write", "web.write", "projects.write"],
+      "evaluationFocus": "Clarity, cohesion, and functional visual communication.",
+      "authority": "Design system and visual direction.",
+      "outputs": ["design systems", "assets", "layouts"],
+      "dependencies": ["brand goals", "product goals"]
+    },
+    {
+      "id": "technical-lead",
+      "name": "Technical Lead",
+      "domain": "engineering",
+      "summary": "Technical execution, code quality, and custom JavaScript tool generation.",
+      "templateAgentName": "",
+      "defaultTier": "top",
+      "bundles": ["default-worker", "technical-builder", "evaluation-suite"],
+      "requiredSkills": ["coding", "filesystem", "memory", "web-browsing"],
+      "requiredTools": ["files.write", "web.write", "telemetry.read"],
+      "evaluationFocus": "Correctness, robustness, maintainability, and leverage.",
+      "authority": "Technical planning and implementation.",
+      "outputs": ["features", "tools", "technical docs"],
+      "dependencies": ["requirements", "tests", "queue awareness"]
+    },
+    {
+      "id": "product-engineer",
+      "name": "Product Engineer",
+      "domain": "engineering",
+      "summary": "Implementation-focused builder for product and web work.",
+      "templateAgentName": "",
+      "defaultTier": "mid",
+      "bundles": ["default-worker", "technical-builder"],
+      "requiredSkills": ["coding", "filesystem", "web-browsing"],
+      "requiredTools": ["files.write", "web.write", "datamap.read"],
+      "evaluationFocus": "Feature correctness and quality of shipped outputs.",
+      "authority": "Execution within scoped technical work.",
+      "outputs": ["components", "fixes", "docs"],
+      "dependencies": ["technical lead direction", "project scope"]
+    },
+    {
+      "id": "research-analyst",
+      "name": "Research Analyst",
+      "domain": "research",
+      "summary": "Grounded research, synthesis, and evidence-backed recommendations.",
+      "templateAgentName": "",
+      "defaultTier": "mid",
+      "bundles": ["default-worker", "evaluation-suite"],
+      "requiredSkills": ["web-browsing", "memory", "evals"],
+      "requiredTools": ["evals.write", "files.write", "datamap.read"],
+      "evaluationFocus": "Rigor, source quality, and traceable reasoning.",
+      "authority": "Research and analysis support.",
+      "outputs": ["research notes", "summaries", "recommendations"],
+      "dependencies": ["questions", "criteria"]
+    },
+    {
+      "id": "project-manager",
+      "name": "Project Manager",
+      "domain": "delivery",
+      "summary": "Project coordination, sequencing, and progress management.",
+      "templateAgentName": "",
+      "defaultTier": "mid",
+      "bundles": ["default-worker", "operations-suite"],
+      "requiredSkills": ["flow", "projects", "meet"],
+      "requiredTools": ["projects.write", "flow.write", "meet.write"],
+      "evaluationFocus": "Throughput, clarity, and bounded execution.",
+      "authority": "Project orchestration within agreed scope.",
+      "outputs": ["plans", "status updates", "delivery cadences"],
+      "dependencies": ["participant availability", "clear objectives"]
+    },
+    {
+      "id": "communications-manager",
+      "name": "Communications Manager",
+      "domain": "communications",
+      "summary": "Internal/external messaging, handoffs, and narrative quality.",
+      "templateAgentName": "",
+      "defaultTier": "mid",
+      "bundles": ["default-worker", "communications-suite"],
+      "requiredSkills": ["mail", "meet", "web-browsing"],
+      "requiredTools": ["mail.write", "notifications.write", "files.write"],
+      "evaluationFocus": "Clarity, appropriateness, and consistency of communication.",
+      "authority": "Communication planning and message hygiene.",
+      "outputs": ["messages", "briefs", "status notes"],
+      "dependencies": ["current project context", "stakeholder needs"]
+    },
+    {
+      "id": "strategy-director",
+      "name": "Strategy Director",
+      "domain": "strategy",
+      "summary": "Strategic framing, synthesis, and direction-setting informed by research.",
+      "templateAgentName": "",
+      "defaultTier": "top",
+      "bundles": ["default-worker", "leadership-suite", "evaluation-suite"],
+      "requiredSkills": ["web-browsing", "evals", "projects"],
+      "requiredTools": ["projects.write", "evals.write", "files.write"],
+      "evaluationFocus": "Strategic coherence, grounded positioning, and practical leverage.",
+      "authority": "Advisory and strategic direction.",
+      "outputs": ["strategies", "briefs", "decision memos"],
+      "dependencies": ["research", "leadership priorities"]
+    },
+    {
+      "id": "operations-manager",
+      "name": "Operations Manager",
+      "domain": "operations",
+      "summary": "Execution discipline, routines, and repeatable process management.",
+      "templateAgentName": "",
+      "defaultTier": "mid",
+      "bundles": ["default-worker", "operations-suite"],
+      "requiredSkills": ["flow", "mail", "memory"],
+      "requiredTools": ["flow.write", "mail.write", "files.write"],
+      "evaluationFocus": "Reliability, throughput, and reduced coordination drag.",
+      "authority": "Operational execution management.",
+      "outputs": ["work packets", "handoffs", "ops reviews"],
+      "dependencies": ["current work state", "resource constraints"]
+    }
+  ],
+  "processTemplates": [
+    {
+      "id": "founding-alignment",
+      "name": "Founding Alignment",
+      "kind": "meeting",
+      "summary": "Founding meeting to define purpose, priorities, and initial staffing direction."
+    },
+    {
+      "id": "planning-review",
+      "name": "Planning Review",
+      "kind": "meeting",
+      "summary": "Review active strategy and prepare the next scoped tranche of work."
+    },
+    {
+      "id": "weekly-retrospective",
+      "name": "Weekly Retrospective",
+      "kind": "retrospective",
+      "summary": "Review outcomes, remove low-value loops, and preserve durable learning."
+    },
+    {
+      "id": "staffing-review",
+      "name": "Staffing Review",
+      "kind": "staff",
+      "summary": "Review department shape, role load, and whether new staff roles are warranted."
+    },
+    {
+      "id": "project-kickoff",
+      "name": "Project Kickoff",
+      "kind": "project",
+      "summary": "Align outputs, participants, constraints, and evaluation criteria."
+    },
+    {
+      "id": "blocked-work-intervention",
+      "name": "Blocked Work Intervention",
+      "kind": "flow",
+      "summary": "Facilitated review and restructuring of blocked or overly sequential work."
+    },
+    {
+      "id": "evaluation-review",
+      "name": "Evaluation Review",
+      "kind": "eval",
+      "summary": "Review failures, adjust prompts/processes, and document corrective actions."
+    },
+    {
+      "id": "memory-consolidation",
+      "name": "Memory Consolidation",
+      "kind": "memory",
+      "summary": "Compact working memory into durable long-term structures and refresh datamaps."
+    }
+  ]
+}
