@@ -173,55 +173,45 @@
             <div class="desktop-sidebar__list" id="desktop-org-list"></div>
             <div class="desktop-sidebar__footer">
               <button class="chrome-button desktop-sidebar__footer-button" id="desktop-add-organization" type="button">new organization</button>
-              <button class="chrome-button desktop-sidebar__footer-button" id="desktop-open-about" type="button">about</button>
             </div>
           </aside>
 
           <div class="desktop-main">
             <section class="desktop-dashboard" id="desktop-dashboard" aria-label="organization dashboard">
-              <article class="desktop-dashboard__card desktop-dashboard__card--hero" id="dashboard-active-card">
+              <article class="desktop-dashboard__card" id="dashboard-active-card">
                 <p class="desktop-dashboard__eyebrow">active organization</p>
-                <h2 class="desktop-dashboard__title" id="dashboard-active-name">welcome to orgos</h2>
-                <p class="desktop-dashboard__summary" id="dashboard-active-summary">Open an organization and set it to auto to begin autonomous work.</p>
+                <h2 class="desktop-dashboard__title" id="dashboard-active-name">—</h2>
+                <p class="desktop-dashboard__summary" id="dashboard-active-summary">Open an organization and set it to auto to begin.</p>
               </article>
               <article class="desktop-dashboard__card" id="dashboard-queue-card">
-                <p class="desktop-dashboard__eyebrow">queue pressure</p>
+                <p class="desktop-dashboard__eyebrow">queue</p>
                 <p class="desktop-dashboard__metric" id="dashboard-queue-metric">0</p>
                 <p class="desktop-dashboard__summary" id="dashboard-queue-summary">No queued work yet.</p>
               </article>
-              <article class="desktop-dashboard__card" id="dashboard-notifications-card">
+              <article class="desktop-dashboard__card" id="dashboard-board-card">
                 <p class="desktop-dashboard__eyebrow">board</p>
                 <p class="desktop-dashboard__metric" id="dashboard-notification-metric">0</p>
                 <p class="desktop-dashboard__summary" id="dashboard-notification-summary">No unread notifications.</p>
               </article>
-              <article class="desktop-dashboard__card desktop-dashboard__card--feed" id="dashboard-activity-card">
-                <p class="desktop-dashboard__eyebrow">open organization activity</p>
-                <div class="desktop-dashboard__feed" id="desktop-dashboard-feed"></div>
+              <article class="desktop-dashboard__card" id="dashboard-presence-card">
+                <p class="desktop-dashboard__eyebrow">agents</p>
+                <p class="desktop-dashboard__metric" id="dashboard-presence-metric">0</p>
+                <p class="desktop-dashboard__summary" id="dashboard-presence-summary">No agents active.</p>
               </article>
+            </section>
+            <section class="desktop-activity" id="dashboard-activity-section" aria-label="organization activity">
+              <div class="desktop-dashboard__feed" id="desktop-dashboard-feed"></div>
             </section>
 
             <section class="desktop-groups">
-              <section class="desktop-group desktop-group--status" id="desktop-group-status" aria-label="workspace summary">
-                <header class="desktop-group__header">
-                  <h2 class="desktop-group__title">workspace</h2>
-                  <div class="desktop-group__actions">
-                    <button class="chrome-button desktop-group__tray-toggle" id="system-tray-toggle" type="button">system tray</button>
-                  </div>
-                </header>
-                <div class="desktop-group__status-launch">
-                  <button class="desktop-icon desktop-icon--launch" id="status-launch" type="button" data-app-scope="system" data-panel-id="status" aria-label="Open Status" title="Open Status">
-                    <svg class="desktop-icon__graphic" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-                      <path class="desktop-icon__stroke" d="M14 46V18h36v28" />
-                      <path class="desktop-icon__stroke" d="M22 38l8-10 7 6 9-12" />
-                      <path class="desktop-icon__stroke" d="M14 46h36" />
-                    </svg>
-                    <span class="desktop-icon__label">Status</span>
-                  </button>
-                </div>
-              </section>
               <section class="desktop-group" id="desktop-group-organization" aria-label="organization applications">
                 <header class="desktop-group__header">
                   <h2 class="desktop-group__title">organization</h2>
+                  <button class="icon-button system-tray-handle" id="system-tray-toggle" type="button" aria-label="Open system tray" title="System services">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <path d="M4 7h16M4 12h16M4 17h16" />
+                    </svg>
+                  </button>
                 </header>
                 <div class="desktop-group__grid" id="desktop-organization-grid"></div>
               </section>
@@ -230,8 +220,8 @@
             <aside class="system-tray" id="system-tray" hidden aria-label="system applications">
               <div class="system-tray__header">
                 <div>
-                  <p class="desktop-sidebar__eyebrow">shared</p>
-                  <p class="desktop-sidebar__title">system tray</p>
+                  <p class="desktop-sidebar__eyebrow">system</p>
+                  <p class="desktop-sidebar__title">shared services</p>
                 </div>
                 <button class="icon-button system-tray__close" id="system-tray-close" type="button" aria-label="Close system tray" title="Close system tray">
                   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -402,10 +392,10 @@
 
           <button
             class="desktop-icon"
-            id="schedule-icon"
+            id="flow-icon"
             type="button"
-            data-app-scope="system"
-            data-panel-id="schedule"
+            data-app-scope="organization"
+            data-panel-id="flow"
             aria-label="Open Flow"
             title="Open Flow"
           >
@@ -863,24 +853,24 @@
             </div>
           </section>
 
-          <section class="app-panel" id="schedule-panel" hidden>
+          <section class="app-panel" id="flow-panel" hidden>
             <div class="app-panel__window">
               <div class="panel-body">
                 <div class="panel-copy-row">
-                  <p class="panel-copy">Sequence work as continuous objectives, ordered by priority and dependencies.</p>
+                  <p class="panel-copy">Sequence work as continuous objectives with priorities and dependencies.</p>
                   <div class="panel-copy-row__actions">
                     <button class="chrome-button panel-copy-row__button" id="add-schedule-task" type="button">new flow</button>
-                    <p class="panel-scan-state panel-scan-state--hidden" id="schedule-state" aria-live="polite">Ready</p>
+                    <p class="panel-scan-state panel-scan-state--hidden" id="flow-state" aria-live="polite">Ready</p>
                   </div>
                 </div>
-                <div class="panel-layout panel-layout--schedule">
+                <div class="panel-layout panel-layout--flow">
                   <aside class="panel-sidebar" aria-label="Flow objectives">
                     <div class="panel-section-header">
                       <p class="panel-section-header__eyebrow">flows</p>
                     </div>
-                    <div class="source-menu" id="schedule-list"></div>
+                    <div class="source-menu" id="flow-list"></div>
                   </aside>
-                  <section class="panel-detail panel-detail--schedule" id="schedule-detail"></section>
+                  <section class="panel-detail panel-detail--flow" id="flow-detail"></section>
                 </div>
               </div>
             </div>

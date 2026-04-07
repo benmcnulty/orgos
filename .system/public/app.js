@@ -8,7 +8,7 @@ const PANEL_WEB = "web";
 const PANEL_AGENTS = "agents";
 const PANEL_SKILLS = "skills";
 const PANEL_TOOLS = "tools";
-const PANEL_SCHEDULE = "schedule";
+const PANEL_FLOW = "flow";
 const PANEL_MEET = "meet";
 const PANEL_MAIL = "mail";
 const PANEL_QUEUE = "queue";
@@ -40,7 +40,7 @@ const webIcon = document.querySelector("#web-icon");
 const agentsIcon = document.querySelector("#agents-icon");
 const skillsIcon = document.querySelector("#skills-icon");
 const toolsIcon = document.querySelector("#tools-icon");
-const scheduleIcon = document.querySelector("#schedule-icon");
+const flowIcon = document.querySelector("#flow-icon");
 const meetIcon = document.querySelector("#meet-icon");
 const mailIcon = document.querySelector("#mail-icon");
 const queueIcon = document.querySelector("#queue-icon");
@@ -66,7 +66,7 @@ const webPanel = document.querySelector("#web-panel");
 const agentsPanel = document.querySelector("#agents-panel");
 const skillsPanel = document.querySelector("#skills-panel");
 const toolsPanel = document.querySelector("#tools-panel");
-const schedulePanel = document.querySelector("#schedule-panel");
+const flowPanel = document.querySelector("#flow-panel");
 const meetPanel = document.querySelector("#meet-panel");
 const mailPanel = document.querySelector("#mail-panel");
 const queuePanel = document.querySelector("#queue-panel");
@@ -78,7 +78,7 @@ const agentDetail = document.querySelector("#agent-detail");
 const skillMenu = document.querySelector("#skill-menu");
 const skillDetail = document.querySelector("#skill-detail");
 const toolRegistry = document.querySelector("#tool-registry");
-const scheduleList = document.querySelector("#schedule-list");
+const flowList = document.querySelector("#flow-list");
 const meetingMenu = document.querySelector("#meeting-menu");
 const meetDetail = document.querySelector("#meet-detail");
 const mailFolderMenu = document.querySelector("#mail-folder-menu");
@@ -100,7 +100,7 @@ const queueWorkflowObjective = document.querySelector("#queue-workflow-objective
 const queueWorkflowSubmit = document.querySelector("#queue-workflow-submit");
 const queueWorkflowCancel = document.querySelector("#queue-workflow-cancel");
 const queueWorkflowsEl = document.querySelector("#queue-workflows");
-const scheduleDetail = document.querySelector("#schedule-detail");
+const flowDetail = document.querySelector("#flow-detail");
 const hireMenu = document.querySelector("#hire-menu");
 const hireDetail = document.querySelector("#hire-detail");
 const projectsMenu = document.querySelector("#projects-menu");
@@ -111,7 +111,7 @@ const agentsState = document.querySelector("#agents-state");
 const statusState = document.querySelector("#status-state");
 const skillsState = document.querySelector("#skills-state");
 const toolsState = document.querySelector("#tools-state");
-const scheduleState = document.querySelector("#schedule-state");
+const flowState = document.querySelector("#flow-state");
 const meetState = document.querySelector("#meet-state");
 const mailState = document.querySelector("#mail-state");
 const queueStateLabel = document.querySelector("#queue-state");
@@ -211,13 +211,14 @@ const desktopOrgSidebar = document.querySelector("#desktop-org-sidebar");
 const desktopSidebarToggle = document.querySelector("#desktop-sidebar-toggle");
 const desktopOrgList = document.querySelector("#desktop-org-list");
 const desktopAddOrganizationButton = document.querySelector("#desktop-add-organization");
-const desktopOpenAboutButton = document.querySelector("#desktop-open-about");
 const dashboardActiveName = document.querySelector("#dashboard-active-name");
 const dashboardActiveSummary = document.querySelector("#dashboard-active-summary");
 const dashboardQueueMetric = document.querySelector("#dashboard-queue-metric");
 const dashboardQueueSummary = document.querySelector("#dashboard-queue-summary");
 const dashboardNotificationMetric = document.querySelector("#dashboard-notification-metric");
 const dashboardNotificationSummary = document.querySelector("#dashboard-notification-summary");
+const dashboardPresenceMetric = document.querySelector("#dashboard-presence-metric");
+const dashboardPresenceSummary = document.querySelector("#dashboard-presence-summary");
 const desktopDashboardFeed = document.querySelector("#desktop-dashboard-feed");
 const systemTray = document.querySelector("#system-tray");
 const systemTrayToggle = document.querySelector("#system-tray-toggle");
@@ -417,7 +418,7 @@ const TOOLS_ICON_MARKUP = `
   </svg>
 `;
 
-const SCHEDULE_ICON_MARKUP = `
+const FLOW_ICON_MARKUP = `
   <svg viewBox="0 0 64 64" focusable="false">
     <rect class="desktop-icon__stroke" x="9" y="14" width="46" height="40" rx="5" />
     <path class="desktop-icon__stroke" d="M9 27h46M22 9v10M42 9v10" />
@@ -1104,12 +1105,11 @@ function getEffectiveAppearance() {
 
 function updateHeaderCaption() {
   if (!headerCaption) return;
+  headerCaption.textContent = "orgos";
+  if (headerCaptionSubtitle) {
+    headerCaptionSubtitle.textContent = "autonomous organization operating system";
+  }
   const activeOrg = organizations.find((org) => org.id === activeOrganizationId && org.persisted);
-  headerCaption.textContent = activeOrg?.name?.trim() || "welcome to orgos";
-  if (!headerCaptionSubtitle) return;
-  headerCaptionSubtitle.textContent = activeOrg?.createdAt
-    ? `Founded in ${new Date(activeOrg.createdAt).getFullYear()}`
-    : "";
   document.documentElement.dataset.orgState = activeOrg?.mode === "auto" ? "auto" : "idle";
 }
 
@@ -1190,7 +1190,7 @@ async function bootstrapAutoMode(orgId = activeOrganizationId) {
       body: JSON.stringify({ orgId }),
     });
     await Promise.all([
-      loadSchedulePanelData(),
+      loadFlowPanelData(),
       loadHirePanelData(),
       loadProjectsPanelData(),
       loadEvalsPanelData(),
@@ -1508,15 +1508,21 @@ function initializeDesktopGroups() {
   if (!desktopSystemGrid || !desktopOrganizationGrid || !desktopIconReservoir) {
     return;
   }
+  const orgOrder = ["about", "hire", "meet", "mail", "flow", "projects", "evals", "web"];
   const icons = [...desktopIconReservoir.querySelectorAll(".desktop-icon")];
   for (const icon of icons) {
-    if (icon.id === "status-icon") {
-      continue;
-    }
     icon.classList.add("desktop-icon--grouped");
     const scope = icon.dataset.appScope === "organization" ? desktopOrganizationGrid : desktopSystemGrid;
     scope.append(icon);
   }
+  // Sort org icons into the deterministic 4×2 row order
+  const orgIcons = [...desktopOrganizationGrid.querySelectorAll(".desktop-icon")];
+  orgIcons.sort((a, b) => {
+    const ai = orgOrder.indexOf(a.dataset.panelId ?? "");
+    const bi = orgOrder.indexOf(b.dataset.panelId ?? "");
+    return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+  });
+  desktopOrganizationGrid.replaceChildren(...orgIcons);
 }
 
 function renderNotifications() {
@@ -1720,12 +1726,12 @@ function renderDesktopSidebar() {
 function renderDesktopDashboard() {
   const activeOrg = organizations.find((organization) => organization.id === activeOrganizationId) ?? null;
   if (dashboardActiveName) {
-    dashboardActiveName.textContent = activeOrg?.name || "welcome to orgos";
+    dashboardActiveName.textContent = activeOrg?.name || "—";
   }
   if (dashboardActiveSummary) {
     dashboardActiveSummary.textContent = activeOrg
       ? summarizeOrganizationActivity(activeOrg)
-      : "Verify a source, create an organization, and set it to auto to begin.";
+      : "Open an organization and set it to auto to begin.";
   }
   if (dashboardQueueMetric) {
     const pending = queueState.filter((item) => item.status === "pending" || item.status === "running").length;
@@ -1736,7 +1742,7 @@ function renderDesktopDashboard() {
     const running = queueState.filter((item) => item.status === "running").length;
     dashboardQueueSummary.textContent = pending || running
       ? `${running} running · ${pending} pending`
-      : "No queued work yet.";
+      : "No queued work.";
   }
   const unread = boardNotifications.filter((notification) => notification.unread).length;
   if (dashboardNotificationMetric) {
@@ -1744,8 +1750,22 @@ function renderDesktopDashboard() {
   }
   if (dashboardNotificationSummary) {
     dashboardNotificationSummary.textContent = unread > 0
-      ? `${unread} unread board notifications`
+      ? `${unread} unread`
       : "No unread notifications.";
+  }
+  const activeAgentIds = new Set(
+    queueState
+      .filter((item) => item.status === "running" || item.status === "dispatching")
+      .map((item) => item.agentId)
+      .filter(Boolean),
+  );
+  if (dashboardPresenceMetric) {
+    dashboardPresenceMetric.textContent = String(activeAgentIds.size);
+  }
+  if (dashboardPresenceSummary) {
+    dashboardPresenceSummary.textContent = activeAgentIds.size > 0
+      ? `${activeAgentIds.size} agent${activeAgentIds.size === 1 ? "" : "s"} working now`
+      : "No agents active.";
   }
   if (!desktopDashboardFeed) {
     return;
@@ -2082,7 +2102,7 @@ function panelLabel(panelId) {
     [PANEL_AGENTS]: "Agents",
     [PANEL_SKILLS]: "Skills",
     [PANEL_TOOLS]: "Tools",
-    [PANEL_SCHEDULE]: "Flow",
+    [PANEL_FLOW]: "Flow",
     [PANEL_MEET]: "Meet",
     [PANEL_MAIL]: "Mail",
     [PANEL_QUEUE]: "Queue",
@@ -2119,7 +2139,7 @@ function panelIconMarkup(panelId) {
     [PANEL_AGENTS]: AGENTS_ICON_MARKUP,
     [PANEL_SKILLS]: SKILLS_ICON_MARKUP,
     [PANEL_TOOLS]: TOOLS_ICON_MARKUP,
-    [PANEL_SCHEDULE]: SCHEDULE_ICON_MARKUP,
+    [PANEL_FLOW]: FLOW_ICON_MARKUP,
     [PANEL_MEET]: MEET_ICON_MARKUP,
     [PANEL_MAIL]: MAIL_ICON_MARKUP,
     [PANEL_QUEUE]: QUEUE_ICON_MARKUP,
@@ -2652,7 +2672,7 @@ async function loadWorkspaceBootstrap() {
   renderSkillsPanel();
   renderWebPanel();
   renderQueuePanel();
-  renderSchedulePanel();
+  renderFlowPanel();
   renderMeetPanel();
   renderMailPanel();
   renderHirePanel();
@@ -4551,37 +4571,37 @@ function roleLabelMap() {
   return new Map((hireState?.roles ?? []).map((role) => [role.id, role.title]));
 }
 
-async function loadSchedulePanelData() {
+async function loadFlowPanelData() {
   if (!activeOrganizationId) {
     scheduleTasks = [];
     selectedScheduleId = null;
-    renderSchedulePanel();
+    renderFlowPanel();
     return;
   }
-  setPanelState(scheduleState, "Loading...", true);
+  setPanelState(flowState, "Loading...", true);
   try {
     const data = await fetchJson(`/api/flow/list?orgId=${encodeURIComponent(activeOrganizationId)}`);
     scheduleTasks = data.tasks ?? [];
     ensureScheduleSelection();
-    setPanelState(scheduleState, "");
+    setPanelState(flowState, "");
   } catch (error) {
     console.error(error);
-    setPanelState(scheduleState, "Load failed");
+    setPanelState(flowState, "Load failed");
   }
-  renderSchedulePanel();
+  renderFlowPanel();
 }
 
-function renderSchedulePanel() {
-  if (!scheduleList || !scheduleDetail) return;
+function renderFlowPanel() {
+  if (!flowList || !flowDetail) return;
   if (!activeOrganizationId) {
-    scheduleList.replaceChildren();
-    requireActiveOrganization(scheduleDetail, "Activate an organization to sequence flow objectives.");
+    flowList.replaceChildren();
+    requireActiveOrganization(flowDetail, "Activate an organization to sequence flow objectives.");
     return;
   }
   ensureScheduleSelection();
-  scheduleList.replaceChildren();
+  flowList.replaceChildren();
   scheduleTasks.forEach((task) => {
-    scheduleList.append(
+    flowList.append(
       createMenuCard({
         id: task.id,
         meta: describeFlowMeta(task),
@@ -4592,10 +4612,10 @@ function renderSchedulePanel() {
     );
   });
 
-  scheduleDetail.replaceChildren();
+  flowDetail.replaceChildren();
   const selected = scheduleTasks.find((task) => task.id === selectedScheduleId);
   if (!selected) {
-    scheduleDetail.append(emptyDetailCard("Create a flow to sequence continuous work without idle time."));
+    flowDetail.append(emptyDetailCard("Create a flow to sequence continuous work without idle time."));
     return;
   }
 
@@ -4684,7 +4704,7 @@ function renderSchedulePanel() {
   [...dependencySelect.options].forEach((option) => {
     option.selected = (selected.dependencyIds ?? []).includes(option.value);
   });
-  scheduleDetail.append(card);
+  flowDetail.append(card);
 }
 
 async function loadMeetPanelData() {
@@ -5211,7 +5231,7 @@ function updateScheduleField(id, field, value) {
 async function saveScheduleTask(id) {
   const task = scheduleTasks.find((entry) => entry.id === id);
   if (!task || !activeOrganizationId) return;
-  setPanelState(scheduleState, "Saving...", true);
+  setPanelState(flowState, "Saving...", true);
   try {
     const saved = await fetchJson("/api/flow/create", {
       method: "POST",
@@ -5219,12 +5239,12 @@ async function saveScheduleTask(id) {
       body: JSON.stringify({ ...task, orgId: activeOrganizationId }),
     });
     scheduleTasks = scheduleTasks.map((entry) => (entry.id === id ? saved : entry));
-    setPanelState(scheduleState, "Saved");
+    setPanelState(flowState, "Saved");
   } catch (error) {
     console.error(error);
-    setPanelState(scheduleState, "Save failed");
+    setPanelState(flowState, "Save failed");
   }
-  renderSchedulePanel();
+  renderFlowPanel();
 }
 
 async function deleteScheduleTaskRecord(id) {
@@ -5236,7 +5256,7 @@ async function deleteScheduleTaskRecord(id) {
   });
   scheduleTasks = scheduleTasks.filter((entry) => entry.id !== id);
   ensureScheduleSelection();
-  renderSchedulePanel();
+  renderFlowPanel();
 }
 
 function addScheduleTask() {
@@ -5261,7 +5281,7 @@ function addScheduleTask() {
   };
   scheduleTasks = [item, ...scheduleTasks];
   selectedScheduleId = item.id;
-  renderSchedulePanel();
+  renderFlowPanel();
 }
 
 function updateMeetingField(id, field, value) {
@@ -6032,8 +6052,8 @@ function openPanel(panelId) {
   if (panelId === PANEL_TOOLS) {
     void loadToolsPanel();
   }
-  if (panelId === PANEL_SCHEDULE) {
-    void loadSchedulePanelData();
+  if (panelId === PANEL_FLOW) {
+    void loadFlowPanelData();
   }
   if (panelId === PANEL_MEET) {
     void loadMeetPanelData();
@@ -6078,7 +6098,7 @@ function renderPanels() {
   agentsPanel.hidden = activePanelId !== PANEL_AGENTS || showingDesktop;
   skillsPanel.hidden = activePanelId !== PANEL_SKILLS || showingDesktop;
   toolsPanel.hidden = activePanelId !== PANEL_TOOLS || showingDesktop;
-  schedulePanel.hidden = activePanelId !== PANEL_SCHEDULE || showingDesktop;
+  flowPanel.hidden = activePanelId !== PANEL_FLOW || showingDesktop;
   meetPanel.hidden = activePanelId !== PANEL_MEET || showingDesktop;
   mailPanel.hidden = activePanelId !== PANEL_MAIL || showingDesktop;
   queuePanel.hidden = activePanelId !== PANEL_QUEUE || showingDesktop;
@@ -6337,8 +6357,8 @@ toolsIcon.addEventListener("click", () => {
   openPanel(PANEL_TOOLS);
 });
 
-scheduleIcon.addEventListener("click", () => {
-  openPanel(PANEL_SCHEDULE);
+flowIcon.addEventListener("click", () => {
+  openPanel(PANEL_FLOW);
 });
 
 meetIcon.addEventListener("click", () => {
@@ -6657,11 +6677,6 @@ desktopOrgList?.addEventListener("click", async (event) => {
 
 desktopAddOrganizationButton?.addEventListener("click", () => {
   addOrganizationButton.click();
-  openPanel(PANEL_ABOUT);
-});
-
-desktopOpenAboutButton?.addEventListener("click", () => {
-  openPanel(PANEL_ABOUT);
 });
 
 systemTrayToggle?.addEventListener("click", () => {
@@ -7021,14 +7036,14 @@ addScheduleTaskButton?.addEventListener("click", () => {
   addScheduleTask();
 });
 
-scheduleList?.addEventListener("click", (event) => {
+flowList?.addEventListener("click", (event) => {
   const button = event.target.closest('[data-action="select-record"]');
   if (!button) return;
   selectedScheduleId = button.dataset.recordId;
-  renderSchedulePanel();
+  renderFlowPanel();
 });
 
-scheduleDetail?.addEventListener("input", (event) => {
+flowDetail?.addEventListener("input", (event) => {
   const card = event.target.closest(".source-card");
   if (!card) return;
   const field = event.target.dataset.field;
@@ -7041,7 +7056,7 @@ scheduleDetail?.addEventListener("input", (event) => {
   updateScheduleField(card.dataset.scheduleId, field, value);
 });
 
-scheduleDetail?.addEventListener("change", (event) => {
+flowDetail?.addEventListener("change", (event) => {
   const card = event.target.closest(".source-card");
   if (!card) return;
   const field = event.target.dataset.field;
@@ -7054,7 +7069,7 @@ scheduleDetail?.addEventListener("change", (event) => {
   updateScheduleField(card.dataset.scheduleId, field, value);
 });
 
-scheduleDetail?.addEventListener("click", async (event) => {
+flowDetail?.addEventListener("click", async (event) => {
   const button = event.target.closest("button");
   if (!button) return;
   const card = button.closest(".source-card");

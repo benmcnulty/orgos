@@ -1146,7 +1146,7 @@ textarea {
 
 .desktop-dashboard {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.85rem;
 }
 
@@ -1162,13 +1162,6 @@ textarea {
     0.12rem 0.12rem 0.28rem color-mix(in srgb, var(--lift-shadow) 56%, transparent);
 }
 
-.desktop-dashboard__card--hero {
-  grid-column: span 2;
-}
-
-.desktop-dashboard__card--feed {
-  grid-column: 1 / -1;
-}
 
 .desktop-dashboard__title {
   font-size: 1.22rem;
@@ -1213,6 +1206,20 @@ textarea {
   color: var(--structure);
 }
 
+.desktop-activity {
+  padding: 0.55rem 0.85rem 0.65rem;
+  border: var(--stroke-width) solid var(--line-soft);
+  border-radius: 1.35rem;
+  background: color-mix(in srgb, var(--surface-raised) 92%, transparent);
+  box-shadow:
+    inset 0.03rem 0.03rem 0 color-mix(in srgb, var(--emboss-highlight) 72%, transparent),
+    0.12rem 0.12rem 0.28rem color-mix(in srgb, var(--lift-shadow) 56%, transparent);
+}
+
+.desktop-activity:empty {
+  display: none;
+}
+
 .desktop-groups {
   display: grid;
   gap: 1rem;
@@ -1241,24 +1248,16 @@ textarea {
   gap: 0.6rem;
 }
 
-.desktop-group--status {
-  gap: 0.65rem;
-}
-
-.desktop-group__status-launch {
-  display: flex;
-  align-items: flex-start;
-}
-
-.desktop-group__tray-toggle {
-  min-inline-size: 8.5rem;
+.system-tray-handle {
+  inline-size: calc(var(--icon-button-size) * 0.92);
+  block-size: calc(var(--icon-button-size) * 0.92);
+  color: var(--ink-muted);
 }
 
 .desktop-group__grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--desktop-gap);
-  align-items: flex-start;
 }
 
 .desktop-icon-reservoir {
@@ -1298,7 +1297,6 @@ textarea {
   display: grid;
   justify-items: center;
   gap: 0.5rem;
-  inline-size: var(--desktop-icon-size);
   padding: 0.75rem 0.65rem 0.85rem;
   border: var(--stroke-width) solid rgba(17, 17, 17, 0.2);
   border-radius: 1.55rem;
@@ -2785,7 +2783,7 @@ select.field__control {
 }
 
 .panel-layout--tools,
-.panel-layout--schedule,
+.panel-layout--flow,
 .panel-layout--queue {
   display: flex;
   flex-direction: column;

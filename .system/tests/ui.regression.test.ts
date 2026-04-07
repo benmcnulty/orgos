@@ -18,11 +18,12 @@ describe("ui regression baseline", () => {
     expect(html).toContain('id="desktop-sidebar-toggle"');
     expect(html).toContain('id="desktop-org-list"');
     expect(html).toContain('id="desktop-add-organization"');
-    expect(html).toContain('id="desktop-open-about"');
+    expect(html).not.toContain('id="desktop-open-about"');
     expect(html).toContain('id="desktop-dashboard"');
     expect(html).toContain('id="dashboard-active-name"');
     expect(html).toContain('id="dashboard-queue-metric"');
     expect(html).toContain('id="dashboard-notification-metric"');
+    expect(html).toContain('id="dashboard-presence-metric"');
     expect(html).toContain('id="desktop-dashboard-feed"');
     expect(html).toContain('id="desktop-icon-reservoir"');
     expect(html).toContain('id="clock-time"');
@@ -47,7 +48,7 @@ describe("ui regression baseline", () => {
     expect(html).toContain('id="agents-icon"');
     expect(html).toContain('id="skills-icon"');
     expect(html).toContain('id="tools-icon"');
-    expect(html).toContain('id="schedule-icon"');
+    expect(html).toContain('id="flow-icon"');
     expect(html).toContain('id="meet-icon"');
     expect(html).toContain('id="mail-icon"');
     expect(html).toContain('id="queue-icon"');
@@ -56,6 +57,7 @@ describe("ui regression baseline", () => {
     expect(html).toContain('id="evals-icon"');
     expect(html).toContain('data-app-scope="system"');
     expect(html).toContain('data-app-scope="organization"');
+    expect(html).toMatch(/id="flow-icon"[\s\S]*?data-app-scope="organization"[\s\S]*?data-panel-id="flow"/);
     expect(html).toContain('id="header-caption-subtitle"');
     expect(html).toContain('id="about-panel"');
     expect(html).toContain('id="status-panel"');
@@ -67,7 +69,7 @@ describe("ui regression baseline", () => {
     expect(html).toContain('id="agents-panel"');
     expect(html).toContain('id="skills-panel"');
     expect(html).toContain('id="tools-panel"');
-    expect(html).toContain('id="schedule-panel"');
+    expect(html).toContain('id="flow-panel"');
     expect(html).toContain('id="meet-panel"');
     expect(html).toContain('id="mail-panel"');
     expect(html).toContain('id="queue-panel"');
@@ -127,9 +129,7 @@ describe("ui regression baseline", () => {
     expect(html).toContain('id="notification-indicator"');
     expect(html).toContain('id="notification-popover"');
     expect(html).toContain('id="notification-popover-list"');
-    expect(html).toContain('id="desktop-group-status"');
     expect(html).toContain('id="desktop-group-organization"');
-    expect(html).toContain('id="status-launch"');
     expect(html).toContain('id="system-tray"');
     expect(html).toContain('id="system-tray-toggle"');
     expect(html).toContain('id="system-tray-close"');
@@ -196,7 +196,7 @@ describe("ui regression baseline", () => {
     expect(css).toContain(".panel-layout--agents");
     expect(css).toContain(".panel-layout--skills");
     expect(css).toContain(".panel-layout--tools");
-    expect(css).toContain(".panel-layout--schedule");
+    expect(css).toContain(".panel-layout--flow");
     expect(css).toContain(".panel-layout--meet");
     expect(css).toContain(".panel-layout--mail");
     expect(css).toContain(".panel-layout--queue");
@@ -224,10 +224,8 @@ describe("ui regression baseline", () => {
     expect(css).toContain(".desktop-dashboard__card");
     expect(css).toContain(".desktop-feed-item");
     expect(css).toContain(".desktop-groups");
-    expect(css).toContain(".desktop-group--status");
     expect(css).toContain(".desktop-group__actions");
-    expect(css).toContain(".desktop-group__status-launch");
-    expect(css).toContain(".desktop-group__tray-toggle");
+    expect(css).toContain(".system-tray-handle");
     expect(css).toContain(".desktop-icon-reservoir");
     expect(css).toContain(".desktop-sidebar__footer");
     expect(css).toContain(".desktop-sidebar__footer-button");
@@ -317,7 +315,7 @@ describe("ui regression baseline", () => {
     expect(script).toContain('const PANEL_AGENTS = "agents";');
     expect(script).toContain('const PANEL_SKILLS = "skills";');
     expect(script).toContain('const PANEL_TOOLS = "tools";');
-    expect(script).toContain('const PANEL_SCHEDULE = "schedule";');
+    expect(script).toContain('const PANEL_FLOW = "flow";');
     expect(script).toContain('const PANEL_MEET = "meet";');
     expect(script).toContain('const PANEL_MAIL = "mail";');
     expect(script).toContain('const PANEL_QUEUE = "queue";');
@@ -338,7 +336,7 @@ describe("ui regression baseline", () => {
     expect(script).toContain('const desktopSidebarToggle = document.querySelector("#desktop-sidebar-toggle");');
     expect(script).toContain('const desktopOrgList = document.querySelector("#desktop-org-list");');
     expect(script).toContain('const desktopAddOrganizationButton = document.querySelector("#desktop-add-organization");');
-    expect(script).toContain('const desktopOpenAboutButton = document.querySelector("#desktop-open-about");');
+    expect(script).not.toContain('const desktopOpenAboutButton');
     expect(script).toContain('const systemTray = document.querySelector("#system-tray");');
     expect(script).toContain('const systemTrayToggle = document.querySelector("#system-tray-toggle");');
     expect(script).toContain('const systemTrayClose = document.querySelector("#system-tray-close");');
@@ -363,7 +361,7 @@ describe("ui regression baseline", () => {
     expect(script).toContain('const agentsPanel = document.querySelector("#agents-panel");');
     expect(script).toContain('const skillsPanel = document.querySelector("#skills-panel");');
     expect(script).toContain('const toolsPanel = document.querySelector("#tools-panel");');
-    expect(script).toContain('const schedulePanel = document.querySelector("#schedule-panel");');
+    expect(script).toContain('const flowPanel = document.querySelector("#flow-panel");');
     expect(script).toContain('const meetPanel = document.querySelector("#meet-panel");');
     expect(script).toContain('const mailPanel = document.querySelector("#mail-panel");');
     expect(script).toContain('const queuePanel = document.querySelector("#queue-panel");');
@@ -411,7 +409,7 @@ describe("ui regression baseline", () => {
     expect(script).toContain("function renderAgentsPanel()");
     expect(script).toContain("function renderSkillsPanel()");
     expect(script).toContain("function renderQueuePanel()");
-    expect(script).toContain("function renderSchedulePanel()");
+    expect(script).toContain("function renderFlowPanel()");
     expect(script).toContain("function renderMeetPanel()");
     expect(script).toContain("function renderMailPanel()");
     expect(script).toContain("function renderHirePanel()");
