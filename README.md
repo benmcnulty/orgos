@@ -5,6 +5,10 @@ an observable local environment where shared system infrastructure, active
 organization data, staffed agent identities, flow sequencing, memory, files,
 and text assets all live on disk in readable JSON, Markdown, and plaintext.
 
+This is an experimental local application. The capabilities below describe the
+committed implementation; this documentation review does not certify every
+autonomous workflow, inference model or browser interaction.
+
 ## Current scope
 
 The repository now includes a working desktop-style shell plus the first
@@ -143,6 +147,14 @@ Design handoff notes:
 
 ## Development
 
+Install Bun, clone this repository and run from its root. The package manifest
+declares no external dependencies and no build step:
+
+```sh
+git clone https://github.com/benmcnulty/orgos.git
+cd orgos
+```
+
 Run the local development server with:
 
 ```bash
@@ -155,15 +167,29 @@ Default local URL:
 http://127.0.0.1:52464/
 ```
 
+The server binds to `127.0.0.1`. `PORT` overrides the default port; for PowerShell,
+set `$env:PORT = '52465'` before `bun run dev`. `bun run start` runs the same
+entrypoint without watching. Stop it with Ctrl+C.
+
+Configure inference sources through the Sources app. Model availability and
+capacity belong to your chosen Ollama-compatible servers; this checkout does not
+install them. Those configured endpoints receive inference input.
+
+The ignored `.data/` directory holds mutable instance state. Start in a disposable
+checkout for exploration and keep private organization data out of commits. The
+optional `bun run seed:demo` writes demo records into `.data/`; use it only on a
+fresh instance or after backing up existing state. It is not required to start.
+Loopback binding does not sandbox tools or authenticate a remote deployment.
+
 ## Testing
 
 Run the automated suite with:
 
 ```bash
-bun test ./.system/tests/*.test.ts
+bun test ./.system/tests
 ```
 
-The test suite covers:
+The committed test suite includes checks for:
 
 - isolated server helpers and inference discovery logic
 - persistence and filesystem APIs
@@ -172,10 +198,16 @@ The test suite covers:
 
 ## Guidance
 
-Repository guidance for implementation agents is documented in:
+Read the architecture notes in
+[`docs/workspace-paradigm.md`](docs/workspace-paradigm.md) and
+[`docs/design-system.md`](docs/design-system.md). Runtime role templates live in
+[`.agents`](.agents), with reusable skill definitions in [`.skills`](.skills).
+`AGENTS.md` and `CLAUDE.md` are ignored and are not distributed in this public tree.
 
-- `AGENTS.md`
-- `CLAUDE.md`
+For contributions, describe the affected application/state boundary and provide
+actual test results. Use isolated state for persistence tests, and state which
+live inference and browser checks remain unverified. This documentation-only
+review did not run the suite or seed an instance.
 
 ## License
 
