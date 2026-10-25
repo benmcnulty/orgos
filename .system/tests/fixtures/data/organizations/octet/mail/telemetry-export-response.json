@@ -1,0 +1,11 @@
+{
+  "body": "Priya, here's the telemetry export from yesterday's dispatch run. The timeout is happening in the dependency resolution step, not queue pressure. Line 847 of the dispatch loop is where it stalls. Let me know if you need the full trace.",
+  "folder": "outbox",
+  "from": "Sam Okafor",
+  "id": "telemetry-export-response",
+  "orgId": "octet",
+  "readAt": null,
+  "sentAt": "2026-10-23T17:53:48.560Z",
+  "subject": "Re: Need the dependency timeout trace",
+  "to": "Priya Ramanathan"
+}

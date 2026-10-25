@@ -1,0 +1,41 @@
+[
+  {
+    "createdAt": "2026-10-03T17:53:48.560Z",
+    "criteria": "Plan quality scored on: completeness (0–4), dependency ordering (0–3), objective specificity (0–3).",
+    "id": "orchestrator-plan-quality",
+    "name": "Orchestrator plan quality",
+    "prompt": "Given an organizational objective and the current flow state, generate a ranked task plan with dependency edges.",
+    "resultSummary": "Mean score 7.8 / 10 across 12 runs. Dependency ordering is strongest signal.",
+    "score": "7.8",
+    "status": "passing",
+    "targetRef": "ceo",
+    "targetType": "agent",
+    "updatedAt": "2026-10-21T17:53:48.560Z"
+  },
+  {
+    "createdAt": "2026-10-06T17:53:48.560Z",
+    "criteria": "Tier selection accuracy vs. oracle routing on a fixed node topology.",
+    "id": "tier-selection-accuracy",
+    "name": "Tier selection accuracy",
+    "prompt": "Given a queue item with specified tier, model, and token budget, select the optimal node from the available telemetry.",
+    "resultSummary": "87% accuracy on held-out node configurations. Fails on cold-start topology.",
+    "score": "0.87",
+    "status": "passing",
+    "targetRef": "orgos",
+    "targetType": "tool",
+    "updatedAt": "2026-10-19T17:53:48.560Z"
+  },
+  {
+    "createdAt": "2026-10-17T17:53:48.560Z",
+    "criteria": "Workflow completion rate: fraction of seeded workflows that reach 'done' within 10 dispatch cycles.",
+    "id": "workflow-completion-rate",
+    "name": "Workflow completion rate",
+    "prompt": "Seed a 4-task workflow with one dependency edge. Dispatch and measure completion.",
+    "resultSummary": "72% completion rate. Failures correlate with dependency resolution timeouts.",
+    "score": "0.72",
+    "status": "failing",
+    "targetRef": "workflow-planner-improvements",
+    "targetType": "workflow",
+    "updatedAt": "2026-10-23T17:53:48.560Z"
+  }
+]

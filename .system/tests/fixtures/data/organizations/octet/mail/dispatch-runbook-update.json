@@ -1,0 +1,11 @@
+{
+  "body": "Marcus — I've updated the operational runbook for the new dispatch loop. Key change: dependency edges are now resolved before queue priority is evaluated. The runbook is in the web fragments under 'Operations'. Let me know if anything is unclear.",
+  "folder": "inbox",
+  "from": "Priya Ramanathan",
+  "id": "dispatch-runbook-update",
+  "orgId": "octet",
+  "readAt": null,
+  "sentAt": "2026-10-24T14:53:48.560Z",
+  "subject": "Dispatch runbook updated — new dependency handling",
+  "to": "Marcus Chen"
+}

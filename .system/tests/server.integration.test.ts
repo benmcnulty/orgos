@@ -14,9 +14,17 @@ beforeAll(async () => {
   await cp(path.join(process.cwd(), ".system"), path.join(fixtureRoot, ".system"), {
     recursive: true,
   });
-  await cp(path.join(process.cwd(), ".data"), path.join(fixtureRoot, ".data"), {
-    recursive: true,
-  });
+  // Hermetic fixture: never copy the developer's local .data directory (it is
+  // gitignored and machine-specific). The committed fixture supplies the
+  // instance state the suite needs, including the active organization and
+  // content/app.json.
+  await cp(
+    path.join(process.cwd(), ".system", "tests", "fixtures", "data"),
+    path.join(fixtureRoot, ".data"),
+    {
+      recursive: true,
+    },
+  );
   await cp(path.join(process.cwd(), ".agents"), path.join(fixtureRoot, ".agents"), {
     recursive: true,
   });
@@ -117,7 +125,11 @@ describe("orgos app integration", () => {
       kind: "local_default",
     });
     expect(typeof localSource.name).toBe("string");
-    expect(localSource.contextWindow).toBe(256000);
+    // The fixture stores the local source with the documented standard
+    // default of 128k. The 256k window applies only to a configured top-tier
+    // gemma4:26b source, so this assertion holds whether or not a live
+    // Ollama service is running on the machine executing the suite.
+    expect(localSource.contextWindow).toBe(128000);
     // New fields from Phase 2 bootstrap extension
     expect(Array.isArray(payload.agents)).toBe(true);
     expect(Array.isArray(payload.skills)).toBe(true);

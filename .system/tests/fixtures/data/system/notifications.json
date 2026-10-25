@@ -1,0 +1,101 @@
+{
+  "notifications": [
+    {
+      "createdAt": "2026-10-24T15:53:48.560Z",
+      "id": "notif-benchmark-analysis-queued",
+      "level": "unread",
+      "organizationId": "octet",
+      "sourceApp": "queue",
+      "summary": "Routing failure analysis task dispatched to Yuki Tanaka — tier: mid, estimated 8k tokens.",
+      "targetId": "routing-failure-analysis-task",
+      "targetPanel": "queue",
+      "title": "Agent dispatched",
+      "unread": true
+    },
+    {
+      "createdAt": "2026-10-24T11:53:48.560Z",
+      "id": "notif-dispatch-runbook-updated",
+      "level": "unread",
+      "organizationId": "octet",
+      "sourceApp": "web",
+      "summary": "Dispatch runbook updated with new dependency handling details — web fragment 'Operations'.",
+      "targetId": "operations",
+      "targetPanel": "web",
+      "title": "Document updated",
+      "unread": true
+    },
+    {
+      "createdAt": "2026-10-23T17:53:48.560Z",
+      "id": "notif-q1-milestone-update",
+      "level": "unread",
+      "organizationId": "octet",
+      "sourceApp": "about",
+      "summary": "Adelaide confirmed all Q1 milestones on track. Benchmark v2 and dispatch fix are the critical path.",
+      "targetId": "octet",
+      "targetPanel": "about",
+      "title": "Milestone update",
+      "unread": true
+    },
+    {
+      "createdAt": "2026-10-22T17:53:48.560Z",
+      "id": "notif-workflow-completion-rate-failing",
+      "level": "unread",
+      "organizationId": "octet",
+      "sourceApp": "evals",
+      "summary": "Workflow completion rate eval is failing — 72% rate, below 80% threshold. Review dependency handling.",
+      "targetId": "workflow-completion-rate",
+      "targetPanel": "evals",
+      "title": "Eval failing",
+      "unread": true
+    },
+    {
+      "createdAt": "2026-10-21T17:53:48.560Z",
+      "id": "notif-tier-routing-eval-run",
+      "level": "unread",
+      "organizationId": "octet",
+      "sourceApp": "evals",
+      "summary": "Tier selection accuracy eval passed with 87% accuracy on held-out configurations.",
+      "targetId": "tier-selection-accuracy",
+      "targetPanel": "evals",
+      "title": "Eval passed",
+      "unread": false
+    },
+    {
+      "createdAt": "2026-10-19T17:53:48.560Z",
+      "id": "notif-benchmark-v2-started",
+      "level": "unread",
+      "organizationId": "octet",
+      "sourceApp": "queue",
+      "summary": "Benchmark v2 pipeline workflow started — 4 tasks queued.",
+      "targetId": "benchmark-v2-pipeline",
+      "targetPanel": "queue",
+      "title": "Workflow started",
+      "unread": false
+    },
+    {
+      "createdAt": "2026-10-19T17:53:48.560Z",
+      "id": "notif-baseline-benchmark-done",
+      "level": "unread",
+      "organizationId": "octet",
+      "sourceApp": "queue",
+      "summary": "Baseline benchmark collection complete — 34 runs recorded, 87% routing accuracy.",
+      "targetId": "tier-routing-benchmark-v2",
+      "targetPanel": "evals",
+      "title": "Agent task complete",
+      "unread": false
+    },
+    {
+      "createdAt": "2026-10-17T17:53:48.560Z",
+      "id": "notif-workflow-dispatch-fix-done",
+      "level": "unread",
+      "organizationId": "octet",
+      "sourceApp": "queue",
+      "summary": "Dispatch fix workflow completed all 3 tasks — dependency resolution now active.",
+      "targetId": "dispatch-fix-workflow",
+      "targetPanel": "queue",
+      "title": "Workflow complete",
+      "unread": false
+    }
+  ],
+  "version": 1
+}

@@ -70,7 +70,7 @@ async function seedAbout() {
     mission: "Make autonomous organization a tractable problem.",
     name: "Octet",
     updatedAt: daysAgo(1),
-    website: "https://octet.ai",
+    website: "https://octet.example",
   });
   console.log("✓ about.json seeded");
 }

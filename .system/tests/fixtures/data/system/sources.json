@@ -1,0 +1,16 @@
+{
+  "sources": [
+    {
+      "active": true,
+      "address": "http://127.0.0.1:11434",
+      "contextWindow": 128000,
+      "id": "source-localhost",
+      "kind": "local_default",
+      "labelCustomized": false,
+      "model": "",
+      "name": "Localhost Ollama",
+      "tier": "mid"
+    }
+  ],
+  "version": 1
+}

@@ -1,0 +1,22 @@
+{
+  "agenda": [
+    "Score the orchestrator plan quality eval",
+    "Review workflow completion rate decline",
+    "Update eval criteria for Q1"
+  ],
+  "completedAt": "2026-10-21T17:53:48.560Z",
+  "consensus": "Plan quality eval passing. Workflow completion rate decline attributed to dependency timeout bug — now tracked in flow objectives.",
+  "createdAt": "2026-10-16T17:53:48.560Z",
+  "id": "evals-retro",
+  "minutes": "Yuki walked through eval scoring methodology. Sam demoed the dependency timeout trace. Adelaide approved updated Q1 criteria.",
+  "orgId": "octet",
+  "participants": [
+    "Adelaide Hartwell",
+    "Yuki Tanaka",
+    "Sam Okafor"
+  ],
+  "startedAt": "2026-10-19T17:53:48.560Z",
+  "status": "complete",
+  "summary": "Eval review: plan quality passing, workflow completion rate failure root-caused.",
+  "title": "Evals retro"
+}

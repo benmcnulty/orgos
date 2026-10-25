@@ -1,0 +1,21 @@
+{
+  "agenda": [
+    "Strategic alignment on autonomous organization thesis",
+    "Funding runway and milestone review",
+    "Board communication cadence"
+  ],
+  "completedAt": "2026-10-10T17:53:48.560Z",
+  "consensus": "Thesis remains strong. Q1 milestones are the primary proof point. Monthly async board update agreed.",
+  "createdAt": "2026-10-08T17:53:48.560Z",
+  "id": "founder-sync",
+  "minutes": "Adelaide presented Q1 plan. Marcus covered operational metrics. Priya briefed on inference stack progress. Board satisfied with direction.",
+  "orgId": "octet",
+  "participants": [
+    "Adelaide Hartwell",
+    "Marcus Chen"
+  ],
+  "startedAt": "2026-10-09T17:53:48.560Z",
+  "status": "complete",
+  "summary": "Quarterly founder sync. Q1 milestones confirmed as primary board proof point.",
+  "title": "Founder sync"
+}

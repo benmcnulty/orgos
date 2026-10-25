@@ -1,0 +1,43 @@
+[
+  {
+    "createdAt": "2026-09-09T17:53:48.560Z",
+    "id": "tier-routing-benchmark-v2",
+    "name": "Tier-routing benchmark v2",
+    "outputs": "Published benchmark suite with baseline scores across top/mid/low tiers.",
+    "participantRoleIds": [
+      "cto",
+      "lead-researcher",
+      "research-engineer"
+    ],
+    "status": "active",
+    "summary": "Design and run a reproducible benchmark suite for evaluating tier routing quality under varying load and model availability conditions.",
+    "updatedAt": "2026-10-22T17:53:48.560Z"
+  },
+  {
+    "createdAt": "2026-09-24T17:53:48.560Z",
+    "id": "workflow-planner-improvements",
+    "name": "Workflow planner improvements",
+    "outputs": "Updated workflow engine with dependency awareness and priority preemption.",
+    "participantRoleIds": [
+      "cto",
+      "coo",
+      "research-engineer"
+    ],
+    "status": "active",
+    "summary": "Improve the workflow dispatch loop to support dependency edges, priority preemption, and partial completion recovery.",
+    "updatedAt": "2026-10-23T17:53:48.560Z"
+  },
+  {
+    "createdAt": "2026-10-10T17:53:48.560Z",
+    "id": "q1-evaluation-harness",
+    "name": "Q1 evaluation harness",
+    "outputs": "Eval harness integrated with the Evals panel and ready for automated runs.",
+    "participantRoleIds": [
+      "lead-researcher",
+      "research-engineer"
+    ],
+    "status": "draft",
+    "summary": "Build a repeatable evaluation harness for Q1 agent benchmarks, integrated with the Evals panel and triggerable from the Queue.",
+    "updatedAt": "2026-10-17T17:53:48.560Z"
+  }
+]

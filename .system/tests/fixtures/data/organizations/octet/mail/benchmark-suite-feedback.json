@@ -1,0 +1,11 @@
+{
+  "body": "Yuki — great work on the benchmark suite design. I've reviewed the rubric and it's solid. One suggestion: add a 'node recovery' scenario to stress-test what happens when a primary node goes offline mid-run. That failure mode will matter for the board demo.",
+  "folder": "inbox",
+  "from": "Adelaide Hartwell",
+  "id": "benchmark-suite-feedback",
+  "orgId": "octet",
+  "readAt": null,
+  "sentAt": "2026-10-24T11:53:48.560Z",
+  "subject": "Benchmark suite — add node recovery scenario",
+  "to": "Yuki Tanaka"
+}

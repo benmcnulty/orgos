@@ -1,0 +1,102 @@
+{
+  "tasks": [
+    {
+      "agentId": "cto",
+      "assigneeType": "role_assignment",
+      "assigneeValue": "cto",
+      "cadence": "once",
+      "contextRequirement": 8192,
+      "dependencyIds": [],
+      "enabled": true,
+      "groupKey": "benchmark",
+      "id": "design-tier-routing-benchmark-suite",
+      "lastRunAt": "2026-10-12T17:53:48.560Z",
+      "name": "Design tier-routing benchmark suite",
+      "notes": "Defines the evaluation protocol and sampling strategy for v2 benchmarks.",
+      "objective": "Produce a documented benchmark design covering node topologies, model coverage, and scoring rubric.",
+      "priority": 1,
+      "trigger": "auto",
+      "workstream": "Tier-routing benchmark v2"
+    },
+    {
+      "agentId": "lead-researcher",
+      "assigneeType": "role_assignment",
+      "assigneeValue": "lead-researcher",
+      "cadence": "once",
+      "contextRequirement": 16384,
+      "dependencyIds": [
+        "design-tier-routing-benchmark-suite"
+      ],
+      "enabled": true,
+      "groupKey": "benchmark",
+      "id": "run-baseline-benchmark-collection",
+      "lastRunAt": "2026-10-19T17:53:48.560Z",
+      "name": "Run baseline benchmark collection",
+      "notes": "First full benchmark run using the v2 design across all available nodes.",
+      "objective": "Collect 30+ benchmark runs and store results in a structured evaluation record.",
+      "priority": 2,
+      "trigger": "queue_relief",
+      "workstream": "Tier-routing benchmark v2"
+    },
+    {
+      "agentId": "lead-researcher",
+      "assigneeType": "role_assignment",
+      "assigneeValue": "lead-researcher",
+      "cadence": "reflection",
+      "contextRequirement": 8192,
+      "dependencyIds": [
+        "run-baseline-benchmark-collection"
+      ],
+      "enabled": true,
+      "groupKey": "benchmark",
+      "id": "analyze-routing-failures",
+      "lastRunAt": null,
+      "name": "Analyze routing failures",
+      "notes": "Deep-dive on failure modes uncovered in baseline collection.",
+      "objective": "Produce a failure taxonomy and ranked list of improvement hypotheses for the routing layer.",
+      "priority": 3,
+      "trigger": "reflection",
+      "workstream": "Tier-routing benchmark v2"
+    },
+    {
+      "agentId": "cto",
+      "assigneeType": "role_assignment",
+      "assigneeValue": "cto",
+      "cadence": "once",
+      "contextRequirement": 12288,
+      "dependencyIds": [],
+      "enabled": true,
+      "groupKey": "workflow",
+      "id": "improve-workflow-dependency-handling",
+      "lastRunAt": "2026-10-22T17:53:48.560Z",
+      "name": "Improve workflow dependency handling",
+      "notes": "Addresses the 72% completion rate failure in the workflow eval.",
+      "objective": "Ship updated dispatch loop with dependency edge resolution and priority preemption.",
+      "priority": 1,
+      "trigger": "auto",
+      "workstream": "Workflow planner improvements"
+    },
+    {
+      "agentId": "research-engineer",
+      "assigneeType": "role_assignment",
+      "assigneeValue": "research-engineer",
+      "cadence": "once",
+      "contextRequirement": 8192,
+      "dependencyIds": [
+        "analyze-routing-failures",
+        "improve-workflow-dependency-handling"
+      ],
+      "enabled": true,
+      "groupKey": "eval",
+      "id": "build-q1-eval-harness",
+      "lastRunAt": null,
+      "name": "Build Q1 eval harness",
+      "notes": "Depends on both benchmark analysis and improved workflow dispatch.",
+      "objective": "Integrate eval harness with Evals panel and make it triggerable from the Queue.",
+      "priority": 2,
+      "trigger": "manual",
+      "workstream": "Q1 evaluation harness"
+    }
+  ],
+  "version": 1
+}

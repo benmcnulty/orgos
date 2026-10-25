@@ -143,6 +143,9 @@ Design handoff notes:
 
 ## Development
 
+**Prerequisite:** [Bun](https://bun.sh/) must be installed and available on
+your `PATH`. Confirm the installation with `bun --version`.
+
 Run the local development server with:
 
 ```bash
@@ -163,19 +166,18 @@ Run the automated suite with:
 bun test ./.system/tests/*.test.ts
 ```
 
+The suite is hermetic: the integration tests copy the committed fixture
+state in `.system/tests/fixtures/data/` into a temporary root, so no local
+`.data/` directory, demo seed, or running Ollama service is required first.
+(`bun run seed:demo` only creates demo state for exploring orgos manually;
+it is not a test prerequisite.)
+
 The test suite covers:
 
 - isolated server helpers and inference discovery logic
 - persistence and filesystem APIs
 - bootstrap payloads and org-scoped/system-scoped data boundaries
 - UI regression for the integrated shell and application panels
-
-## Guidance
-
-Repository guidance for implementation agents is documented in:
-
-- `AGENTS.md`
-- `CLAUDE.md`
 
 ## License
 

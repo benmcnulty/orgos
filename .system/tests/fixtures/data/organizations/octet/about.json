@@ -1,0 +1,10 @@
+{
+  "createdAt": "2026-07-26T17:53:48.560Z",
+  "description": "Autonomous research lab focused on multi-agent inference orchestration. Octet builds coordination primitives for agentic organizations operating at scale.",
+  "founded": "2026",
+  "id": "octet",
+  "mission": "Make autonomous organization a tractable problem.",
+  "name": "Octet",
+  "updatedAt": "2026-10-23T17:53:48.560Z",
+  "website": "https://octet.example"
+}

@@ -1,0 +1,33 @@
+[
+  {
+    "createdAt": "2026-10-19T17:53:48.560Z",
+    "createdBy": "Adelaide Hartwell",
+    "id": "benchmark-v2-pipeline",
+    "objective": "Complete benchmark v2: design → collect → analyze → synthesize findings into a published report.",
+    "organizationId": "octet",
+    "status": "running",
+    "taskIds": [
+      "tier-routing-benchmark-design-task",
+      "tier-routing-data-collection-task",
+      "routing-failure-analysis-task",
+      "benchmark-report-draft-task"
+    ],
+    "title": "Benchmark v2 pipeline",
+    "updatedAt": "2026-10-23T17:53:48.560Z"
+  },
+  {
+    "createdAt": "2026-10-14T17:53:48.560Z",
+    "createdBy": "Priya Ramanathan",
+    "id": "dispatch-fix-workflow",
+    "objective": "Ship the workflow dispatch fix: diagnose root cause, implement dependency resolution fix, validate with eval harness.",
+    "organizationId": "octet",
+    "status": "done",
+    "taskIds": [
+      "dispatch-root-cause-task",
+      "dependency-resolution-fix-task",
+      "dispatch-validation-task"
+    ],
+    "title": "Dispatch fix workflow",
+    "updatedAt": "2026-10-23T17:53:48.560Z"
+  }
+]

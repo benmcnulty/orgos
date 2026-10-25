@@ -1,0 +1,175 @@
+{
+  "departments": [
+    {
+      "createdAt": "2026-07-26T17:53:48.560Z",
+      "id": "research",
+      "name": "Research",
+      "summary": "Core research into multi-agent inference and coordination.",
+      "updatedAt": "2026-09-24T17:53:48.560Z"
+    }
+  ],
+  "identities": [
+    {
+      "createdAt": "2026-07-26T17:53:48.560Z",
+      "employeeNumber": 1,
+      "id": "adelaide-hartwell",
+      "influence": "First-principles thinker. Holds the organization to its mission under pressure.",
+      "memoryRoot": "memory/identities/adelaide-hartwell",
+      "name": "Adelaide Hartwell",
+      "personaSummary": "Decisive and strategically patient. Communicates in precise, low-word-count directives.",
+      "promptFile": "prompts/agents/ceo-system.txt",
+      "roleId": "ceo",
+      "roleTitle": "Chief Executive Officer",
+      "systemRole": false,
+      "templateName": "CEO",
+      "updatedAt": "2026-10-23T17:53:48.560Z"
+    },
+    {
+      "createdAt": "2026-07-26T17:53:48.560Z",
+      "employeeNumber": 2,
+      "id": "marcus-chen",
+      "influence": "Operationally fluent. Keeps things moving when direction is ambiguous.",
+      "memoryRoot": "memory/identities/marcus-chen",
+      "name": "Marcus Chen",
+      "personaSummary": "Pragmatic and process-oriented. Surfaces blockers early and resolves them fast.",
+      "promptFile": "prompts/agents/coo-system.txt",
+      "roleId": "coo",
+      "roleTitle": "Chief Operating Officer",
+      "systemRole": false,
+      "templateName": "COO",
+      "updatedAt": "2026-10-22T17:53:48.560Z"
+    },
+    {
+      "createdAt": "2026-07-28T17:53:48.560Z",
+      "employeeNumber": 3,
+      "id": "priya-ramanathan",
+      "influence": "Deep systems intuition. Drives architectural clarity across the stack.",
+      "memoryRoot": "memory/identities/priya-ramanathan",
+      "name": "Priya Ramanathan",
+      "personaSummary": "Methodical and documentation-driven. Favors explicit contracts over implicit convention.",
+      "promptFile": "prompts/agents/cto-system.txt",
+      "roleId": "cto",
+      "roleTitle": "Chief Technology Officer",
+      "systemRole": false,
+      "templateName": "CTO",
+      "updatedAt": "2026-10-23T17:53:48.560Z"
+    },
+    {
+      "createdAt": "2026-08-05T17:53:48.560Z",
+      "employeeNumber": 4,
+      "id": "yuki-tanaka",
+      "influence": "Sharp experimental instinct. Questions assumptions before designing benchmarks.",
+      "memoryRoot": "memory/identities/yuki-tanaka",
+      "name": "Yuki Tanaka",
+      "personaSummary": "Rigorous and skeptical. Insists on reproducibility. Writes clear, minimal prose.",
+      "promptFile": "prompts/agents/ceo-system.txt",
+      "roleId": "lead-researcher",
+      "roleTitle": "Lead Researcher",
+      "systemRole": false,
+      "templateName": "Lead Researcher",
+      "updatedAt": "2026-10-21T17:53:48.560Z"
+    },
+    {
+      "createdAt": "2026-08-25T17:53:48.560Z",
+      "employeeNumber": 5,
+      "id": "sam-okafor",
+      "influence": "Builds fast and iterates. Good at instrumenting systems others can't see into.",
+      "memoryRoot": "memory/identities/sam-okafor",
+      "name": "Sam Okafor",
+      "personaSummary": "Energetic and curious. Comfortable with ambiguity, good at narrowing it.",
+      "promptFile": "prompts/agents/ceo-system.txt",
+      "roleId": "research-engineer",
+      "roleTitle": "Research Engineer",
+      "systemRole": false,
+      "templateName": "Research Engineer",
+      "updatedAt": "2026-10-19T17:53:48.560Z"
+    }
+  ],
+  "roles": [
+    {
+      "assigneeLabel": "Adelaide Hartwell",
+      "createdAt": "2026-07-26T17:53:48.560Z",
+      "id": "ceo",
+      "identityId": "adelaide-hartwell",
+      "notes": "Strategic direction, board liaison, and org-level objectives.",
+      "status": "assigned",
+      "teamId": "coordination",
+      "templateId": "ceo",
+      "templateName": "CEO",
+      "title": "Chief Executive Officer",
+      "updatedAt": "2026-10-23T17:53:48.560Z"
+    },
+    {
+      "assigneeLabel": "Marcus Chen",
+      "createdAt": "2026-07-26T17:53:48.560Z",
+      "id": "coo",
+      "identityId": "marcus-chen",
+      "notes": "Operations, resource allocation, and cross-team coordination.",
+      "status": "assigned",
+      "teamId": "coordination",
+      "templateId": "coo",
+      "templateName": "COO",
+      "title": "Chief Operating Officer",
+      "updatedAt": "2026-10-22T17:53:48.560Z"
+    },
+    {
+      "assigneeLabel": "Priya Ramanathan",
+      "createdAt": "2026-07-28T17:53:48.560Z",
+      "id": "cto",
+      "identityId": "priya-ramanathan",
+      "notes": "Technical architecture, inference stack, and tooling roadmap.",
+      "status": "assigned",
+      "teamId": "inference-lab",
+      "templateId": "cto",
+      "templateName": "CTO",
+      "title": "Chief Technology Officer",
+      "updatedAt": "2026-10-23T17:53:48.560Z"
+    },
+    {
+      "assigneeLabel": "Yuki Tanaka",
+      "createdAt": "2026-08-05T17:53:48.560Z",
+      "id": "lead-researcher",
+      "identityId": "yuki-tanaka",
+      "notes": "Leads tier-routing research and benchmark design.",
+      "status": "assigned",
+      "teamId": "inference-lab",
+      "templateId": "",
+      "templateName": "Lead Researcher",
+      "title": "Lead Researcher",
+      "updatedAt": "2026-10-21T17:53:48.560Z"
+    },
+    {
+      "assigneeLabel": "Sam Okafor",
+      "createdAt": "2026-08-25T17:53:48.560Z",
+      "id": "research-engineer",
+      "identityId": "sam-okafor",
+      "notes": "Inference telemetry, node health monitoring, and eval harness.",
+      "status": "assigned",
+      "teamId": "inference-lab",
+      "templateId": "",
+      "templateName": "Research Engineer",
+      "title": "Research Engineer",
+      "updatedAt": "2026-10-19T17:53:48.560Z"
+    }
+  ],
+  "teams": [
+    {
+      "createdAt": "2026-07-31T17:53:48.560Z",
+      "departmentId": "research",
+      "id": "inference-lab",
+      "name": "Inference Lab",
+      "summary": "Tier routing, dispatch optimization, and node health.",
+      "updatedAt": "2026-10-17T17:53:48.560Z"
+    },
+    {
+      "createdAt": "2026-07-31T17:53:48.560Z",
+      "departmentId": "research",
+      "id": "coordination",
+      "name": "Coordination",
+      "summary": "Workflow planning, facilitator logic, and reflection loops.",
+      "updatedAt": "2026-10-17T17:53:48.560Z"
+    }
+  ],
+  "updatedAt": "2026-10-23T17:53:48.560Z",
+  "version": 1
+}

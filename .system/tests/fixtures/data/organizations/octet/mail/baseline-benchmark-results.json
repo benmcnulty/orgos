@@ -1,0 +1,11 @@
+{
+  "body": "Priya — the baseline benchmark run is complete. Routing accuracy is 87% overall but drops to 61% on cold-start topology. I'm writing up the failure taxonomy now. Should have something for you to review by end of day.",
+  "folder": "inbox",
+  "from": "Yuki Tanaka",
+  "id": "baseline-benchmark-results",
+  "orgId": "octet",
+  "readAt": "2026-10-20T17:53:48.560Z",
+  "sentAt": "2026-10-19T17:53:48.560Z",
+  "subject": "Baseline benchmark results — routing accuracy 87%",
+  "to": "Priya Ramanathan"
+}

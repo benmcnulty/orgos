@@ -1,0 +1,22 @@
+{
+  "agenda": [
+    "Walk through baseline benchmark results",
+    "Identify top-3 routing failure modes",
+    "Assign follow-up research tasks"
+  ],
+  "completedAt": null,
+  "consensus": "",
+  "createdAt": "2026-10-21T17:53:48.560Z",
+  "id": "tier-routing-review",
+  "minutes": null,
+  "orgId": "octet",
+  "participants": [
+    "Priya Ramanathan",
+    "Yuki Tanaka",
+    "Sam Okafor"
+  ],
+  "startedAt": null,
+  "status": "pending",
+  "summary": "Deep-dive on baseline benchmark results and routing failure analysis.",
+  "title": "Tier-routing review"
+}

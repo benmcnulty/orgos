@@ -1,0 +1,11 @@
+{
+  "body": "Sam — I need the dependency timeout trace from your last dispatch run. The workflow completion rate dropped to 72% and I want to understand if it's the resolution logic or the queue pressure. Attach the telemetry export when you get a chance.",
+  "folder": "inbox",
+  "from": "Priya Ramanathan",
+  "id": "dependency-timeout-trace-request",
+  "orgId": "octet",
+  "readAt": null,
+  "sentAt": "2026-10-22T17:53:48.560Z",
+  "subject": "Need the dependency timeout trace",
+  "to": "Sam Okafor"
+}
